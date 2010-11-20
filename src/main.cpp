@@ -234,6 +234,7 @@ class gui
 		~gui();
 		int display();
 		int handle_keydown(SDLKey k);
+		int handle_mousemotion(const SDL_MouseMotionEvent& ev);
 		camera cam;
 	private:
 		int show_terrain_image(int x, int y, int xpos, int ypos) const;
@@ -443,6 +444,32 @@ color gui::get_minimap_color(int x, int y) const
 	return sdl_get_pixel(terrains[val], 16, 16);
 }
 
+int gui::handle_mousemotion(const SDL_MouseMotionEvent& ev)
+{
+	bool redraw = false;
+	const int border = tile_w;
+	if(ev.x >= sidebar_size * tile_w && ev.x < sidebar_size * tile_w + border) {
+		if(cam.cam_x > 0)
+			cam.cam_x--, redraw = true;
+	}
+	else if(ev.x > screen_w - border) {
+		if(cam.cam_x < m.size_x - cam_total_tiles_x - 1)
+			cam.cam_x++, redraw = true;
+	}
+	if(ev.y < border) {
+		if(cam.cam_y > 0)
+			cam.cam_y--, redraw = true;
+	}
+	else if(ev.y > screen_h - border) {
+		if(cam.cam_y < m.size_y - cam_total_tiles_y - 1)
+			cam.cam_y++, redraw = true;
+	}
+
+	if(redraw)
+		display();
+	return 0;
+}
+
 int run()
 {
 	std::vector<unit*> units;
@@ -464,6 +491,10 @@ int run()
 		switch(event.type) {
 			case SDL_KEYDOWN:
 				if(g.handle_keydown(event.key.keysym.sym))
+					running = false;
+				break;
+			case SDL_MOUSEMOTION:
+				if(g.handle_mousemotion(event.motion))
 					running = false;
 				break;
 			case SDL_QUIT:
