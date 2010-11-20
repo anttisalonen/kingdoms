@@ -2,6 +2,7 @@
 #include <unistd.h>
 
 #include <vector>
+#include <map>
 #include <utility>
 
 #include "SDL/SDL.h"
@@ -17,6 +18,7 @@ struct color {
 	int g;
 	int b;
 	color(int r_, int g_, int b_);
+	bool operator<(const color& oth) const;
 };
 
 color::color(int r_, int g_, int b_)
@@ -24,6 +26,19 @@ color::color(int r_, int g_, int b_)
 	g(g_),
 	b(b_)
 {
+}
+
+bool color::operator<(const color& oth) const
+{
+	if(r < oth.r)
+		return true;
+	if(r > oth.r)
+		return false;
+	if(g < oth.g)
+		return true;
+	if(g > oth.g)
+		return false;
+	return b < oth.b;
 }
 
 /* doesn't update the screen. lock must be held.
@@ -139,17 +154,19 @@ SDL_Surface* sdl_load_image(const char* filename)
 class unit
 {
 	public:
-		unit(int uid, int x, int y, const color& c);
+		unit(int uid, int x, int y, const color& c_);
 		~unit();
 		int unit_id;
 		int xpos;
 		int ypos;
+		color c;
 };
 
-unit::unit(int uid, int x, int y, const color& c)
+unit::unit(int uid, int x, int y, const color& c_)
 	: unit_id(uid),
 	xpos(x),
-	ypos(y)
+	ypos(y),
+	c(c_)
 {
 	printf("Constructing unit\n");
 }
@@ -210,23 +227,25 @@ struct camera {
 
 class gui
 {
+	typedef std::map<std::pair<int, color>, SDL_Surface*> UnitImageMap;
 	public:
 		gui(int x, int y, const map& mm, const std::vector<const char*>& terrain_files,
 				const std::vector<const char*>& unit_files);
 		~gui();
-		int display() const;
+		int display();
 		int handle_keydown(SDLKey k);
 		camera cam;
 	private:
 		int show_terrain_image(int x, int y, int xpos, int ypos) const;
-		int draw_main_map() const;
+		int draw_main_map();
 		int draw_sidebar() const;
-		int draw_unit(const unit& u) const;
+		int draw_unit(const unit& u);
 		color get_minimap_color(int x, int y) const;
 		const map& m;
 		SDL_Surface* screen;
 		std::vector<SDL_Surface*> terrains;
-		std::vector<SDL_Surface*> unit_images;
+		std::vector<SDL_Surface*> plain_unit_images;
+		UnitImageMap unit_images;
 		const int tile_w;
 		const int tile_h;
 		const int screen_w;
@@ -260,10 +279,9 @@ gui::gui(int x, int y, const map& mm, const std::vector<const char*>& terrain_fi
 	for(unsigned int i = 0; i < terrain_files.size(); i++) {
 		terrains[i] = sdl_load_image(terrain_files[i]);
 	}
-	unit_images.resize(unit_files.size());
+	plain_unit_images.resize(unit_files.size());
 	for(unsigned int i = 0; i < unit_files.size(); i++) {
-		unit_images[i] = sdl_load_image(unit_files[i]);
-		sdl_change_pixel_color(unit_images[i], color(0, 255, 255), color(255, 0, 0));
+		plain_unit_images[i] = sdl_load_image(unit_files[i]);
 	}
 	cam.cam_x = cam.cam_y = 0;
 }
@@ -293,7 +311,7 @@ int gui::show_terrain_image(int x, int y, int xpos, int ypos) const
 	return 0;
 }
 
-int gui::display() const
+int gui::display()
 {
 	if (SDL_MUSTLOCK(screen)) {
 		if (SDL_LockSurface(screen) < 0) {
@@ -327,9 +345,9 @@ int gui::draw_sidebar() const
 	return 0;
 }
 
-int gui::draw_unit(const unit& u) const
+int gui::draw_unit(const unit& u)
 {
-	if(u.unit_id < 0 || u.unit_id >= (int)unit_images.size()) {
+	if(u.unit_id < 0 || u.unit_id >= (int)plain_unit_images.size()) {
 		fprintf(stderr, "Image for Unit ID %d not loaded\n", u.unit_id);
 		return 1;
 	}
@@ -338,7 +356,20 @@ int gui::draw_unit(const unit& u) const
 		SDL_Rect dest;
 		dest.x = (u.xpos + sidebar_size - cam.cam_x) * tile_w;
 		dest.y = (u.ypos - cam.cam_y) * tile_h;
-		if(SDL_BlitSurface(unit_images[u.unit_id], NULL, screen, &dest)) {
+		SDL_Surface* surf = NULL;
+		UnitImageMap::const_iterator it = unit_images.find(std::make_pair(u.unit_id, u.c));
+		if(it == unit_images.end()) {
+			// load image
+			SDL_Surface* plain = plain_unit_images[u.unit_id];
+			SDL_Surface* result = SDL_DisplayFormat(plain);
+			sdl_change_pixel_color(result, color(0, 255, 255), u.c);
+			unit_images.insert(std::make_pair(std::make_pair(u.unit_id, u.c), result));
+			surf = result;
+		}
+		else
+			surf = it->second;
+
+		if(SDL_BlitSurface(surf, NULL, screen, &dest)) {
 			fprintf(stderr, "Unable to blit surface: %s\n", SDL_GetError());
 			return 1;
 		}
@@ -346,7 +377,7 @@ int gui::draw_unit(const unit& u) const
 	return 0;
 }
 
-int gui::draw_main_map() const
+int gui::draw_main_map()
 {
 	int imax = std::min(cam.cam_y + cam_total_tiles_y, m.size_y);
 	int jmax = std::min(cam.cam_x + cam_total_tiles_x, m.size_x);
