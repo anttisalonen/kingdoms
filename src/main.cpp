@@ -245,7 +245,7 @@ class gui
 		~gui();
 		int display();
 		int handle_keydown(SDLKey k, int current_unit_id);
-		int handle_mousemotion(const SDL_MouseMotionEvent& ev);
+		int handle_mousemotion(int x, int y);
 		int process(int ms, int current_unit_id);
 		camera cam;
 	private:
@@ -530,10 +530,10 @@ int gui::handle_keydown(SDLKey k, int current_unit_id)
 
 color gui::get_minimap_color(int x, int y) const
 {
-	if((x >= cam.cam_x && x <= cam.cam_x + cam_total_tiles_x) &&
-	   (y >= cam.cam_y && y <= cam.cam_y + cam_total_tiles_y) &&
-	   (x == cam.cam_x || x == cam.cam_x + cam_total_tiles_x ||
-	    y == cam.cam_y || y == cam.cam_y + cam_total_tiles_y))
+	if((x >= cam.cam_x && x <= cam.cam_x + cam_total_tiles_x - 1) &&
+	   (y >= cam.cam_y && y <= cam.cam_y + cam_total_tiles_y - 1) &&
+	   (x == cam.cam_x || x == cam.cam_x + cam_total_tiles_x - 1 ||
+	    y == cam.cam_y || y == cam.cam_y + cam_total_tiles_y - 1))
 		return color(255, 255, 255);
 	int val = m.get_data(x, y);
 	if(val < 0 || val >= (int)terrains.size()) {
@@ -544,18 +544,19 @@ color gui::get_minimap_color(int x, int y) const
 	return sdl_get_pixel(terrains[val], 16, 16);
 }
 
-int gui::handle_mousemotion(const SDL_MouseMotionEvent& ev)
+int gui::handle_mousemotion(int x, int y)
 {
 	const int border = tile_w;
-	try_move_camera(ev.x >= sidebar_size * tile_w && ev.x < sidebar_size * tile_w + border,
-			ev.x > screen_w - border,
-			ev.y < border,
-			ev.y > screen_h - border);
+	try_move_camera(x >= sidebar_size * tile_w && x < sidebar_size * tile_w + border,
+			x > screen_w - border,
+			y < border,
+			y > screen_h - border);
 	return 0;
 }
 
 int gui::process(int ms, int current_unit_id)
 {
+	int old_timer = timer;
 	timer += ms;
 	int old_blink_unit = blink_unit;
 	if(timer % 1000 > 700) {
@@ -566,6 +567,11 @@ int gui::process(int ms, int current_unit_id)
 	}
 	if(blink_unit != old_blink_unit)
 		display();
+	if(old_timer / 200 != timer / 200) {
+		int x, y;
+		SDL_GetMouseState(&x, &y);
+		handle_mousemotion(x, y);
+	}
 	return 0;
 }
 
@@ -591,10 +597,6 @@ int run()
 			switch(event.type) {
 				case SDL_KEYDOWN:
 					if(g.handle_keydown(event.key.keysym.sym, current_unit_id))
-						running = false;
-					break;
-				case SDL_MOUSEMOTION:
-					if(g.handle_mousemotion(event.motion))
 						running = false;
 					break;
 				case SDL_QUIT:
