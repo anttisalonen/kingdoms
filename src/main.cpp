@@ -58,6 +58,20 @@ struct camera {
 	int cam_y;
 };
 
+struct color {
+	int r;
+	int g;
+	int b;
+	color(int r_, int g_, int b_);
+};
+
+color::color(int r_, int g_, int b_)
+	: r(r_),
+	g(g_),
+	b(b_)
+{
+}
+
 class gui
 {
 	public:
@@ -68,6 +82,9 @@ class gui
 		camera cam;
 	private:
 		int show_terrain_image(int x, int y, int xpos, int ypos) const;
+		int draw_main_map() const;
+		int draw_sidebar() const;
+		color get_minimap_color(int x, int y) const;
 		const map& m;
 		SDL_Surface* screen;
 		std::vector<SDL_Surface*> terrains;
@@ -75,8 +92,9 @@ class gui
 		const int tile_h;
 		const int screen_w;
 		const int screen_h;
-		const int total_tiles_x;
-		const int total_tiles_y;
+		const int cam_total_tiles_x;
+		const int cam_total_tiles_y;
+		const int sidebar_size;
 };
 
 gui::gui(int x, int y, const map& mm, const std::vector<const char*>& terrain_files)
@@ -85,8 +103,9 @@ gui::gui(int x, int y, const map& mm, const std::vector<const char*>& terrain_fi
 	tile_h(32),
 	screen_w(x),
 	screen_h(y),
-	total_tiles_x((screen_w + tile_w - 1) / tile_w),
-	total_tiles_y((screen_h + tile_h - 1) / tile_h)
+	cam_total_tiles_x((screen_w + tile_w - 1) / tile_w),
+	cam_total_tiles_y((screen_h + tile_h - 1) / tile_h),
+	sidebar_size(4)
 {
 	screen = SDL_SetVideoMode(x, y, 32, SDL_SWSURFACE);
 	if (!screen) {
@@ -99,10 +118,18 @@ gui::gui(int x, int y, const map& mm, const std::vector<const char*>& terrain_fi
 	}
 	terrains.resize(terrain_files.size());
 	for(unsigned int i = 0; i < terrain_files.size(); i++) {
-		terrains[i] = IMG_Load(terrain_files[i]);
-		if(!terrains[i]) {
+		SDL_Surface* img = IMG_Load(terrain_files[i]);
+		if(!img) {
 			fprintf(stderr, "Unable to load terrain '%s': %s\n", terrain_files[i],
 				       	IMG_GetError());
+		}
+		else {
+			terrains[i] = SDL_DisplayFormat(img);
+			SDL_FreeSurface(img);
+			if(!terrains[i]) {
+				fprintf(stderr, "Unable to convert terrain '%s': %s\n",
+						terrain_files[i], SDL_GetError());
+			}
 		}
 	}
 	cam.cam_x = cam.cam_y = 0;
@@ -135,18 +162,121 @@ int gui::show_terrain_image(int x, int y, int xpos, int ypos) const
 
 int gui::display() const
 {
-	int imax = std::min(cam.cam_y + total_tiles_y, m.size_y);
-	int jmax = std::min(cam.cam_x + total_tiles_x, m.size_x);
+	if (SDL_MUSTLOCK(screen)) {
+		if (SDL_LockSurface(screen) < 0) {
+			return 1;
+		}
+	}
+	draw_sidebar();
+	if (SDL_MUSTLOCK(screen)) {
+		SDL_UnlockSurface(screen);
+	}
+	draw_main_map();
+	if(SDL_Flip(screen)) {
+		fprintf(stderr, "Unable to flip: %s\n", SDL_GetError());
+		return 1;
+	}
+	return 0;
+}
+
+/* doesn't update the screen. lock must be held.
+ * snippet from: http://www.libsdl.org/intro.en/usingvideo.html */
+void sdl_put_pixel(SDL_Surface* screen, int x, int y, const color& c)
+{
+	Uint32 color = SDL_MapRGB(screen->format, c.r, c.g, c.b);
+
+	switch (screen->format->BytesPerPixel) {
+		case 1: { /* Assuming 8-bpp */
+				Uint8 *bufp;
+
+				bufp = (Uint8 *)screen->pixels + y*screen->pitch + x;
+				*bufp = color;
+			}
+			break;
+
+		case 2: { /* Probably 15-bpp or 16-bpp */
+				Uint16 *bufp;
+
+				bufp = (Uint16 *)screen->pixels + y*screen->pitch/2 + x;
+				*bufp = color;
+			}
+			break;
+
+		case 3: { /* Slow 24-bpp mode, usually not used */
+				Uint8 *bufp;
+
+				bufp = (Uint8 *)screen->pixels + y*screen->pitch + x;
+				*(bufp+screen->format->Rshift/8) = c.r;
+				*(bufp+screen->format->Gshift/8) = c.g;
+				*(bufp+screen->format->Bshift/8) = c.b;
+			}
+			break;
+
+		case 4: { /* Probably 32-bpp */
+				Uint32 *bufp;
+
+				bufp = (Uint32 *)screen->pixels + y*screen->pitch/4 + x;
+				*bufp = color;
+			}
+			break;
+	}
+}
+
+color sdl_get_pixel(SDL_Surface* screen, int x, int y)
+{
+	Uint8 r, g, b;
+	Uint32 pixel;
+	switch (screen->format->BytesPerPixel) {
+		case 1: { /* Assuming 8-bpp */
+				Uint8 *bufp;
+				bufp = (Uint8 *)screen->pixels + y*screen->pitch + x;
+				pixel = *bufp;
+			}
+			break;
+
+		case 2: { /* Probably 15-bpp or 16-bpp */
+				Uint16 *bufp;
+				bufp = (Uint16 *)screen->pixels + y*screen->pitch/2 + x;
+				pixel = *bufp;
+			}
+			break;
+
+		case 4: { /* Probably 32-bpp */
+				Uint32 *bufp;
+				bufp = (Uint32 *)screen->pixels + y*screen->pitch/4 + x;
+				pixel = *bufp;
+			}
+			break;
+	}
+	SDL_GetRGB(pixel, screen->format, &r, &g, &b);
+	return color(r, g, b);
+}
+
+int gui::draw_sidebar() const
+{
+	const int minimap_w = sidebar_size * tile_w;
+	const int minimap_h = sidebar_size * tile_h / 2;
+	for(int i = 0; i < minimap_h; i++) {
+		int y = i * m.size_y / minimap_h;
+		for(int j = 0; j < minimap_w; j++) {
+			int x = j * m.size_x / minimap_w;
+			sdl_put_pixel(screen, j, i, get_minimap_color(x, y));
+		}
+	}
+	SDL_UpdateRect(screen, 0, 0, minimap_w, minimap_h);
+	return 0;
+}
+
+int gui::draw_main_map() const
+{
+	int imax = std::min(cam.cam_y + cam_total_tiles_y, m.size_y);
+	int jmax = std::min(cam.cam_x + cam_total_tiles_x, m.size_x);
 	for(int i = cam.cam_y, y = 0; i < imax; i++, y++) {
-		for(int j = cam.cam_x, x = 0; j < jmax; j++, x++) {
+		for(int j = cam.cam_x, x = sidebar_size; j < jmax; j++, x++) {
 			if(show_terrain_image(j, i, x, y)) {
 				return 1;
 			}
 		}
-	}
-	if(SDL_Flip(screen)) {
-		fprintf(stderr, "Unable to flip: %s\n", SDL_GetError());
-		return 1;
 	}
 	return 0;
 }
@@ -160,7 +290,7 @@ int gui::handle_keydown(SDLKey k)
 				cam.cam_x--, redraw = true;
 			break;
 		case SDLK_RIGHT:
-			if(cam.cam_x < m.size_x - total_tiles_x - 1)
+			if(cam.cam_x < m.size_x - cam_total_tiles_x - 1)
 				cam.cam_x++, redraw = true;
 			break;
 		case SDLK_UP:
@@ -168,7 +298,7 @@ int gui::handle_keydown(SDLKey k)
 				cam.cam_y--, redraw = true;
 			break;
 		case SDLK_DOWN:
-			if(cam.cam_y < m.size_y - total_tiles_y - 1)
+			if(cam.cam_y < m.size_y - cam_total_tiles_y - 1)
 				cam.cam_y++, redraw = true;
 			break;
 		case SDLK_ESCAPE:
@@ -182,12 +312,28 @@ int gui::handle_keydown(SDLKey k)
 	return 0;
 }
 
+color gui::get_minimap_color(int x, int y) const
+{
+	if((x >= cam.cam_x && x <= cam.cam_x + cam_total_tiles_x) &&
+	   (y >= cam.cam_y && y <= cam.cam_y + cam_total_tiles_y) &&
+	   (x == cam.cam_x || x == cam.cam_x + cam_total_tiles_x ||
+	    y == cam.cam_y || y == cam.cam_y + cam_total_tiles_y))
+		return color(255, 255, 255);
+	int val = m.get_data(x, y);
+	if(val < 0 || val >= (int)terrains.size()) {
+		fprintf(stderr, "Terrain at %d not loaded at (%d, %d)\n", val,
+				x, y);
+		return color(0, 0, 0);
+	}
+	return sdl_get_pixel(terrains[val], 16, 16);
+}
+
 int run()
 {
 	std::vector<const char*> terrain_files;
 	terrain_files.push_back("share/terrain1.png");
 	terrain_files.push_back("share/terrain2.png");
-	map m(64, 64);
+	map m(64, 32);
 	gui g(640, 480, m, terrain_files);
 	g.display();
 	while(1) {
@@ -221,5 +367,4 @@ int main(int argc, char **argv)
 	SDL_Quit();
 	return 0;
 }
-
 
