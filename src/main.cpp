@@ -99,6 +99,21 @@ color sdl_get_pixel(SDL_Surface* screen, int x, int y)
 	return color(r, g, b);
 }
 
+void sdl_change_pixel_color(SDL_Surface* screen, const color& src, const color& dst)
+{
+	if(screen->format->BytesPerPixel != 4)
+		return;
+	Uint32 src_color = SDL_MapRGB(screen->format, src.r, src.g, src.b);
+	Uint32 dst_color = SDL_MapRGB(screen->format, dst.r, dst.g, dst.b);
+	for(int i = 0; i < screen->h; i++) {
+		for(int j = 0; j < screen->w; j++) {
+			Uint32 *bufp = (Uint32*)screen->pixels + i * screen->pitch / 4 + j;
+			if(*bufp == src_color)
+				*bufp = dst_color;
+		}
+	}
+}
+
 SDL_Surface* sdl_load_image(const char* filename)
 {
 	SDL_Surface* img = IMG_Load(filename);
@@ -248,6 +263,7 @@ gui::gui(int x, int y, const map& mm, const std::vector<const char*>& terrain_fi
 	unit_images.resize(unit_files.size());
 	for(unsigned int i = 0; i < unit_files.size(); i++) {
 		unit_images[i] = sdl_load_image(unit_files[i]);
+		sdl_change_pixel_color(unit_images[i], color(0, 255, 255), color(255, 0, 0));
 	}
 	cam.cam_x = cam.cam_y = 0;
 }
