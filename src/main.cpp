@@ -13,6 +13,16 @@ bool in_bounds(int a, int b, int c)
 	return a <= b && b <= c;
 }
 
+template<typename N>
+N clamp(N min, N val, N max)
+{
+	if(val < min)
+		return min;
+	if(val > max)
+		return max;
+	return val;
+}
+
 struct color {
 	int r;
 	int g;
@@ -181,6 +191,7 @@ class map {
 		map(int x, int y, const std::vector<unit*>& units_);
 		~map();
 		int get_data(int x, int y) const;
+		int try_move_unit(SDLKey k, int current_unit_id);
 		const int size_x;
 		const int size_y;
 	private:
@@ -229,11 +240,11 @@ class gui
 {
 	typedef std::map<std::pair<int, color>, SDL_Surface*> UnitImageMap;
 	public:
-		gui(int x, int y, const map& mm, const std::vector<const char*>& terrain_files,
+		gui(int x, int y, map& mm, const std::vector<const char*>& terrain_files,
 				const std::vector<const char*>& unit_files);
 		~gui();
 		int display();
-		int handle_keydown(SDLKey k);
+		int handle_keydown(SDLKey k, int current_unit_id);
 		int handle_mousemotion(const SDL_MouseMotionEvent& ev);
 		camera cam;
 	private:
@@ -243,7 +254,8 @@ class gui
 		int draw_unit(const unit& u);
 		color get_minimap_color(int x, int y) const;
 		int try_move_camera(bool left, bool right, bool up, bool down);
-		const map& m;
+		int center_camera_to_unit(int unit_id);
+		map& m;
 		SDL_Surface* screen;
 		std::vector<SDL_Surface*> terrains;
 		std::vector<SDL_Surface*> plain_unit_images;
@@ -257,7 +269,7 @@ class gui
 		const int sidebar_size;
 };
 
-gui::gui(int x, int y, const map& mm, const std::vector<const char*>& terrain_files,
+gui::gui(int x, int y, map& mm, const std::vector<const char*>& terrain_files,
 		const std::vector<const char*>& unit_files)
 	: m(mm),
 	tile_w(32),
@@ -406,7 +418,7 @@ int gui::try_move_camera(bool left, bool right, bool up, bool down)
 			cam.cam_x--, redraw = true;
 	}
 	else if(right) {
-		if(cam.cam_x < m.size_x - cam_total_tiles_x - 1)
+		if(cam.cam_x < m.size_x - cam_total_tiles_x)
 			cam.cam_x++, redraw = true;
 	}
 	if(up) {
@@ -414,7 +426,7 @@ int gui::try_move_camera(bool left, bool right, bool up, bool down)
 			cam.cam_y--, redraw = true;
 	}
 	else if(down) {
-		if(cam.cam_y < m.size_y - cam_total_tiles_y - 1)
+		if(cam.cam_y < m.size_y - cam_total_tiles_y)
 			cam.cam_y++, redraw = true;
 	}
 	if(redraw)
@@ -422,11 +434,81 @@ int gui::try_move_camera(bool left, bool right, bool up, bool down)
 	return redraw;
 }
 
-int gui::handle_keydown(SDLKey k)
+int map::try_move_unit(SDLKey k, int current_unit_id)
 {
-	try_move_camera(k == SDLK_LEFT, k == SDLK_RIGHT, k == SDLK_UP, k == SDLK_DOWN);
+	if(current_unit_id < 0 || current_unit_id >= (int)units.size())
+		return 0;
+	int chx = 0, chy = 0;
+	switch(k) {
+		case SDLK_KP4:
+			chx = -1;
+			break;
+		case SDLK_KP6:
+			chx = 1;
+			break;
+		case SDLK_KP8:
+			chy = -1;
+			break;
+		case SDLK_KP2:
+			chy = 1;
+			break;
+		case SDLK_KP1:
+			chx = -1;
+			chy = 1;
+			break;
+		case SDLK_KP3:
+			chx = 1;
+			chy = 1;
+			break;
+		case SDLK_KP7:
+			chx = -1;
+			chy = -1;
+			break;
+		case SDLK_KP9:
+			chx = 1;
+			chy = -1;
+			break;
+		default:
+			break;
+	}
+	if(chx || chy) {
+		unit* u = units[current_unit_id];
+		if(get_data(u->xpos + chx, u->ypos + chy) > 0) {
+			u->xpos += chx;
+			u->ypos += chy;
+			return 1;
+		}
+	}
+	return 0;
+}
+
+int gui::center_camera_to_unit(int unit_id)
+{
+	unit* u = m.units[unit_id];
+	const int border = 3;
+	bool adj = false;
+	if(!in_bounds(cam.cam_x + border, u->xpos, cam.cam_x - sidebar_size + cam_total_tiles_x - border)) {
+		cam.cam_x = clamp(0, u->xpos - (-sidebar_size + cam_total_tiles_x) / 2, m.size_x - cam_total_tiles_x);
+		adj = true;
+	}
+	if(!in_bounds(cam.cam_y + border, u->ypos, cam.cam_y + cam_total_tiles_y - border)) {
+		cam.cam_y = clamp(0, u->ypos - cam_total_tiles_y / 2, m.size_y - cam_total_tiles_y);
+		adj = true;
+	}
+	return adj;
+}
+
+int gui::handle_keydown(SDLKey k, int current_unit_id)
+{
 	if(k == SDLK_ESCAPE || k == SDLK_q)
 		return 1;
+	else if(k == SDLK_LEFT || k == SDLK_RIGHT || k == SDLK_UP || k == SDLK_DOWN)
+		try_move_camera(k == SDLK_LEFT, k == SDLK_RIGHT, k == SDLK_UP, k == SDLK_DOWN);
+	else if(current_unit_id != -1)
+		if(m.try_move_unit(k, current_unit_id)) {
+			center_camera_to_unit(current_unit_id);
+			display();
+		}
 	return 0;
 }
 
@@ -467,6 +549,7 @@ int run()
 	terrain_files.push_back("share/terrain2.png");
 	unit_files.push_back("share/settlers.png");
 	bool running = true;
+	int current_unit_id = 0;
 
 	map m(64, 32, units);
 	gui g(640, 480, m, terrain_files, unit_files);
@@ -476,7 +559,7 @@ int run()
 		SDL_WaitEvent(&event);
 		switch(event.type) {
 			case SDL_KEYDOWN:
-				if(g.handle_keydown(event.key.keysym.sym))
+				if(g.handle_keydown(event.key.keysym.sym, current_unit_id))
 					running = false;
 				break;
 			case SDL_MOUSEMOTION:
