@@ -242,6 +242,7 @@ class gui
 		int draw_sidebar() const;
 		int draw_unit(const unit& u);
 		color get_minimap_color(int x, int y) const;
+		int try_move_camera(bool left, bool right, bool up, bool down);
 		const map& m;
 		SDL_Surface* screen;
 		std::vector<SDL_Surface*> terrains;
@@ -397,34 +398,35 @@ int gui::draw_main_map()
 	return 0;
 }
 
-int gui::handle_keydown(SDLKey k)
+int gui::try_move_camera(bool left, bool right, bool up, bool down)
 {
 	bool redraw = false;
-	switch(k) {
-		case SDLK_LEFT:
-			if(cam.cam_x > 0)
-				cam.cam_x--, redraw = true;
-			break;
-		case SDLK_RIGHT:
-			if(cam.cam_x < m.size_x - cam_total_tiles_x - 1)
-				cam.cam_x++, redraw = true;
-			break;
-		case SDLK_UP:
-			if(cam.cam_y > 0)
-				cam.cam_y--, redraw = true;
-			break;
-		case SDLK_DOWN:
-			if(cam.cam_y < m.size_y - cam_total_tiles_y - 1)
-				cam.cam_y++, redraw = true;
-			break;
-		case SDLK_ESCAPE:
-		case SDLK_q:
-			return 1;
-		default:
-			break;
+	if(left) {
+		if(cam.cam_x > 0)
+			cam.cam_x--, redraw = true;
+	}
+	else if(right) {
+		if(cam.cam_x < m.size_x - cam_total_tiles_x - 1)
+			cam.cam_x++, redraw = true;
+	}
+	if(up) {
+		if(cam.cam_y > 0)
+			cam.cam_y--, redraw = true;
+	}
+	else if(down) {
+		if(cam.cam_y < m.size_y - cam_total_tiles_y - 1)
+			cam.cam_y++, redraw = true;
 	}
 	if(redraw)
 		display();
+	return redraw;
+}
+
+int gui::handle_keydown(SDLKey k)
+{
+	try_move_camera(k == SDLK_LEFT, k == SDLK_RIGHT, k == SDLK_UP, k == SDLK_DOWN);
+	if(k == SDLK_ESCAPE || k == SDLK_q)
+		return 1;
 	return 0;
 }
 
@@ -446,27 +448,11 @@ color gui::get_minimap_color(int x, int y) const
 
 int gui::handle_mousemotion(const SDL_MouseMotionEvent& ev)
 {
-	bool redraw = false;
 	const int border = tile_w;
-	if(ev.x >= sidebar_size * tile_w && ev.x < sidebar_size * tile_w + border) {
-		if(cam.cam_x > 0)
-			cam.cam_x--, redraw = true;
-	}
-	else if(ev.x > screen_w - border) {
-		if(cam.cam_x < m.size_x - cam_total_tiles_x - 1)
-			cam.cam_x++, redraw = true;
-	}
-	if(ev.y < border) {
-		if(cam.cam_y > 0)
-			cam.cam_y--, redraw = true;
-	}
-	else if(ev.y > screen_h - border) {
-		if(cam.cam_y < m.size_y - cam_total_tiles_y - 1)
-			cam.cam_y++, redraw = true;
-	}
-
-	if(redraw)
-		display();
+	try_move_camera(ev.x >= sidebar_size * tile_w && ev.x < sidebar_size * tile_w + border,
+			ev.x > screen_w - border,
+			ev.y < border,
+			ev.y > screen_h - border);
 	return 0;
 }
 
