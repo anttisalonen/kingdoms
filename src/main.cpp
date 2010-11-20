@@ -254,7 +254,8 @@ class gui
 		int draw_unit(const unit& u);
 		color get_minimap_color(int x, int y) const;
 		int try_move_camera(bool left, bool right, bool up, bool down);
-		int center_camera_to_unit(int unit_id);
+		void center_camera_to_unit(int unit_id);
+		int try_center_camera_to_unit(int unit_id);
 		map& m;
 		SDL_Surface* screen;
 		std::vector<SDL_Surface*> terrains;
@@ -482,20 +483,23 @@ int map::try_move_unit(SDLKey k, int current_unit_id)
 	return 0;
 }
 
-int gui::center_camera_to_unit(int unit_id)
+void gui::center_camera_to_unit(int unit_id)
+{
+	unit* u = m.units[unit_id];
+	cam.cam_x = clamp(0, u->xpos - (-sidebar_size + cam_total_tiles_x) / 2, m.size_x - cam_total_tiles_x);
+	cam.cam_y = clamp(0, u->ypos - cam_total_tiles_y / 2, m.size_y - cam_total_tiles_y);
+}
+
+int gui::try_center_camera_to_unit(int unit_id)
 {
 	unit* u = m.units[unit_id];
 	const int border = 3;
-	bool adj = false;
-	if(!in_bounds(cam.cam_x + border, u->xpos, cam.cam_x - sidebar_size + cam_total_tiles_x - border)) {
-		cam.cam_x = clamp(0, u->xpos - (-sidebar_size + cam_total_tiles_x) / 2, m.size_x - cam_total_tiles_x);
-		adj = true;
+	if(!in_bounds(cam.cam_x + border, u->xpos, cam.cam_x - sidebar_size + cam_total_tiles_x - border) ||
+	   !in_bounds(cam.cam_y + border, u->ypos, cam.cam_y + cam_total_tiles_y - border)) {
+		center_camera_to_unit(unit_id);
+		return true;
 	}
-	if(!in_bounds(cam.cam_y + border, u->ypos, cam.cam_y + cam_total_tiles_y - border)) {
-		cam.cam_y = clamp(0, u->ypos - cam_total_tiles_y / 2, m.size_y - cam_total_tiles_y);
-		adj = true;
-	}
-	return adj;
+	return false;
 }
 
 int gui::handle_keydown(SDLKey k, int current_unit_id)
@@ -504,11 +508,16 @@ int gui::handle_keydown(SDLKey k, int current_unit_id)
 		return 1;
 	else if(k == SDLK_LEFT || k == SDLK_RIGHT || k == SDLK_UP || k == SDLK_DOWN)
 		try_move_camera(k == SDLK_LEFT, k == SDLK_RIGHT, k == SDLK_UP, k == SDLK_DOWN);
-	else if(current_unit_id != -1)
-		if(m.try_move_unit(k, current_unit_id)) {
+	else if(current_unit_id != -1) {
+		if(k == SDLK_c) {
 			center_camera_to_unit(current_unit_id);
 			display();
 		}
+		else if(m.try_move_unit(k, current_unit_id)) {
+			try_center_camera_to_unit(current_unit_id);
+			display();
+		}
+	}
 	return 0;
 }
 
@@ -552,7 +561,7 @@ int run()
 	int current_unit_id = 0;
 
 	map m(64, 32, units);
-	gui g(640, 480, m, terrain_files, unit_files);
+	gui g(1024, 768, m, terrain_files, unit_files);
 	g.display();
 	while(running) {
 		SDL_Event event;
