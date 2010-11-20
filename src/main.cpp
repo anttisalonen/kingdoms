@@ -246,6 +246,7 @@ class gui
 		int display();
 		int handle_keydown(SDLKey k, int current_unit_id);
 		int handle_mousemotion(const SDL_MouseMotionEvent& ev);
+		int process(int ms, int current_unit_id);
 		camera cam;
 	private:
 		int show_terrain_image(int x, int y, int xpos, int ypos) const;
@@ -268,6 +269,8 @@ class gui
 		const int cam_total_tiles_x;
 		const int cam_total_tiles_y;
 		const int sidebar_size;
+		int timer;
+		int blink_unit;
 };
 
 gui::gui(int x, int y, map& mm, const std::vector<const char*>& terrain_files,
@@ -279,7 +282,9 @@ gui::gui(int x, int y, map& mm, const std::vector<const char*>& terrain_files,
 	screen_h(y),
 	cam_total_tiles_x((screen_w + tile_w - 1) / tile_w),
 	cam_total_tiles_y((screen_h + tile_h - 1) / tile_h),
-	sidebar_size(4)
+	sidebar_size(4),
+	timer(0),
+	blink_unit(-1)
 {
 	screen = SDL_SetVideoMode(x, y, 32, SDL_SWSURFACE);
 	if (!screen) {
@@ -403,8 +408,10 @@ int gui::draw_main_map()
 			}
 		}
 	}
-	for(std::vector<unit*>::const_iterator it = m.units.begin(); it != m.units.end(); ++it) {
-		if(draw_unit(**it)) {
+	for(int i = 0; i < (int)m.units.size(); i++) {
+		if(blink_unit == i)
+			continue;
+		if(draw_unit(*(m.units[i]))) {
 			return 1;
 		}
 	}
@@ -547,6 +554,21 @@ int gui::handle_mousemotion(const SDL_MouseMotionEvent& ev)
 	return 0;
 }
 
+int gui::process(int ms, int current_unit_id)
+{
+	timer += ms;
+	int old_blink_unit = blink_unit;
+	if(timer % 1000 > 700) {
+			blink_unit = current_unit_id;
+	}
+	else {
+		blink_unit = -1;
+	}
+	if(blink_unit != old_blink_unit)
+		display();
+	return 0;
+}
+
 int run()
 {
 	std::vector<unit*> units;
@@ -565,21 +587,24 @@ int run()
 	g.display();
 	while(running) {
 		SDL_Event event;
-		SDL_WaitEvent(&event);
-		switch(event.type) {
-			case SDL_KEYDOWN:
-				if(g.handle_keydown(event.key.keysym.sym, current_unit_id))
+		while(SDL_PollEvent(&event)) {
+			switch(event.type) {
+				case SDL_KEYDOWN:
+					if(g.handle_keydown(event.key.keysym.sym, current_unit_id))
+						running = false;
+					break;
+				case SDL_MOUSEMOTION:
+					if(g.handle_mousemotion(event.motion))
+						running = false;
+					break;
+				case SDL_QUIT:
 					running = false;
-				break;
-			case SDL_MOUSEMOTION:
-				if(g.handle_mousemotion(event.motion))
-					running = false;
-				break;
-			case SDL_QUIT:
-				running = false;
-			default:
-				break;
+				default:
+					break;
+			}
 		}
+		SDL_Delay(50);
+		g.process(50, current_unit_id);
 	}
 	return 0;
 }
