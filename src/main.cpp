@@ -162,22 +162,32 @@ SDL_Surface* sdl_load_image(const char* filename)
 	}
 }
 
+class unit_configuration {
+	public:
+		unsigned int max_moves;
+};
+
+typedef std::map<int, unit_configuration*> unit_configuration_map;
+
 class unit
 {
 	public:
 		unit(int uid, int x, int y, const color& c_);
 		~unit();
+		void refill_moves(unsigned int m);
 		int unit_id;
 		int xpos;
 		int ypos;
 		color c;
+		unsigned int moves;
 };
 
 unit::unit(int uid, int x, int y, const color& c_)
 	: unit_id(uid),
 	xpos(x),
 	ypos(y),
-	c(c_)
+	c(c_),
+	moves(0)
 {
 }
 
@@ -185,11 +195,17 @@ unit::~unit()
 {
 }
 
+void unit::refill_moves(unsigned int m)
+{
+	moves = m;
+}
+
 class civilization {
 	public:
 		civilization(const char* name, const color& c_);
 		~civilization();
 		void add_unit(int uid, int x, int y);
+		void refill_moves(const unit_configuration_map& uconfmap);
 
 		const char* civname;
 		color col;
@@ -214,6 +230,21 @@ civilization::~civilization()
 void civilization::add_unit(int uid, int x, int y)
 {
 	units.push_back(new unit(uid, x, y, col));
+}
+
+void civilization::refill_moves(const unit_configuration_map& uconfmap)
+{
+	for(std::list<unit*>::iterator uit = units.begin();
+		uit != units.end();
+		++uit) {
+		unit_configuration_map::const_iterator max_moves_it = uconfmap.find((*uit)->unit_id);
+		int max_moves;
+		if(max_moves_it == uconfmap.end())
+			max_moves = 0;
+		else
+			max_moves = max_moves_it->second->max_moves;
+		(*uit)->refill_moves(max_moves);
+	}
 }
 
 class map {
@@ -261,31 +292,46 @@ int map::get_data(int x, int y) const
 class round
 {
 	public:
-		round();
+		round(const unit_configuration_map& uconfmap_);
 		void add_civilization(civilization* civ);
 		bool next_civ();
-	private:
 		std::vector<civilization*> civs;
-		std::vector<civilization*>::iterator current;
+		std::vector<civilization*>::iterator current_civ;
+	private:
+		const unit_configuration_map& uconfmap;
+		void refill_moves();
 };
 
-round::round()
+round::round(const unit_configuration_map& uconfmap_)
+	: uconfmap(uconfmap_)
 {
-	current = civs.begin();
+	current_civ = civs.begin();
 }
 
 void round::add_civilization(civilization* civ)
 {
 	civs.push_back(civ);
+	current_civ = civs.begin();
+	refill_moves();
+}
+
+void round::refill_moves()
+{
+	for(std::vector<civilization*>::iterator it = civs.begin();
+	    it != civs.end();
+	    ++it) {
+		(*it)->refill_moves(uconfmap);
+	}
 }
 
 bool round::next_civ()
 {
 	if(civs.empty())
 		return false;
-	current++;
-	if(current == civs.end()) {
-		current = civs.begin();
+	current_civ++;
+	if(current_civ == civs.end()) {
+		current_civ = civs.begin();
+		refill_moves();
 		return true;
 	}
 	return false;
@@ -300,12 +346,12 @@ class gui
 {
 	typedef std::map<std::pair<int, color>, SDL_Surface*> UnitImageMap;
 	public:
-		gui(int x, int y, map& mm, std::vector<civilization*>& civs,
+		gui(int x, int y, map& mm, round& rr,
 				const std::vector<const char*>& terrain_files,
 				const std::vector<const char*>& unit_files);
 		~gui();
 		int display();
-		int handle_keydown(SDLKey k, unit* current_unit);
+		int handle_keydown(SDLKey k, SDLMod mod, std::list<unit*>::iterator& current_unit);
 		int handle_mousemotion(int x, int y);
 		int process(int ms, unit* current_unit);
 		camera cam;
@@ -319,7 +365,7 @@ class gui
 		void center_camera_to_unit(unit* u);
 		int try_center_camera_to_unit(unit* u);
 		map& m;
-		std::vector<civilization*>& civilizations;
+		round& r;
 		SDL_Surface* screen;
 		std::vector<SDL_Surface*> terrains;
 		std::vector<SDL_Surface*> plain_unit_images;
@@ -335,11 +381,11 @@ class gui
 		unit* blink_unit;
 };
 
-gui::gui(int x, int y, map& mm, std::vector<civilization*>& civs,
+gui::gui(int x, int y, map& mm, round& rr,
 	       	const std::vector<const char*>& terrain_files,
 		const std::vector<const char*>& unit_files)
 	: m(mm),
-	civilizations(civs),
+	r(rr),
 	tile_w(32),
 	tile_h(32),
 	screen_w(x),
@@ -472,9 +518,11 @@ int gui::draw_main_map()
 			}
 		}
 	}
-	for(int i = 0; i < (int)civilizations.size(); i++) {
-		for(std::list<unit*>::const_iterator it = civilizations[i]->units.begin(); 
-		    it != civilizations[i]->units.end();
+	for(std::vector<civilization*>::iterator cit = r.civs.begin();
+	    cit != r.civs.end();
+	    ++cit) {
+		for(std::list<unit*>::const_iterator it = (*cit)->units.begin(); 
+		    it != (*cit)->units.end();
 		    ++it) {
 			if(blink_unit == *it)
 				continue;
@@ -547,10 +595,11 @@ int map::try_move_unit(SDLKey k, unit* u)
 		default:
 			break;
 	}
-	if(chx || chy) {
+	if((chx || chy) && u->moves) {
 		if(get_data(u->xpos + chx, u->ypos + chy) > 0) {
 			u->xpos += chx;
 			u->ypos += chy;
+			u->moves--;
 			return 1;
 		}
 	}
@@ -574,21 +623,32 @@ int gui::try_center_camera_to_unit(unit* u)
 	return false;
 }
 
-int gui::handle_keydown(SDLKey k, unit* current_unit)
+int gui::handle_keydown(SDLKey k, SDLMod mod, std::list<unit*>::iterator& current_unit)
 {
 	if(k == SDLK_ESCAPE || k == SDLK_q)
 		return 1;
 	else if(k == SDLK_LEFT || k == SDLK_RIGHT || k == SDLK_UP || k == SDLK_DOWN)
 		try_move_camera(k == SDLK_LEFT, k == SDLK_RIGHT, k == SDLK_UP, k == SDLK_DOWN);
-	else if(current_unit != NULL) {
+	else if(current_unit != (*r.current_civ)->units.end()) {
 		if(k == SDLK_c) {
-			center_camera_to_unit(current_unit);
+			center_camera_to_unit(*current_unit);
 			display();
 		}
-		else if(m.try_move_unit(k, current_unit)) {
-			try_center_camera_to_unit(current_unit);
+		else if(m.try_move_unit(k, *current_unit)) {
+			if((*current_unit)->moves == 0) {
+				// no moves left
+				current_unit++;
+			}
+			if(current_unit != (*r.current_civ)->units.end())
+				try_center_camera_to_unit(*current_unit);
 			display();
 		}
+	}
+	if((k == SDLK_RETURN || k == SDLK_KP_ENTER) && 
+	   (current_unit == (*r.current_civ)->units.end() || (mod & (KMOD_LSHIFT | KMOD_RSHIFT)))) {
+		// end of turn for this civ
+		r.next_civ();
+		current_unit = (*r.current_civ)->units.begin();
 	}
 	return 0;
 }
@@ -624,7 +684,7 @@ int gui::process(int ms, unit* current_unit)
 	int old_timer = timer;
 	timer += ms;
 	unit* old_blink_unit = blink_unit;
-	if(timer % 1000 > 700) {
+	if(timer % 1000 < 300) {
 			blink_unit = current_unit;
 	}
 	else {
@@ -642,11 +702,20 @@ int gui::process(int ms, unit* current_unit)
 
 int run()
 {
-	std::vector<civilization*> civilizations;
 	civilization* civ1 = new civilization("Babylonians", color(255, 0, 0));
+	civilization* civ2 = new civilization("Egyptians", color(255, 255, 0));
+	unit_configuration settlers_conf;
+	settlers_conf.max_moves = 1;
+	unit_configuration_map uconfmap;
+	uconfmap.insert(std::make_pair(0, &settlers_conf));
+	round r(uconfmap);
 	civ1->add_unit(0, 1, 1);
-	unit* current_unit = civ1->units.front();
-	civilizations.push_back(civ1);
+	civ1->add_unit(0, 2, 2);
+	civ2->add_unit(0, 7, 6);
+	civ2->add_unit(0, 7, 7);
+	r.add_civilization(civ1);
+	r.add_civilization(civ2);
+	std::list<unit*>::iterator current_unit = (*r.current_civ)->units.begin();
 
 	std::vector<const char*> terrain_files;
 	std::vector<const char*> unit_files;
@@ -656,14 +725,15 @@ int run()
 	bool running = true;
 
 	map m(64, 32);
-	gui g(1024, 768, m, civilizations, terrain_files, unit_files);
+	gui g(1024, 768, m, r, terrain_files, unit_files);
 	g.display();
 	while(running) {
 		SDL_Event event;
 		while(SDL_PollEvent(&event)) {
 			switch(event.type) {
 				case SDL_KEYDOWN:
-					if(g.handle_keydown(event.key.keysym.sym, current_unit))
+					if(g.handle_keydown(event.key.keysym.sym, event.key.keysym.mod,
+								current_unit))
 						running = false;
 					break;
 				case SDL_QUIT:
@@ -673,10 +743,10 @@ int run()
 			}
 		}
 		SDL_Delay(50);
-		g.process(50, current_unit);
+		g.process(50, *current_unit);
 	}
+	delete civ2;
 	delete civ1;
-	civilizations.pop_back();
 	return 0;
 }
 
