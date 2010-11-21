@@ -30,6 +30,7 @@ $(TARGET): $(OBJS)
 
 clean:
 	rm -f $(OBJS) $(DEPS) $(TARGET)
+	rm -rf $(BINDIR)
 
 -include $(DEPS)
 
