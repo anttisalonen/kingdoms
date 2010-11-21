@@ -22,18 +22,26 @@ int run()
 	const int map_x = 64;
 	const int map_y = 32;
 	map m(map_x, map_y);
+
 	civilization* civ1 = new civilization("Babylonians", color(255, 0, 0), m);
 	civilization* civ2 = new civilization("Egyptians", color(255, 255, 0), m);
+
 	unit_configuration settlers_conf;
+	unit_configuration warrior_conf;
 	settlers_conf.max_moves = 1;
 	settlers_conf.unit_name = "Settlers";
+	warrior_conf.max_moves = 1;
+	warrior_conf.unit_name = "Warrior";
 	unit_configuration_map uconfmap;
 	uconfmap.insert(std::make_pair(0, &settlers_conf));
+	uconfmap.insert(std::make_pair(1, &warrior_conf));
+
 	round r(uconfmap);
 	civ1->add_unit(0, 1, 1);
-	civ1->add_unit(0, 2, 2);
+	civ1->add_unit(1, 2, 2);
 	civ2->add_unit(0, 7, 6);
-	civ2->add_unit(0, 7, 7);
+	civ2->add_unit(1, 7, 7);
+
 	r.add_civilization(civ1);
 	r.add_civilization(civ2);
 	std::list<unit*>::iterator current_unit = (*r.current_civ)->units.begin();
@@ -43,7 +51,10 @@ int run()
 	terrain_files.push_back("share/terrain1.png");
 	terrain_files.push_back("share/terrain2.png");
 	unit_files.push_back("share/settlers.png");
+	unit_files.push_back("share/warrior.png");
+
 	bool running = true;
+
 	TTF_Font* font;
 	font = TTF_OpenFont("share/DejaVuSans.ttf", 12);
 	if(!font) {
