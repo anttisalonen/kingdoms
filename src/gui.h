@@ -27,6 +27,7 @@ class gui
 		gui(int x, int y, map& mm, round& rr,
 				const std::vector<const char*>& terrain_files,
 				const std::vector<const char*>& unit_files,
+				const char* cityfile,
 				const TTF_Font& font_);
 		~gui();
 		int display(const unit* current_unit);
@@ -52,6 +53,9 @@ class gui
 		int clear_sidebar() const;
 		int clear_main_map() const;
 		void numpad_to_move(SDLKey k, int* chx, int* chy) const;
+		void show_city_window(city* c);
+		int draw_tile(const SDL_Surface* surf, int x, int y) const;
+		int draw_city(const city& c) const;
 		map& m;
 		round& r;
 		SDL_Surface* screen;
@@ -68,6 +72,7 @@ class gui
 		int timer;
 		const unit* blink_unit;
 		const TTF_Font& font;
+		std::vector<SDL_Surface*> city_images;
 };
 
 #endif

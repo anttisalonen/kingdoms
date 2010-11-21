@@ -6,7 +6,7 @@
 template<typename N>
 class buf2d {
 	public:
-		buf2d(int x, int y);
+		buf2d(int x, int y, const N& def);
 		~buf2d();
 		const N* get(int x, int y) const;
 		void set(int x, int y, const N& val);
@@ -18,11 +18,16 @@ class buf2d {
 };
 
 template<typename N>
-buf2d<N>::buf2d(int x, int y)
+buf2d<N>::buf2d(int x, int y, const N& def)
 	: size_x(x),
 	size_y(y)
 {
 	this->data = new N[x * y];
+	for(int i = 0; i < y; i++) {
+		for(int j = 0; j < x; j++) {
+			data[get_index(j, i)] = def;
+		}
+	}
 }
 
 template<typename N>

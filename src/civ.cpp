@@ -1,10 +1,10 @@
 #include "civ.h"
 	
-unit::unit(int uid, int x, int y, const color& c_)
+unit::unit(int uid, int x, int y, int civid)
 	: unit_id(uid),
+	civ_id(civid),
 	xpos(x),
 	ypos(y),
-	c(c_),
 	moves(0)
 {
 }
@@ -19,7 +19,7 @@ void unit::refill_moves(unsigned int m)
 }
 
 fog_of_war::fog_of_war(int x, int y)
-	: fog(buf2d<int>(x, y))
+	: fog(buf2d<int>(x, y, 0))
 {
 }
 
@@ -86,7 +86,7 @@ void fog_of_war::set_value(int x, int y, int val)
 }
 
 map::map(int x, int y)
-	: data(buf2d<int>(x, y))
+	: data(buf2d<int>(x, y, 0))
 {
 	for(int i = 0; i < y; i++) {
 		for(int j = 0; j < x; j++) {
@@ -113,8 +113,17 @@ int map::size_y() const
 	return data.size_y;
 }
 
-civilization::civilization(const char* name, const color& c_, const map& m_)
+city::city(const char* name, int x, int y, int civid)
+	: cityname(name),
+	xpos(x),
+	ypos(y),
+	civ_id(civid)
+{
+}
+
+civilization::civilization(const char* name, int civid, const color& c_, const map& m_)
 	: civname(name),
+	civ_id(civid),
 	col(c_),
 	m(m_),
 	fog(fog_of_war(m_.size_x(), m_.size_y()))
@@ -124,15 +133,18 @@ civilization::civilization(const char* name, const color& c_, const map& m_)
 civilization::~civilization()
 {
 	while(!units.empty()) {
-		unit* u = units.back();
-		delete u;
+		delete units.back();
 		units.pop_back();
+	}
+	while(!cities.empty()) {
+		delete cities.back();
+		cities.pop_back();
 	}
 }
 
 void civilization::add_unit(int uid, int x, int y)
 {
-	units.push_back(new unit(uid, x, y, col));
+	units.push_back(new unit(uid, x, y, civ_id));
 	fog.reveal(x, y, 1);
 }
 
@@ -169,6 +181,13 @@ int civilization::try_move_unit(unit* u, int chx, int chy)
 char civilization::fog_at(int x, int y) const
 {
 	return fog.get_value(x, y);
+}
+
+city* civilization::add_city(const char* name, int x, int y)
+{
+	city* c = new city(name, x, y, civ_id);
+	cities.push_back(c);
+	return c;
 }
 
 round::round(const unit_configuration_map& uconfmap_)

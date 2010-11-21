@@ -3,6 +3,7 @@
 gui::gui(int x, int y, map& mm, round& rr,
 	       	const std::vector<const char*>& terrain_files,
 		const std::vector<const char*>& unit_files,
+		const char* city_file,
 		const TTF_Font& font_)
 	: m(mm),
 	r(rr),
@@ -33,6 +34,13 @@ gui::gui(int x, int y, map& mm, round& rr,
 	plain_unit_images.resize(unit_files.size());
 	for(unsigned int i = 0; i < unit_files.size(); i++) {
 		plain_unit_images[i] = sdl_load_image(unit_files[i]);
+	}
+	city_images.resize(rr.civs.size());
+	for(unsigned int i = 0; i < rr.civs.size(); i++) {
+		SDL_Surface* plain = sdl_load_image(city_file);
+		city_images[i] = SDL_DisplayFormat(plain);
+		SDL_FreeSurface(plain);
+		sdl_change_pixel_color(city_images[i], color(0, 255, 255), rr.civs[i]->col);
 	}
 	cam.cam_x = cam.cam_y = 0;
 }
@@ -200,36 +208,55 @@ int gui::draw_eot() const
 	return draw_text("End of turn", 10, screen_h - 100, 255, 255, 255);
 }
 
+int gui::draw_tile(const SDL_Surface* surf, int x, int y) const
+{
+	if(in_bounds(cam.cam_x, x, cam.cam_x + cam_total_tiles_x) &&
+	   in_bounds(cam.cam_y, y, cam.cam_y + cam_total_tiles_y)) {
+		SDL_Rect dest;
+		dest.x = (x + sidebar_size - cam.cam_x) * tile_w;
+		dest.y = (y - cam.cam_y) * tile_h;
+
+		if(SDL_BlitSurface((SDL_Surface*)surf, NULL, screen, &dest)) {
+			fprintf(stderr, "Unable to blit surface: %s\n", SDL_GetError());
+			return 1;
+		}
+	}
+	return 0;
+}
+
+int gui::draw_city(const city& c) const
+{
+	return draw_tile(city_images[c.civ_id], c.xpos, c.ypos);
+}
+
 int gui::draw_unit(const unit& u)
 {
 	if(u.unit_id < 0 || u.unit_id >= (int)plain_unit_images.size()) {
 		fprintf(stderr, "Image for Unit ID %d not loaded\n", u.unit_id);
 		return 1;
 	}
-	if(in_bounds(cam.cam_x, u.xpos, cam.cam_x + cam_total_tiles_x) &&
-	   in_bounds(cam.cam_y, u.ypos, cam.cam_y + cam_total_tiles_y)) {
-		SDL_Rect dest;
-		dest.x = (u.xpos + sidebar_size - cam.cam_x) * tile_w;
-		dest.y = (u.ypos - cam.cam_y) * tile_h;
-		SDL_Surface* surf = NULL;
-		UnitImageMap::const_iterator it = unit_images.find(std::make_pair(u.unit_id, u.c));
-		if(it == unit_images.end()) {
-			// load image
-			SDL_Surface* plain = plain_unit_images[u.unit_id];
-			SDL_Surface* result = SDL_DisplayFormat(plain);
-			sdl_change_pixel_color(result, color(0, 255, 255), u.c);
-			unit_images.insert(std::make_pair(std::make_pair(u.unit_id, u.c), result));
-			surf = result;
-		}
-		else
-			surf = it->second;
-
-		if(SDL_BlitSurface(surf, NULL, screen, &dest)) {
-			fprintf(stderr, "Unable to blit surface: %s\n", SDL_GetError());
-			return 1;
-		}
+	if(!(in_bounds(cam.cam_x, u.xpos, cam.cam_x + cam_total_tiles_x) &&
+ 	     in_bounds(cam.cam_y, u.ypos, cam.cam_y + cam_total_tiles_y))) {
+		return 0;
 	}
-	return 0;
+	SDL_Surface* surf = NULL;
+	color& c = r.civs[u.civ_id]->col;
+	UnitImageMap::const_iterator it = unit_images.find(std::make_pair(u.unit_id,
+			       c));
+	if(it == unit_images.end()) {
+		// load image
+		SDL_Surface* plain = plain_unit_images[u.unit_id];
+		SDL_Surface* result = SDL_DisplayFormat(plain);
+		sdl_change_pixel_color(result, color(0, 255, 255), c);
+		unit_images.insert(std::make_pair(std::make_pair(u.unit_id, c),
+					result));
+		surf = result;
+	}
+	else {
+		surf = it->second;
+	}
+
+	return draw_tile(surf, u.xpos, u.ypos);
 }
 
 int gui::draw_main_map()
@@ -249,6 +276,15 @@ int gui::draw_main_map()
 	for(std::vector<civilization*>::iterator cit = r.civs.begin();
 			cit != r.civs.end();
 			++cit) {
+		for(std::list<city*>::const_iterator it = (*cit)->cities.begin();
+				it != (*cit)->cities.end();
+				++it) {
+			if((*r.current_civ)->fog_at((*it)->xpos, (*it)->ypos) == 2) {
+				if(draw_city(**it)) {
+					return 1;
+				}
+			}
+		}
 		for(std::list<unit*>::const_iterator it = (*cit)->units.begin(); 
 				it != (*cit)->units.end();
 				++it) {
@@ -358,9 +394,21 @@ int gui::handle_keydown(SDLKey k, SDLMod mod, std::list<unit*>::iterator& curren
 		display(*current_unit);
 	}
 	else if(current_unit != (*r.current_civ)->units.end()) {
+		bool unit_changed = false;
 		if(k == SDLK_c) {
 			center_camera_to_unit(*current_unit);
 			redraw_main_map();
+		}
+		else if(k == SDLK_b) {
+			const unit_configuration* uconf = r.get_unit_configuration((*current_unit)->unit_id);
+			bool can_build = uconf == NULL ? false : uconf->settler;
+			if(can_build) {
+				city* c = (*r.current_civ)->add_city("city name", (*current_unit)->xpos,
+						(*current_unit)->ypos);
+				current_unit = (*r.current_civ)->units.erase(current_unit);
+				show_city_window(c);
+				unit_changed = true;
+			}
 		}
 		else {
 			int chx, chy;
@@ -369,14 +417,17 @@ int gui::handle_keydown(SDLKey k, SDLMod mod, std::list<unit*>::iterator& curren
 				if((*current_unit)->moves == 0) {
 					// no moves left
 					current_unit++;
+					unit_changed = true;
 				}
-				if(current_unit != (*r.current_civ)->units.end()) {
-					try_center_camera_to_unit(*current_unit);
-					display(*current_unit);
-				}
-				else {
-					display(NULL);
-				}
+			}
+		}
+		if(unit_changed) {
+			if(current_unit != (*r.current_civ)->units.end()) {
+				try_center_camera_to_unit(*current_unit);
+				display(*current_unit);
+			}
+			else {
+				display(NULL);
 			}
 		}
 	}
@@ -430,4 +481,7 @@ int gui::process(int ms, const unit* current_unit)
 	return 0;
 }
 
+void gui::show_city_window(city* c)
+{
+}
 

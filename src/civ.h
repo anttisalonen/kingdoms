@@ -14,6 +14,7 @@ class unit_configuration {
 	public:
 		const char* unit_name;
 		unsigned int max_moves;
+		bool settler;
 };
 
 typedef std::map<int, unit_configuration*> unit_configuration_map;
@@ -21,13 +22,13 @@ typedef std::map<int, unit_configuration*> unit_configuration_map;
 class unit
 {
 	public:
-		unit(int uid, int x, int y, const color& c_);
+		unit(int uid, int x, int y, int civid);
 		~unit();
 		void refill_moves(unsigned int m);
-		int unit_id;
+		const int unit_id;
+		const int civ_id;
 		int xpos;
 		int ypos;
-		color c;
 		unsigned int moves;
 };
 
@@ -57,18 +58,29 @@ class map {
 		buf2d<int> data;
 };
 
+class city {
+	public:
+		city(const char* name, int x, int y, int civid);
+		const char* cityname;
+		const int xpos;
+		const int ypos;
+		int civ_id;
+};
+
 class civilization {
 	public:
-		civilization(const char* name, const color& c_, const map& m_);
+		civilization(const char* name, int civid, const color& c_, const map& m_);
 		~civilization();
 		void add_unit(int uid, int x, int y);
 		int try_move_unit(unit* u, int chx, int chy);
 		void refill_moves(const unit_configuration_map& uconfmap);
 		char fog_at(int x, int y) const;
-
+		city* add_city(const char* name, int x, int y);
 		const char* civname;
+		const int civ_id;
 		color col;
 		std::list<unit*> units;
+		std::list<city*> cities;
 		const map& m;
 		fog_of_war fog;
 };

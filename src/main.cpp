@@ -23,15 +23,17 @@ int run()
 	const int map_y = 32;
 	map m(map_x, map_y);
 
-	civilization* civ1 = new civilization("Babylonians", color(255, 0, 0), m);
-	civilization* civ2 = new civilization("Egyptians", color(255, 255, 0), m);
+	civilization* civ1 = new civilization("Babylonians", 0, color(255, 0, 0), m);
+	civilization* civ2 = new civilization("Egyptians", 1, color(255, 255, 0), m);
 
 	unit_configuration settlers_conf;
 	unit_configuration warrior_conf;
 	settlers_conf.max_moves = 1;
 	settlers_conf.unit_name = "Settlers";
+	settlers_conf.settler = true;
 	warrior_conf.max_moves = 1;
 	warrior_conf.unit_name = "Warrior";
+	warrior_conf.settler = false;
 	unit_configuration_map uconfmap;
 	uconfmap.insert(std::make_pair(0, &settlers_conf));
 	uconfmap.insert(std::make_pair(1, &warrior_conf));
@@ -61,7 +63,7 @@ int run()
 		fprintf(stderr, "Could not open font: %s\n", TTF_GetError());
 	}
 
-	gui g(1024, 768, m, r, terrain_files, unit_files, *font);
+	gui g(1024, 768, m, r, terrain_files, unit_files, "share/city.png", *font);
 	g.display(*current_unit);
 	while(running) {
 		SDL_Event event;
