@@ -1,32 +1,35 @@
-CFLAGS ?= -g3 -Wall
-LDFLAGS += -lSDL -lSDL_image -lSDL_ttf
+CXXFLAGS = -Wall -g3
+LDFLAGS  = -lSDL -lSDL_image -lSDL_ttf
+
 BINDIR = bin
+TARGET = $(BINDIR)/main
 SRCDIR = src
-INCLUDES = $(SRCDIR)/buf2d.h $(SRCDIR)/civ.h $(SRCDIR)/color.h $(SRCDIR)/gui.h $(SRCDIR)/sdl-utils.h $(SRCDIR)/utils.h
-SOURCES = $(SRCDIR)/main.cpp $(SRCDIR)/color.cpp $(SRCDIR)/sdl-utils.cpp $(SRCDIR)/utils.cpp $(SRCDIR)/civ.cpp $(SRCDIR)/gui.cpp
-OBJECTS = $(SOURCES:.cpp=.o)
-EXECUTABLE = $(BINDIR)/main
+SRCS   = $(SRCDIR)/main.cpp $(SRCDIR)/color.cpp $(SRCDIR)/sdl-utils.cpp $(SRCDIR)/utils.cpp $(SRCDIR)/civ.cpp $(SRCDIR)/gui.cpp
+OBJS   = $(SRCS:.cpp=.o)
+DEPS   = $(SRCS:.cpp=.dep)
 
-DEPS = make.dep
+.PHONY: clean all
 
-default: all
+all: $(BINDIR) $(TARGET)
 
-$(DEPS): $(SOURCES) $(INCLUDES)
-	$(CXX) -MM $(SOURCES) > $(DEPS)
-
--include $(DEPS)
-
-all: $(EXECUTABLE) $(SOURCES) $(OBJECTS)
-
-bindir:
+$(BINDIR):
 	mkdir -p $(BINDIR)
 
-$(EXECUTABLE): bindir $(OBJECTS)
-	$(CXX) $(LDFLAGS) $(OBJECTS) -o $@
+$(TARGET): $(OBJS)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(OBJS) -o $(TARGET)
 
-%.o: %.cpp $(DEPS)
-	$(CXX) $(CFLAGS) -c -o $@ $<
+%.cpp.o: %.dep
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+%.dep: %.cpp
+#	$(CXX) -MM $< > $@
+	@rm -f $@
+	@$(CC) -MM $(CPPFLAGS) $< > $@.P
+	@sed 's,\($(notdir $*)\)\.o[ :]*,$(dir $*)\1.o $@ : ,g' < $@.P > $@
+	@rm -f $@.P
 
 clean:
-	rm -rf $(BINDIR) $(DEPS) src/*.o
+	rm -f $(OBJS) $(DEPS) $(TARGET)
+
+-include $(DEPS)
 
