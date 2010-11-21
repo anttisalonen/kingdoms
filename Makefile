@@ -1,6 +1,6 @@
 main:
 	mkdir -p bin
-	g++ -Wall $(CFLAGS) $(shell pkg-config --cflags SDL_image) $(shell pkg-config --libs SDL_image) -o bin/main src/main.cpp
+	g++ -Wall $(CFLAGS) $(shell pkg-config --cflags sdl) $(shell pkg-config --libs sdl) -lSDL_image -lSDL_ttf -o bin/main src/main.cpp
 
 clean:
 	rm -rf bin

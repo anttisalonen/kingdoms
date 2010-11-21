@@ -8,6 +8,7 @@
 
 #include "SDL/SDL.h"
 #include "SDL/SDL_image.h"
+#include "SDL/SDL_ttf.h"
 
 bool in_bounds(int a, int b, int c)
 {
@@ -348,22 +349,30 @@ class gui
 	public:
 		gui(int x, int y, map& mm, round& rr,
 				const std::vector<const char*>& terrain_files,
-				const std::vector<const char*>& unit_files);
+				const std::vector<const char*>& unit_files,
+				const TTF_Font& font_);
 		~gui();
-		int display();
+		int display(const unit* current_unit);
+		int redraw_main_map();
 		int handle_keydown(SDLKey k, SDLMod mod, std::list<unit*>::iterator& current_unit);
 		int handle_mousemotion(int x, int y);
-		int process(int ms, unit* current_unit);
+		int process(int ms, const unit* current_unit);
 		camera cam;
 	private:
 		int show_terrain_image(int x, int y, int xpos, int ypos) const;
 		int draw_main_map();
-		int draw_sidebar() const;
+		int draw_sidebar(const unit* current_unit) const;
 		int draw_unit(const unit& u);
 		color get_minimap_color(int x, int y) const;
 		int try_move_camera(bool left, bool right, bool up, bool down);
 		void center_camera_to_unit(unit* u);
 		int try_center_camera_to_unit(unit* u);
+		int draw_minimap() const;
+		int draw_civ_info() const;
+		int draw_unit_info(const unit* current_unit) const;
+		int draw_eot() const;
+		int draw_text(const char* str, int x, int y, int r, int g, int b) const;
+		int clear_sidebar() const;
 		map& m;
 		round& r;
 		SDL_Surface* screen;
@@ -378,12 +387,14 @@ class gui
 		const int cam_total_tiles_y;
 		const int sidebar_size;
 		int timer;
-		unit* blink_unit;
+		const unit* blink_unit;
+		const TTF_Font& font;
 };
 
 gui::gui(int x, int y, map& mm, round& rr,
 	       	const std::vector<const char*>& terrain_files,
-		const std::vector<const char*>& unit_files)
+		const std::vector<const char*>& unit_files,
+		const TTF_Font& font_)
 	: m(mm),
 	r(rr),
 	tile_w(32),
@@ -394,7 +405,8 @@ gui::gui(int x, int y, map& mm, round& rr,
 	cam_total_tiles_y((screen_h + tile_h - 1) / tile_h),
 	sidebar_size(4),
 	timer(0),
-	blink_unit(NULL)
+	blink_unit(NULL),
+	font(font_)
 {
 	screen = SDL_SetVideoMode(x, y, 32, SDL_SWSURFACE);
 	if (!screen) {
@@ -441,17 +453,22 @@ int gui::show_terrain_image(int x, int y, int xpos, int ypos) const
 	return 0;
 }
 
-int gui::display()
+int gui::display(const unit* current_unit)
 {
 	if (SDL_MUSTLOCK(screen)) {
 		if (SDL_LockSurface(screen) < 0) {
 			return 1;
 		}
 	}
-	draw_sidebar();
+	draw_sidebar(current_unit);
 	if (SDL_MUSTLOCK(screen)) {
 		SDL_UnlockSurface(screen);
 	}
+	return redraw_main_map();
+}
+
+int gui::redraw_main_map()
+{
 	draw_main_map();
 	if(SDL_Flip(screen)) {
 		fprintf(stderr, "Unable to flip: %s\n", SDL_GetError());
@@ -460,7 +477,31 @@ int gui::display()
 	return 0;
 }
 
-int gui::draw_sidebar() const
+int gui::clear_sidebar() const
+{
+	SDL_Rect dest;
+	dest.x = 0;
+	dest.y = 0;
+	dest.w = sidebar_size * tile_w;
+	dest.h = screen_h;
+	Uint32 color = SDL_MapRGB(screen->format, 0, 0, 0);
+	SDL_FillRect(screen, &dest, color);
+	return 0;
+}
+
+int gui::draw_sidebar(const unit* current_unit) const
+{
+	clear_sidebar();
+	draw_minimap();
+	draw_civ_info();
+	if(current_unit)
+		draw_unit_info(current_unit);
+	else
+		draw_eot();
+	return 0;
+}
+
+int gui::draw_minimap() const
 {
 	const int minimap_w = sidebar_size * tile_w;
 	const int minimap_h = sidebar_size * tile_h / 2;
@@ -472,7 +513,43 @@ int gui::draw_sidebar() const
 		}
 	}
 	SDL_UpdateRect(screen, 0, 0, minimap_w, minimap_h);
+
 	return 0;
+}
+
+int gui::draw_civ_info() const
+{
+	return draw_text((*r.current_civ)->civname, 10, sidebar_size * tile_h / 2 + 40, 255, 255, 255);
+}
+
+int gui::draw_unit_info(const unit* current_unit) const
+{
+	return 0;
+}
+
+int gui::draw_text(const char* str, int x, int y, int r, int g, int b) const
+{
+	SDL_Surface* text;
+	SDL_Color color = {r, g, b};
+	text = TTF_RenderUTF8_Blended((TTF_Font*)&font, str, color);
+	if(!text) {
+		fprintf(stderr, "Could not render text: %s\n",
+				TTF_GetError());
+		return 1;
+	}
+	else {
+		SDL_Rect dest;
+		dest.x = x;
+		dest.y = y;
+		SDL_BlitSurface(text, NULL, screen, &dest);
+		SDL_FreeSurface(text);
+		return 0;
+	}
+}
+
+int gui::draw_eot() const
+{
+	return draw_text("End of turn", 10, screen_h - 100, 255, 255, 255);
 }
 
 int gui::draw_unit(const unit& u)
@@ -553,8 +630,9 @@ int gui::try_move_camera(bool left, bool right, bool up, bool down)
 		if(cam.cam_y < m.size_y - cam_total_tiles_y)
 			cam.cam_y++, redraw = true;
 	}
-	if(redraw)
-		display();
+	if(redraw) {
+		redraw_main_map();
+	}
 	return redraw;
 }
 
@@ -627,28 +705,34 @@ int gui::handle_keydown(SDLKey k, SDLMod mod, std::list<unit*>::iterator& curren
 {
 	if(k == SDLK_ESCAPE || k == SDLK_q)
 		return 1;
-	else if(k == SDLK_LEFT || k == SDLK_RIGHT || k == SDLK_UP || k == SDLK_DOWN)
+	else if(k == SDLK_LEFT || k == SDLK_RIGHT || k == SDLK_UP || k == SDLK_DOWN) {
 		try_move_camera(k == SDLK_LEFT, k == SDLK_RIGHT, k == SDLK_UP, k == SDLK_DOWN);
+	}
+	else if((k == SDLK_RETURN || k == SDLK_KP_ENTER) && 
+	   (current_unit == (*r.current_civ)->units.end() || (mod & (KMOD_LSHIFT | KMOD_RSHIFT)))) {
+		// end of turn for this civ
+		r.next_civ();
+		current_unit = (*r.current_civ)->units.begin();
+		display(*current_unit);
+	}
 	else if(current_unit != (*r.current_civ)->units.end()) {
 		if(k == SDLK_c) {
 			center_camera_to_unit(*current_unit);
-			display();
+			redraw_main_map();
 		}
 		else if(m.try_move_unit(k, *current_unit)) {
 			if((*current_unit)->moves == 0) {
 				// no moves left
 				current_unit++;
 			}
-			if(current_unit != (*r.current_civ)->units.end())
+			if(current_unit != (*r.current_civ)->units.end()) {
 				try_center_camera_to_unit(*current_unit);
-			display();
+				display(*current_unit);
+			}
+			else {
+				display(NULL);
+			}
 		}
-	}
-	if((k == SDLK_RETURN || k == SDLK_KP_ENTER) && 
-	   (current_unit == (*r.current_civ)->units.end() || (mod & (KMOD_LSHIFT | KMOD_RSHIFT)))) {
-		// end of turn for this civ
-		r.next_civ();
-		current_unit = (*r.current_civ)->units.begin();
 	}
 	return 0;
 }
@@ -679,11 +763,11 @@ int gui::handle_mousemotion(int x, int y)
 	return 0;
 }
 
-int gui::process(int ms, unit* current_unit)
+int gui::process(int ms, const unit* current_unit)
 {
 	int old_timer = timer;
 	timer += ms;
-	unit* old_blink_unit = blink_unit;
+	const unit* old_blink_unit = blink_unit;
 	if(timer % 1000 < 300) {
 			blink_unit = current_unit;
 	}
@@ -691,7 +775,7 @@ int gui::process(int ms, unit* current_unit)
 		blink_unit = NULL;
 	}
 	if(blink_unit != old_blink_unit)
-		display();
+		redraw_main_map();
 	if(old_timer / 200 != timer / 200) {
 		int x, y;
 		SDL_GetMouseState(&x, &y);
@@ -723,10 +807,15 @@ int run()
 	terrain_files.push_back("share/terrain2.png");
 	unit_files.push_back("share/settlers.png");
 	bool running = true;
+	TTF_Font* font;
+	font = TTF_OpenFont("share/DejaVuSans.ttf", 12);
+	if(!font) {
+		fprintf(stderr, "Could not open font: %s\n", TTF_GetError());
+	}
 
 	map m(64, 32);
-	gui g(1024, 768, m, r, terrain_files, unit_files);
-	g.display();
+	gui g(1024, 768, m, r, terrain_files, unit_files, *font);
+	g.display(*current_unit);
 	while(running) {
 		SDL_Event event;
 		while(SDL_PollEvent(&event)) {
@@ -745,6 +834,7 @@ int run()
 		SDL_Delay(50);
 		g.process(50, *current_unit);
 	}
+	TTF_CloseFont(font);
 	delete civ2;
 	delete civ1;
 	return 0;
@@ -757,11 +847,15 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 	if(!IMG_Init(IMG_INIT_PNG)) {
-		fprintf(stderr, "Unable to init SDL_Image: %s\n", IMG_GetError());
+		fprintf(stderr, "Unable to init SDL_image: %s\n", IMG_GetError());
+	}
+	if(!TTF_Init()) {
+		fprintf(stderr, "Unable to init SDL_ttf: %s\n", TTF_GetError());
 	}
 	SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
 	run();
 
+	TTF_Quit();
 	SDL_Quit();
 	return 0;
 }
