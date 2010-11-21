@@ -163,92 +163,6 @@ SDL_Surface* sdl_load_image(const char* filename)
 	}
 }
 
-class unit_configuration {
-	public:
-		const char* unit_name;
-		unsigned int max_moves;
-};
-
-typedef std::map<int, unit_configuration*> unit_configuration_map;
-
-class unit
-{
-	public:
-		unit(int uid, int x, int y, const color& c_);
-		~unit();
-		void refill_moves(unsigned int m);
-		int unit_id;
-		int xpos;
-		int ypos;
-		color c;
-		unsigned int moves;
-};
-
-unit::unit(int uid, int x, int y, const color& c_)
-	: unit_id(uid),
-	xpos(x),
-	ypos(y),
-	c(c_),
-	moves(0)
-{
-}
-
-unit::~unit()
-{
-}
-
-void unit::refill_moves(unsigned int m)
-{
-	moves = m;
-}
-
-class civilization {
-	public:
-		civilization(const char* name, const color& c_);
-		~civilization();
-		void add_unit(int uid, int x, int y);
-		void refill_moves(const unit_configuration_map& uconfmap);
-
-		const char* civname;
-		color col;
-		std::list<unit*> units;
-};
-
-civilization::civilization(const char* name, const color& c_)
-	: civname(name),
-	col(c_)
-{
-}
-
-civilization::~civilization()
-{
-	while(!units.empty()) {
-		unit* u = units.back();
-		delete u;
-		units.pop_back();
-	}
-}
-
-void civilization::add_unit(int uid, int x, int y)
-{
-	units.push_back(new unit(uid, x, y, col));
-}
-
-void civilization::refill_moves(const unit_configuration_map& uconfmap)
-{
-	for(std::list<unit*>::iterator uit = units.begin();
-		uit != units.end();
-		++uit) {
-		unit_configuration_map::const_iterator max_moves_it = uconfmap.find((*uit)->unit_id);
-		int max_moves;
-		if(max_moves_it == uconfmap.end())
-			max_moves = 0;
-		else
-			max_moves = max_moves_it->second->max_moves;
-		(*uit)->refill_moves(max_moves);
-	}
-}
-
 template<typename N>
 class buf2d {
 	public:
@@ -299,11 +213,80 @@ const N* buf2d<N>::get(int x, int y) const
 	return &data[get_index(x, y)];
 }
 
+class unit_configuration {
+	public:
+		const char* unit_name;
+		unsigned int max_moves;
+};
+
+typedef std::map<int, unit_configuration*> unit_configuration_map;
+
+class unit
+{
+	public:
+		unit(int uid, int x, int y, const color& c_);
+		~unit();
+		void refill_moves(unsigned int m);
+		int unit_id;
+		int xpos;
+		int ypos;
+		color c;
+		unsigned int moves;
+};
+
+unit::unit(int uid, int x, int y, const color& c_)
+	: unit_id(uid),
+	xpos(x),
+	ypos(y),
+	c(c_),
+	moves(0)
+{
+}
+
+unit::~unit()
+{
+}
+
+void unit::refill_moves(unsigned int m)
+{
+	moves = m;
+}
+
+class fog_of_war {
+	public:
+		fog_of_war(int x, int y);
+		void reveal(int x, int y, int radius);
+		char get_value(int x, int y) const;
+	private:
+		buf2d<char> fog;
+};
+
+fog_of_war::fog_of_war(int x, int y)
+	: fog(buf2d<char>(x, y))
+{
+}
+
+void fog_of_war::reveal(int x, int y, int radius)
+{
+	for(int i = x - radius; i <= x + radius; i++) {
+		for(int j = y - radius; j <= y + radius; j++) {
+			fog.set(i, j, 2);
+		}
+	}
+}
+
+char fog_of_war::get_value(int x, int y) const
+{
+	const char* c = fog.get(x, y);
+	if(!c)
+		return 0;
+	return *c;
+}
+
 class map {
 	public:
 		map(int x, int y);
 		int get_data(int x, int y) const;
-		int try_move_unit(SDLKey k, unit* u);
 		int size_x() const;
 		int size_y() const;
 	private:
@@ -337,6 +320,79 @@ int map::size_x() const
 int map::size_y() const
 {
 	return data.size_y;
+}
+
+class civilization {
+	public:
+		civilization(const char* name, const color& c_, const map& m_);
+		~civilization();
+		void add_unit(int uid, int x, int y);
+		int try_move_unit(unit* u, int chx, int chy);
+		void refill_moves(const unit_configuration_map& uconfmap);
+		char fog_at(int x, int y) const;
+
+		const char* civname;
+		color col;
+		std::list<unit*> units;
+		const map& m;
+		fog_of_war fog;
+};
+
+civilization::civilization(const char* name, const color& c_, const map& m_)
+	: civname(name),
+	col(c_),
+	m(m_),
+	fog(fog_of_war(m_.size_x(), m_.size_y()))
+{
+}
+
+civilization::~civilization()
+{
+	while(!units.empty()) {
+		unit* u = units.back();
+		delete u;
+		units.pop_back();
+	}
+}
+
+void civilization::add_unit(int uid, int x, int y)
+{
+	units.push_back(new unit(uid, x, y, col));
+	fog.reveal(x, y, 1);
+}
+
+void civilization::refill_moves(const unit_configuration_map& uconfmap)
+{
+	for(std::list<unit*>::iterator uit = units.begin();
+		uit != units.end();
+		++uit) {
+		unit_configuration_map::const_iterator max_moves_it = uconfmap.find((*uit)->unit_id);
+		int max_moves;
+		if(max_moves_it == uconfmap.end())
+			max_moves = 0;
+		else
+			max_moves = max_moves_it->second->max_moves;
+		(*uit)->refill_moves(max_moves);
+	}
+}
+
+int civilization::try_move_unit(unit* u, int chx, int chy)
+{
+	if((!chx && !chy) || !u || !u->moves)
+		return 0;
+	if(m.get_data(u->xpos + chx, u->ypos + chy) > 0) {
+		u->xpos += chx;
+		u->ypos += chy;
+		u->moves--;
+		fog.reveal(u->xpos, u->ypos, 1);
+		return 1;
+	}
+	return 0;
+}
+
+char civilization::fog_at(int x, int y) const
+{
+	return fog.get_value(x, y);
 }
 
 class round
@@ -431,6 +487,8 @@ class gui
 		int draw_eot() const;
 		int draw_text(const char* str, int x, int y, int r, int g, int b) const;
 		int clear_sidebar() const;
+		int clear_main_map() const;
+		void numpad_to_move(SDLKey k, int* chx, int* chy) const;
 		map& m;
 		round& r;
 		SDL_Surface* screen;
@@ -527,11 +585,24 @@ int gui::display(const unit* current_unit)
 
 int gui::redraw_main_map()
 {
+	clear_main_map();
 	draw_main_map();
 	if(SDL_Flip(screen)) {
 		fprintf(stderr, "Unable to flip: %s\n", SDL_GetError());
 		return 1;
 	}
+	return 0;
+}
+
+int gui::clear_main_map() const
+{
+	SDL_Rect dest;
+	dest.x = sidebar_size * tile_w;
+	dest.y = 0;
+	dest.w = screen_w - sidebar_size * tile_w;
+	dest.h = screen_h;
+	Uint32 color = SDL_MapRGB(screen->format, 0, 0, 0);
+	SDL_FillRect(screen, &dest, color);
 	return 0;
 }
 
@@ -567,7 +638,10 @@ int gui::draw_minimap() const
 		int y = i * m.size_y() / minimap_h;
 		for(int j = 0; j < minimap_w; j++) {
 			int x = j * m.size_x() / minimap_w;
-			sdl_put_pixel(screen, j, i, get_minimap_color(x, y));
+			color c = get_minimap_color(x, y);
+			if((c.r == 255 && c.g == 255 && c.b == 255) || (*r.current_civ)->fog_at(x, y) > 0) {
+				sdl_put_pixel(screen, j, i, c);
+			}
 		}
 	}
 	SDL_UpdateRect(screen, 0, 0, minimap_w, minimap_h);
@@ -660,21 +734,25 @@ int gui::draw_main_map()
 	int jmax = std::min(cam.cam_x + cam_total_tiles_x, m.size_x());
 	for(int i = cam.cam_y, y = 0; i < imax; i++, y++) {
 		for(int j = cam.cam_x, x = sidebar_size; j < jmax; j++, x++) {
-			if(show_terrain_image(j, i, x, y)) {
-				return 1;
+			if((*r.current_civ)->fog_at(j, i) > 0) {
+				if(show_terrain_image(j, i, x, y)) {
+					return 1;
+				}
 			}
 		}
 	}
 	for(std::vector<civilization*>::iterator cit = r.civs.begin();
-	    cit != r.civs.end();
-	    ++cit) {
+			cit != r.civs.end();
+			++cit) {
 		for(std::list<unit*>::const_iterator it = (*cit)->units.begin(); 
-		    it != (*cit)->units.end();
-		    ++it) {
+				it != (*cit)->units.end();
+				++it) {
 			if(blink_unit == *it)
 				continue;
-			if(draw_unit(**it)) {
-				return 1;
+			if((*r.current_civ)->fog_at((*it)->xpos, (*it)->ypos) == 2) {
+				if(draw_unit(**it)) {
+					return 1;
+				}
 			}
 		}
 	}
@@ -706,54 +784,6 @@ int gui::try_move_camera(bool left, bool right, bool up, bool down)
 	return redraw;
 }
 
-int map::try_move_unit(SDLKey k, unit* u)
-{
-	if(!u)
-		return 0;
-	int chx = 0, chy = 0;
-	switch(k) {
-		case SDLK_KP4:
-			chx = -1;
-			break;
-		case SDLK_KP6:
-			chx = 1;
-			break;
-		case SDLK_KP8:
-			chy = -1;
-			break;
-		case SDLK_KP2:
-			chy = 1;
-			break;
-		case SDLK_KP1:
-			chx = -1;
-			chy = 1;
-			break;
-		case SDLK_KP3:
-			chx = 1;
-			chy = 1;
-			break;
-		case SDLK_KP7:
-			chx = -1;
-			chy = -1;
-			break;
-		case SDLK_KP9:
-			chx = 1;
-			chy = -1;
-			break;
-		default:
-			break;
-	}
-	if((chx || chy) && u->moves) {
-		if(get_data(u->xpos + chx, u->ypos + chy) > 0) {
-			u->xpos += chx;
-			u->ypos += chy;
-			u->moves--;
-			return 1;
-		}
-	}
-	return 0;
-}
-
 void gui::center_camera_to_unit(unit* u)
 {
 	cam.cam_x = clamp(0, u->xpos - (-sidebar_size + cam_total_tiles_x) / 2, m.size_x() - cam_total_tiles_x);
@@ -771,6 +801,43 @@ int gui::try_center_camera_to_unit(unit* u)
 	return false;
 }
 
+void gui::numpad_to_move(SDLKey k, int* chx, int* chy) const
+{
+	*chx = 0; *chy = 0;
+	switch(k) {
+		case SDLK_KP4:
+			*chx = -1;
+			break;
+		case SDLK_KP6:
+			*chx = 1;
+			break;
+		case SDLK_KP8:
+			*chy = -1;
+			break;
+		case SDLK_KP2:
+			*chy = 1;
+			break;
+		case SDLK_KP1:
+			*chx = -1;
+			*chy = 1;
+			break;
+		case SDLK_KP3:
+			*chx = 1;
+			*chy = 1;
+			break;
+		case SDLK_KP7:
+			*chx = -1;
+			*chy = -1;
+			break;
+		case SDLK_KP9:
+			*chx = 1;
+			*chy = -1;
+			break;
+		default:
+			break;
+	}
+}
+
 int gui::handle_keydown(SDLKey k, SDLMod mod, std::list<unit*>::iterator& current_unit)
 {
 	if(k == SDLK_ESCAPE || k == SDLK_q)
@@ -779,7 +846,7 @@ int gui::handle_keydown(SDLKey k, SDLMod mod, std::list<unit*>::iterator& curren
 		try_move_camera(k == SDLK_LEFT, k == SDLK_RIGHT, k == SDLK_UP, k == SDLK_DOWN);
 	}
 	else if((k == SDLK_RETURN || k == SDLK_KP_ENTER) && 
-	   (current_unit == (*r.current_civ)->units.end() || (mod & (KMOD_LSHIFT | KMOD_RSHIFT)))) {
+			(current_unit == (*r.current_civ)->units.end() || (mod & (KMOD_LSHIFT | KMOD_RSHIFT)))) {
 		// end of turn for this civ
 		r.next_civ();
 		current_unit = (*r.current_civ)->units.begin();
@@ -790,17 +857,21 @@ int gui::handle_keydown(SDLKey k, SDLMod mod, std::list<unit*>::iterator& curren
 			center_camera_to_unit(*current_unit);
 			redraw_main_map();
 		}
-		else if(m.try_move_unit(k, *current_unit)) {
-			if((*current_unit)->moves == 0) {
-				// no moves left
-				current_unit++;
-			}
-			if(current_unit != (*r.current_civ)->units.end()) {
-				try_center_camera_to_unit(*current_unit);
-				display(*current_unit);
-			}
-			else {
-				display(NULL);
+		else {
+			int chx, chy;
+			numpad_to_move(k, &chx, &chy);
+			if((chx || chy) && ((*r.current_civ)->try_move_unit(*current_unit, chx, chy))) {
+				if((*current_unit)->moves == 0) {
+					// no moves left
+					current_unit++;
+				}
+				if(current_unit != (*r.current_civ)->units.end()) {
+					try_center_camera_to_unit(*current_unit);
+					display(*current_unit);
+				}
+				else {
+					display(NULL);
+				}
 			}
 		}
 	}
@@ -856,8 +927,11 @@ int gui::process(int ms, const unit* current_unit)
 
 int run()
 {
-	civilization* civ1 = new civilization("Babylonians", color(255, 0, 0));
-	civilization* civ2 = new civilization("Egyptians", color(255, 255, 0));
+	const int map_x = 64;
+	const int map_y = 32;
+	map m(map_x, map_y);
+	civilization* civ1 = new civilization("Babylonians", color(255, 0, 0), m);
+	civilization* civ2 = new civilization("Egyptians", color(255, 255, 0), m);
 	unit_configuration settlers_conf;
 	settlers_conf.max_moves = 1;
 	settlers_conf.unit_name = "Settlers";
@@ -884,7 +958,6 @@ int run()
 		fprintf(stderr, "Could not open font: %s\n", TTF_GetError());
 	}
 
-	map m(64, 32);
 	gui g(1024, 768, m, r, terrain_files, unit_files, *font);
 	g.display(*current_unit);
 	while(running) {
