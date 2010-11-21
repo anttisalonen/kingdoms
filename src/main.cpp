@@ -249,46 +249,94 @@ void civilization::refill_moves(const unit_configuration_map& uconfmap)
 	}
 }
 
-class map {
+template<typename N>
+class buf2d {
 	public:
-		map(int x, int y);
-		~map();
-		int get_data(int x, int y) const;
-		int try_move_unit(SDLKey k, unit* u);
+		buf2d(int x, int y);
+		~buf2d();
+		const N* get(int x, int y) const;
+		void set(int x, int y, const N& val);
 		const int size_x;
 		const int size_y;
 	private:
 		int get_index(int x, int y) const;
-		int *data;
+		N* data;
 };
 
-map::map(int x, int y)
+template<typename N>
+buf2d<N>::buf2d(int x, int y)
 	: size_x(x),
 	size_y(y)
 {
-	this->data = new int[x * y];
-	for(int i = 0; i < y; i++) {
-		for(int j = 0; j < x; j++) {
-			data[get_index(j, i)] = rand() % 2;
-		}
-	}
+	this->data = new N[x * y];
 }
 
-map::~map()
+template<typename N>
+buf2d<N>::~buf2d()
 {
 	delete[] this->data;
 }
 
-int map::get_index(int x, int y) const
+template<typename N>
+int buf2d<N>::get_index(int x, int y) const
 {
 	return y * size_x + x;
 }
 
-int map::get_data(int x, int y) const
+template<typename N>
+void buf2d<N>::set(int x, int y, const N& val)
 {
 	if(!in_bounds(0, x, size_x - 1) || !in_bounds(0, y, size_y - 1))
+		return;
+	data[get_index(x, y)] = val;
+}
+
+template<typename N>
+const N* buf2d<N>::get(int x, int y) const
+{
+	if(!in_bounds(0, x, size_x - 1) || !in_bounds(0, y, size_y - 1))
+		return NULL;
+	return &data[get_index(x, y)];
+}
+
+class map {
+	public:
+		map(int x, int y);
+		int get_data(int x, int y) const;
+		int try_move_unit(SDLKey k, unit* u);
+		int size_x() const;
+		int size_y() const;
+	private:
+		int get_index(int x, int y) const;
+		buf2d<int> data;
+};
+
+map::map(int x, int y)
+	: data(buf2d<int>(x, y))
+{
+	for(int i = 0; i < y; i++) {
+		for(int j = 0; j < x; j++) {
+			data.set(j, i, rand() % 2);
+		}
+	}
+}
+
+int map::get_data(int x, int y) const
+{
+	const int* v = data.get(x, y);
+	if(!v)
 		return -1;
-	return data[get_index(x, y)];
+	return *v;
+}
+
+int map::size_x() const
+{
+	return data.size_x;
+}
+
+int map::size_y() const
+{
+	return data.size_y;
 }
 
 class round
@@ -516,9 +564,9 @@ int gui::draw_minimap() const
 	const int minimap_w = sidebar_size * tile_w;
 	const int minimap_h = sidebar_size * tile_h / 2;
 	for(int i = 0; i < minimap_h; i++) {
-		int y = i * m.size_y / minimap_h;
+		int y = i * m.size_y() / minimap_h;
 		for(int j = 0; j < minimap_w; j++) {
-			int x = j * m.size_x / minimap_w;
+			int x = j * m.size_x() / minimap_w;
 			sdl_put_pixel(screen, j, i, get_minimap_color(x, y));
 		}
 	}
@@ -608,8 +656,8 @@ int gui::draw_unit(const unit& u)
 
 int gui::draw_main_map()
 {
-	int imax = std::min(cam.cam_y + cam_total_tiles_y, m.size_y);
-	int jmax = std::min(cam.cam_x + cam_total_tiles_x, m.size_x);
+	int imax = std::min(cam.cam_y + cam_total_tiles_y, m.size_y());
+	int jmax = std::min(cam.cam_x + cam_total_tiles_x, m.size_x());
 	for(int i = cam.cam_y, y = 0; i < imax; i++, y++) {
 		for(int j = cam.cam_x, x = sidebar_size; j < jmax; j++, x++) {
 			if(show_terrain_image(j, i, x, y)) {
@@ -641,7 +689,7 @@ int gui::try_move_camera(bool left, bool right, bool up, bool down)
 			cam.cam_x--, redraw = true;
 	}
 	else if(right) {
-		if(cam.cam_x < m.size_x - cam_total_tiles_x)
+		if(cam.cam_x < m.size_x() - cam_total_tiles_x)
 			cam.cam_x++, redraw = true;
 	}
 	if(up) {
@@ -649,7 +697,7 @@ int gui::try_move_camera(bool left, bool right, bool up, bool down)
 			cam.cam_y--, redraw = true;
 	}
 	else if(down) {
-		if(cam.cam_y < m.size_y - cam_total_tiles_y)
+		if(cam.cam_y < m.size_y() - cam_total_tiles_y)
 			cam.cam_y++, redraw = true;
 	}
 	if(redraw) {
@@ -708,8 +756,8 @@ int map::try_move_unit(SDLKey k, unit* u)
 
 void gui::center_camera_to_unit(unit* u)
 {
-	cam.cam_x = clamp(0, u->xpos - (-sidebar_size + cam_total_tiles_x) / 2, m.size_x - cam_total_tiles_x);
-	cam.cam_y = clamp(0, u->ypos - cam_total_tiles_y / 2, m.size_y - cam_total_tiles_y);
+	cam.cam_x = clamp(0, u->xpos - (-sidebar_size + cam_total_tiles_x) / 2, m.size_x() - cam_total_tiles_x);
+	cam.cam_y = clamp(0, u->ypos - cam_total_tiles_y / 2, m.size_y() - cam_total_tiles_y);
 }
 
 int gui::try_center_camera_to_unit(unit* u)
