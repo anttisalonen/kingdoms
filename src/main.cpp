@@ -256,13 +256,19 @@ class fog_of_war {
 	public:
 		fog_of_war(int x, int y);
 		void reveal(int x, int y, int radius);
+		void shade(int x, int y, int radius);
 		char get_value(int x, int y) const;
 	private:
-		buf2d<char> fog;
+		int get_refcount(int x, int y) const;
+		int get_raw(int x, int y) const;
+		void set_value(int x, int y, int val);
+		void up_refcount(int x, int y);
+		void down_refcount(int x, int y);
+		buf2d<int> fog;
 };
 
 fog_of_war::fog_of_war(int x, int y)
-	: fog(buf2d<char>(x, y))
+	: fog(buf2d<int>(x, y))
 {
 }
 
@@ -270,17 +276,62 @@ void fog_of_war::reveal(int x, int y, int radius)
 {
 	for(int i = x - radius; i <= x + radius; i++) {
 		for(int j = y - radius; j <= y + radius; j++) {
-			fog.set(i, j, 2);
+			up_refcount(i, j);
+			set_value(i, j, 2);
+		}
+	}
+}
+
+void fog_of_war::shade(int x, int y, int radius)
+{
+	for(int i = x - radius; i <= x + radius; i++) {
+		for(int j = y - radius; j <= y + radius; j++) {
+			down_refcount(i, j);
+			if(get_refcount(i, j) == 0)
+				set_value(i, j, 1);
 		}
 	}
 }
 
 char fog_of_war::get_value(int x, int y) const
 {
-	const char* c = fog.get(x, y);
-	if(!c)
+	return get_raw(x, y) & 3;
+}
+
+int fog_of_war::get_refcount(int x, int y) const
+{
+	return get_raw(x, y) >> 2;
+}
+
+int fog_of_war::get_raw(int x, int y) const
+{
+	const int* i = fog.get(x, y);
+	if(!i)
 		return 0;
-	return *c;
+	return *i;
+}
+
+void fog_of_war::up_refcount(int x, int y)
+{
+	int i = get_refcount(x, y);
+	int v = get_value(x, y);
+	fog.set(x, y, ((i + 1) << 2) | v);
+}
+
+void fog_of_war::down_refcount(int x, int y)
+{
+	int i = get_refcount(x, y);
+	if(i == 0)
+		return;
+	int v = get_value(x, y);
+	fog.set(x, y, ((i - 1) << 2) | v);
+}
+
+void fog_of_war::set_value(int x, int y, int val)
+{
+	int i = get_raw(x, y);
+	i &= ~3;
+	fog.set(x, y, i | val); 
 }
 
 class map {
@@ -381,6 +432,7 @@ int civilization::try_move_unit(unit* u, int chx, int chy)
 	if((!chx && !chy) || !u || !u->moves)
 		return 0;
 	if(m.get_data(u->xpos + chx, u->ypos + chy) > 0) {
+		fog.shade(u->xpos, u->ypos, 1);
 		u->xpos += chx;
 		u->ypos += chy;
 		u->moves--;
@@ -473,7 +525,7 @@ class gui
 		int process(int ms, const unit* current_unit);
 		camera cam;
 	private:
-		int show_terrain_image(int x, int y, int xpos, int ypos) const;
+		int show_terrain_image(int x, int y, int xpos, int ypos, bool shade) const;
 		int draw_main_map();
 		int draw_sidebar(const unit* current_unit) const;
 		int draw_unit(const unit& u);
@@ -551,7 +603,7 @@ gui::~gui()
 	}
 }
 
-int gui::show_terrain_image(int x, int y, int xpos, int ypos) const
+int gui::show_terrain_image(int x, int y, int xpos, int ypos, bool shade) const
 {
 	SDL_Rect dest;
 	dest.x = xpos * tile_w;
@@ -565,6 +617,17 @@ int gui::show_terrain_image(int x, int y, int xpos, int ypos) const
 	if(SDL_BlitSurface(terrains[val], NULL, screen, &dest)) {
 		fprintf(stderr, "Unable to blit surface: %s\n", SDL_GetError());
 		return 1;
+	}
+	if(shade) {
+		color c(0, 0, 0);
+		for(int i = dest.y; i < dest.y + tile_h; i++) {
+			for(int j = dest.x; j < dest.x + tile_w; j++) {
+				if((i % 2) == (j % 2)) {
+					sdl_put_pixel(screen, j, i, c);
+				}
+			}
+		}
+		SDL_UpdateRect(screen, dest.x, dest.y, tile_w, tile_h);
 	}
 	return 0;
 }
@@ -734,8 +797,9 @@ int gui::draw_main_map()
 	int jmax = std::min(cam.cam_x + cam_total_tiles_x, m.size_x());
 	for(int i = cam.cam_y, y = 0; i < imax; i++, y++) {
 		for(int j = cam.cam_x, x = sidebar_size; j < jmax; j++, x++) {
-			if((*r.current_civ)->fog_at(j, i) > 0) {
-				if(show_terrain_image(j, i, x, y)) {
+			char fog = (*r.current_civ)->fog_at(j, i);
+			if(fog > 0) {
+				if(show_terrain_image(j, i, x, y, fog == 1)) {
 					return 1;
 				}
 			}
