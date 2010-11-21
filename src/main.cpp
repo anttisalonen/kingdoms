@@ -165,6 +165,7 @@ SDL_Surface* sdl_load_image(const char* filename)
 
 class unit_configuration {
 	public:
+		const char* unit_name;
 		unsigned int max_moves;
 };
 
@@ -298,6 +299,7 @@ class round
 		bool next_civ();
 		std::vector<civilization*> civs;
 		std::vector<civilization*>::iterator current_civ;
+		const unit_configuration* get_unit_configuration(int uid) const;
 	private:
 		const unit_configuration_map& uconfmap;
 		void refill_moves();
@@ -336,6 +338,14 @@ bool round::next_civ()
 		return true;
 	}
 	return false;
+}
+
+const unit_configuration* round::get_unit_configuration(int uid) const
+{
+	unit_configuration_map::const_iterator it = uconfmap.find(uid);
+	if(it == uconfmap.end())
+		return NULL;
+	return it->second;
 }
 
 struct camera {
@@ -524,11 +534,23 @@ int gui::draw_civ_info() const
 
 int gui::draw_unit_info(const unit* current_unit) const
 {
+	if(!current_unit)
+		return 0;
+	const unit_configuration* uconf = r.get_unit_configuration(current_unit->unit_id);
+	if(!uconf)
+		return 1;
+	draw_text(uconf->unit_name, 10, sidebar_size * tile_h / 2 + 60, 255, 255, 255);
+	char buf[256];
+	buf[255] = '\0';
+	snprintf(buf, 255, "Moves: %-2d/%2d", current_unit->moves, uconf->max_moves);
+	draw_text(buf, 10, sidebar_size * tile_h / 2 + 80, 255, 255, 255);
 	return 0;
 }
 
 int gui::draw_text(const char* str, int x, int y, int r, int g, int b) const
 {
+	if(!str)
+		return 0;
 	SDL_Surface* text;
 	SDL_Color color = {r, g, b};
 	text = TTF_RenderUTF8_Blended((TTF_Font*)&font, str, color);
@@ -790,6 +812,7 @@ int run()
 	civilization* civ2 = new civilization("Egyptians", color(255, 255, 0));
 	unit_configuration settlers_conf;
 	settlers_conf.max_moves = 1;
+	settlers_conf.unit_name = "Settlers";
 	unit_configuration_map uconfmap;
 	uconfmap.insert(std::make_pair(0, &settlers_conf));
 	round r(uconfmap);
