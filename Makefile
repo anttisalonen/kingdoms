@@ -1,10 +1,10 @@
 CFLAGS ?= -Wall
 LDFLAGS += -lSDL -lSDL_image -lSDL_ttf
-BINDIR = bin/
-SRCDIR = src/
-SOURCES = $(SRCDIR)main.cpp $(SRCDIR)color.cpp $(SRCDIR)sdl-utils.cpp $(SRCDIR)utils.cpp
+BINDIR = bin
+SRCDIR = src
+SOURCES = $(SRCDIR)/main.cpp $(SRCDIR)/color.cpp $(SRCDIR)/sdl-utils.cpp $(SRCDIR)/utils.cpp $(SRCDIR)/civ.cpp $(SRCDIR)/gui.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
-EXECUTABLE = $(BINDIR)main
+EXECUTABLE = $(BINDIR)/main
 
 all: bindir $(SOURCES) $(EXECUTABLE)
 

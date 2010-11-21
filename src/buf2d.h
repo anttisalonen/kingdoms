@@ -1,6 +1,8 @@
 #ifndef BUF2D_H
 #define BUF2D_H
 
+#include "utils.h"
+
 template<typename N>
 class buf2d {
 	public:
