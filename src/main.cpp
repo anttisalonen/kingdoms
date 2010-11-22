@@ -21,7 +21,16 @@ int run()
 {
 	const int map_x = 64;
 	const int map_y = 32;
-	map m(map_x, map_y);
+
+	resource_configuration resconf;
+
+	resconf.terrain_food_values[0] = 1; resconf.terrain_prod_values[0] = 0; resconf.terrain_comm_values[0] = 2;
+	resconf.terrain_food_values[1] = 2; resconf.terrain_prod_values[1] = 0; resconf.terrain_comm_values[1] = 1;
+	resconf.city_food_bonus = 1;
+	resconf.city_prod_bonus = 1;
+	resconf.city_comm_bonus = 1;
+
+	map m(map_x, map_y, resconf);
 
 	civilization* civ1 = new civilization("Babylonians", 0, color(255, 0, 0), m);
 	civilization* civ2 = new civilization("Egyptians", 1, color(255, 255, 0), m);
@@ -37,15 +46,8 @@ int run()
 	unit_configuration_map uconfmap;
 	uconfmap.insert(std::make_pair(0, &settlers_conf));
 	uconfmap.insert(std::make_pair(1, &warrior_conf));
-	resource_configuration resconf;
 
-	resconf.terrain_food_values[0] = 1; resconf.terrain_prod_values[0] = 0; resconf.terrain_comm_values[0] = 2;
-	resconf.terrain_food_values[1] = 2; resconf.terrain_prod_values[1] = 0; resconf.terrain_comm_values[1] = 1;
-	resconf.city_food_bonus = 1;
-	resconf.city_prod_bonus = 1;
-	resconf.city_comm_bonus = 1;
-
-	round r(uconfmap, resconf);
+	round r(uconfmap);
 	civ1->add_unit(0, 1, 1);
 	civ1->add_unit(1, 2, 2);
 	civ2->add_unit(0, 7, 6);

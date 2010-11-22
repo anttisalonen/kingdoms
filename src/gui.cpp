@@ -443,6 +443,8 @@ int main_window::handle_input(const SDL_Event& ev, std::list<unit*>::iterator& c
 			return 1;
 		case SDL_KEYDOWN:
 			return handle_keydown(ev.key.keysym.sym, ev.key.keysym.mod, current_unit_it, c);
+		case SDL_MOUSEBUTTONDOWN:
+			return handle_mousedown(ev, c);
 		default:
 			return 0;
 	}
@@ -499,6 +501,25 @@ int main_window::handle_keydown(SDLKey k, SDLMod mod, std::list<unit*>::iterator
 			else {
 				set_current_unit(NULL);
 				draw();
+			}
+		}
+	}
+	return 0;
+}
+
+int main_window::handle_mousedown(const SDL_Event& ev, city** c)
+{
+	int sq_x = (ev.button.x - sidebar_size * tile_w) / tile_w;
+	int sq_y = ev.button.y / tile_h;
+	if(sq_x >= 0) {
+		sq_x += cam.cam_x;
+		sq_y += cam.cam_y;
+		for(std::list<city*>::const_iterator it = (*data.r.current_civ)->cities.begin();
+				it != (*data.r.current_civ)->cities.end();
+				++it) {
+			if((*it)->xpos == sq_x && (*it)->ypos == sq_y) {
+				*c = *it;
+				break;
 			}
 		}
 	}
@@ -625,7 +646,7 @@ int city_window::draw_city_resources_screen(int xpos, int ypos)
 		int tile_xcoord = c->xpos + it->x;
 		int tile_ycoord = c->ypos + it->y;
 		int food, prod, comm;
-		data.r.get_resources_by_terrain(data.m.get_data(tile_xcoord,
+		data.m.get_resources_by_terrain(data.m.get_data(tile_xcoord,
 				tile_ycoord), it->x == 0 && it->y == 0, &food,
 				&prod, &comm);
 		for(int i = 0; i < food; i++)
@@ -640,23 +661,6 @@ int city_window::draw_city_resources_screen(int xpos, int ypos)
 	}
 
 	return 0;
-}
-
-void total_resources(const city& c, const map& m, const round& r, 
-		int* food, int* prod, int* comm)
-{
-	*food = 0; *prod = 0; *comm = 0;
-	for(std::list<coord>::const_iterator it = c.resource_coords.begin();
-			it != c.resource_coords.end();
-			++it) {
-		int f, p, cm;
-		r.get_resources_by_terrain(m.get_data(c.xpos + it->x,
-				c.ypos + it->y), it->x == 0 && it->y == 0, &f,
-				&p, &cm);
-		*food += f;
-		*prod += p;
-		*comm += cm;
-	}
 }
 
 int city_window::draw()
@@ -681,12 +685,12 @@ int city_window::draw()
 
 	// statistics
 	int food, prod, comm;
-	total_resources(*c, data.m, data.r, &food, &prod, &comm);
+	total_resources(*c, data.m, &food, &prod, &comm);
 	char buf[64];
 	buf[63] = '\0';
-	snprintf(buf, 63, "Food: %d", food);
+	snprintf(buf, 63, "Food: %d (%d)", food, c->stored_food);
 	draw_text(screen, &res.font, buf, screen_w * 0.3, screen_h * 0.60, 0, 0, 0);
-	snprintf(buf, 63, "Production: %d", prod);
+	snprintf(buf, 63, "Production: %d (%d)", prod, c->stored_prod);
 	draw_text(screen, &res.font, buf, screen_w * 0.3, screen_h * 0.70, 0, 0, 0);
 	snprintf(buf, 63, "Commerce: %d", comm);
 	draw_text(screen, &res.font, buf, screen_w * 0.3, screen_h * 0.80, 0, 0, 0);

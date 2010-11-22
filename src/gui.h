@@ -80,6 +80,7 @@ class main_window {
 		int try_center_camera_to_unit(unit* u);
 		void numpad_to_move(SDLKey k, int* chx, int* chy) const;
 		int handle_keydown(SDLKey k, SDLMod mod, std::list<unit*>::iterator& current_unit_it, city** c);
+		int handle_mousedown(const SDL_Event& ev, city** c);
 		SDL_Surface* screen;
 		const int screen_w;
 		const int screen_h;

@@ -62,13 +62,15 @@ class fog_of_war {
 
 class map {
 	public:
-		map(int x, int y);
+		map(int x, int y, const resource_configuration& resconf_);
 		int get_data(int x, int y) const;
 		int size_x() const;
 		int size_y() const;
+		void get_resources_by_terrain(int terr, bool city, int* food, int* prod, int* comm) const;
 	private:
 		int get_index(int x, int y) const;
 		buf2d<int> data;
+		const resource_configuration& resconf;
 };
 
 struct coord {
@@ -85,6 +87,9 @@ class city {
 		const int ypos;
 		int civ_id;
 		std::list<coord> resource_coords;
+		int population;
+		int stored_food;
+		int stored_prod;
 };
 
 class civilization {
@@ -94,6 +99,7 @@ class civilization {
 		void add_unit(int uid, int x, int y);
 		int try_move_unit(unit* u, int chx, int chy);
 		void refill_moves(const unit_configuration_map& uconfmap);
+		void increment_resources();
 		char fog_at(int x, int y) const;
 		city* add_city(const char* name, int x, int y);
 		const char* civname;
@@ -103,22 +109,26 @@ class civilization {
 		std::list<city*> cities;
 		const map& m;
 		fog_of_war fog;
+	private:
+		int gold;
 };
 
 class round
 {
 	public:
-		round(const unit_configuration_map& uconfmap_, const resource_configuration& resconf_);
+		round(const unit_configuration_map& uconfmap_);
 		void add_civilization(civilization* civ);
 		bool next_civ();
 		std::vector<civilization*> civs;
 		std::vector<civilization*>::iterator current_civ;
 		const unit_configuration* get_unit_configuration(int uid) const;
-		void get_resources_by_terrain(int terr, bool city, int* food, int* prod, int* comm) const;
 	private:
 		void refill_moves();
+		void increment_resources();
 		const unit_configuration_map& uconfmap;
-		const resource_configuration& resconf;
 };
+
+void total_resources(const city& c, const map& m,
+		int* food, int* prod, int* comm);
 
 #endif

@@ -1,6 +1,23 @@
 #include "civ.h"
 #include <string.h>
 
+void total_resources(const city& c, const map& m, 
+		int* food, int* prod, int* comm)
+{
+	*food = 0; *prod = 0; *comm = 0;
+	for(std::list<coord>::const_iterator it = c.resource_coords.begin();
+			it != c.resource_coords.end();
+			++it) {
+		int f, p, cm;
+		m.get_resources_by_terrain(m.get_data(c.xpos + it->x,
+				c.ypos + it->y), it->x == 0 && it->y == 0, &f,
+				&p, &cm);
+		*food += f;
+		*prod += p;
+		*comm += cm;
+	}
+}
+
 resource_configuration::resource_configuration()
 	: city_food_bonus(0),
 	city_prod_bonus(0),
@@ -96,8 +113,9 @@ void fog_of_war::set_value(int x, int y, int val)
 	fog.set(x, y, i | val); 
 }
 
-map::map(int x, int y)
-	: data(buf2d<int>(x, y, 0))
+map::map(int x, int y, const resource_configuration& resconf_)
+	: data(buf2d<int>(x, y, 0)),
+	resconf(resconf_)
 {
 	for(int i = 0; i < y; i++) {
 		for(int j = 0; j < x; j++) {
@@ -124,6 +142,15 @@ int map::size_y() const
 	return data.size_y;
 }
 
+void map::get_resources_by_terrain(int terr, bool city, int* food, int* prod, int* comm) const
+{
+	if(terr < 0 || terr >= num_terrain_types)
+		return;
+	*food = resconf.terrain_food_values[terr] + (city ? resconf.city_food_bonus : 0);
+	*prod = resconf.terrain_prod_values[terr] + (city ? resconf.city_prod_bonus : 0);
+	*comm = resconf.terrain_comm_values[terr] + (city ? resconf.city_comm_bonus : 0);
+}
+
 coord::coord(int x_, int y_)
 	: x(x_),
 	y(y_)
@@ -134,7 +161,10 @@ city::city(const char* name, int x, int y, int civid)
 	: cityname(name),
 	xpos(x),
 	ypos(y),
-	civ_id(civid)
+	civ_id(civid),
+	population(1),
+	stored_food(0),
+	stored_prod(0)
 {
 }
 
@@ -143,7 +173,8 @@ civilization::civilization(const char* name, int civid, const color& c_, const m
 	civ_id(civid),
 	col(c_),
 	m(m_),
-	fog(fog_of_war(m_.size_x(), m_.size_y()))
+	fog(fog_of_war(m_.size_x(), m_.size_y())),
+	gold(0)
 {
 }
 
@@ -180,6 +211,19 @@ void civilization::refill_moves(const unit_configuration_map& uconfmap)
 	}
 }
 
+void civilization::increment_resources()
+{
+	for(std::list<city*>::iterator cit = cities.begin();
+			cit != cities.end();
+			++cit) {
+		int food, prod, comm;
+		total_resources(**cit, m, &food, &prod, &comm);
+		(*cit)->stored_food += food - (*cit)->population * 2;
+		(*cit)->stored_prod += prod;
+		gold += comm;
+	}
+}
+
 int civilization::try_move_unit(unit* u, int chx, int chy)
 {
 	if((!chx && !chy) || !u || !u->moves)
@@ -212,9 +256,8 @@ city* civilization::add_city(const char* name, int x, int y)
 	return c;
 }
 
-round::round(const unit_configuration_map& uconfmap_, const resource_configuration& resconf_)
-	: uconfmap(uconfmap_),
-	resconf(resconf_)
+round::round(const unit_configuration_map& uconfmap_)
+	: uconfmap(uconfmap_)
 {
 	current_civ = civs.begin();
 }
@@ -235,6 +278,15 @@ void round::refill_moves()
 	}
 }
 
+void round::increment_resources()
+{
+	for(std::vector<civilization*>::iterator it = civs.begin();
+	    it != civs.end();
+	    ++it) {
+		(*it)->increment_resources();
+	}
+}
+
 bool round::next_civ()
 {
 	if(civs.empty())
@@ -243,6 +295,7 @@ bool round::next_civ()
 	if(current_civ == civs.end()) {
 		current_civ = civs.begin();
 		refill_moves();
+		increment_resources();
 		return true;
 	}
 	return false;
@@ -256,12 +309,4 @@ const unit_configuration* round::get_unit_configuration(int uid) const
 	return it->second;
 }
 
-void round::get_resources_by_terrain(int terr, bool city, int* food, int* prod, int* comm) const
-{
-	if(terr < 0 || terr >= num_terrain_types)
-		return;
-	*food = resconf.terrain_food_values[terr] + (city ? resconf.city_food_bonus : 0);
-	*prod = resconf.terrain_prod_values[terr] + (city ? resconf.city_prod_bonus : 0);
-	*comm = resconf.terrain_comm_values[terr] + (city ? resconf.city_comm_bonus : 0);
-}
 
