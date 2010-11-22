@@ -1,5 +1,16 @@
 #include "civ.h"
-	
+#include <string.h>
+
+resource_configuration::resource_configuration()
+	: city_food_bonus(0),
+	city_prod_bonus(0),
+	city_comm_bonus(0)
+{
+	memset(terrain_food_values, 0, sizeof(terrain_food_values));
+	memset(terrain_prod_values, 0, sizeof(terrain_prod_values));
+	memset(terrain_comm_values, 0, sizeof(terrain_comm_values));
+}
+
 unit::unit(int uid, int x, int y, int civid)
 	: unit_id(uid),
 	civ_id(civid),
@@ -201,8 +212,9 @@ city* civilization::add_city(const char* name, int x, int y)
 	return c;
 }
 
-round::round(const unit_configuration_map& uconfmap_)
-	: uconfmap(uconfmap_)
+round::round(const unit_configuration_map& uconfmap_, const resource_configuration& resconf_)
+	: uconfmap(uconfmap_),
+	resconf(resconf_)
 {
 	current_civ = civs.begin();
 }
@@ -242,5 +254,14 @@ const unit_configuration* round::get_unit_configuration(int uid) const
 	if(it == uconfmap.end())
 		return NULL;
 	return it->second;
+}
+
+void round::get_resources_by_terrain(int terr, bool city, int* food, int* prod, int* comm) const
+{
+	if(terr < 0 || terr >= num_terrain_types)
+		return;
+	*food = resconf.terrain_food_values[terr] + (city ? resconf.city_food_bonus : 0);
+	*prod = resconf.terrain_prod_values[terr] + (city ? resconf.city_prod_bonus : 0);
+	*comm = resconf.terrain_comm_values[terr] + (city ? resconf.city_comm_bonus : 0);
 }
 

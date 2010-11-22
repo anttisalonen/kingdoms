@@ -611,23 +611,31 @@ int city_window::draw_city_resources_screen(int xpos, int ypos)
 		   ypos + res.terrains.tile_h * 2,
 		   res.city_images[c->civ_id], screen);
 
-	// draw boxes on resource coords
+	// draw resources and boxes on resource coords
 	for(std::list<coord>::const_iterator it = c->resource_coords.begin();
 			it != c->resource_coords.end();
 			++it) {
 		int tile_x = xpos + res.terrains.tile_w * (it->x + 2);
 		int tile_y = ypos + res.terrains.tile_h * (it->y + 2);
+
 		draw_rect(tile_x, tile_y,
 			  res.terrains.tile_w, res.terrains.tile_h, color(255, 255, 255),
 			  1, screen);
-		for(int i = 0; i < 3; i++)
-			draw_image(tile_x + i * res.terrains.tile_w / 6,
+
+		int tile_xcoord = c->xpos + it->x;
+		int tile_ycoord = c->ypos + it->y;
+		int food, prod, comm;
+		data.r.get_resources_by_terrain(data.m.get_data(tile_xcoord,
+				tile_ycoord), it->x == 0 && it->y == 0, &food,
+				&prod, &comm);
+		for(int i = 0; i < food; i++)
+			draw_image(tile_x + i * res.terrains.tile_w / (food * 2),
 				   tile_y, res.food_icon, screen);
-		for(int i = 0; i < 4; i++)
-			draw_image(tile_x + i * res.terrains.tile_w / 8,
+		for(int i = 0; i < prod; i++)
+			draw_image(tile_x + i * res.terrains.tile_w / (prod * 2),
 				   tile_y + 8, res.prod_icon, screen);
-		for(int i = 0; i < 2; i++)
-			draw_image(tile_x + i * res.terrains.tile_w / 4,
+		for(int i = 0; i < comm; i++)
+			draw_image(tile_x + i * res.terrains.tile_w / (comm * 2),
 				   tile_y + 16, res.comm_icon, screen);
 	}
 

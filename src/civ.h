@@ -19,6 +19,19 @@ class unit_configuration {
 
 typedef std::map<int, unit_configuration*> unit_configuration_map;
 
+const int num_terrain_types = 16;
+
+class resource_configuration {
+	public:
+		resource_configuration();
+		int terrain_food_values[num_terrain_types];
+		int terrain_prod_values[num_terrain_types];
+		int terrain_comm_values[num_terrain_types];
+		int city_food_bonus;
+		int city_prod_bonus;
+		int city_comm_bonus;
+};
+
 class unit
 {
 	public:
@@ -95,15 +108,17 @@ class civilization {
 class round
 {
 	public:
-		round(const unit_configuration_map& uconfmap_);
+		round(const unit_configuration_map& uconfmap_, const resource_configuration& resconf_);
 		void add_civilization(civilization* civ);
 		bool next_civ();
 		std::vector<civilization*> civs;
 		std::vector<civilization*>::iterator current_civ;
 		const unit_configuration* get_unit_configuration(int uid) const;
+		void get_resources_by_terrain(int terr, bool city, int* food, int* prod, int* comm) const;
 	private:
-		const unit_configuration_map& uconfmap;
 		void refill_moves();
+		const unit_configuration_map& uconfmap;
+		const resource_configuration& resconf;
 };
 
 #endif

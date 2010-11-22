@@ -37,8 +37,15 @@ int run()
 	unit_configuration_map uconfmap;
 	uconfmap.insert(std::make_pair(0, &settlers_conf));
 	uconfmap.insert(std::make_pair(1, &warrior_conf));
+	resource_configuration resconf;
 
-	round r(uconfmap);
+	resconf.terrain_food_values[0] = 1; resconf.terrain_prod_values[0] = 0; resconf.terrain_comm_values[0] = 2;
+	resconf.terrain_food_values[1] = 2; resconf.terrain_prod_values[1] = 0; resconf.terrain_comm_values[1] = 1;
+	resconf.city_food_bonus = 1;
+	resconf.city_prod_bonus = 1;
+	resconf.city_comm_bonus = 1;
+
+	round r(uconfmap, resconf);
 	civ1->add_unit(0, 1, 1);
 	civ1->add_unit(1, 2, 2);
 	civ2->add_unit(0, 7, 6);
