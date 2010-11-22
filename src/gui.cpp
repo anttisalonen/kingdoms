@@ -468,6 +468,33 @@ int button<T>::draw(SDL_Surface* screen) const
 	return 0;
 }
 
+SDL_Surface* make_label(const char* text, const TTF_Font* font, int w, int h, const color& bg_col, const color& text_col)
+{
+	SDL_Surface* button_surf = SDL_CreateRGBSurface(SDL_SWSURFACE, w, h, 32, rmask, gmask, bmask, 0);
+	if(!button_surf)
+		return NULL;
+	Uint32 button_bg_col = SDL_MapRGB(button_surf->format, bg_col.r, bg_col.g, bg_col.b);
+	SDL_FillRect(button_surf, NULL, button_bg_col);
+	SDL_Color text_sdl_col = {text_col.r, text_col.g, text_col.b};
+	SDL_Surface* button_text = TTF_RenderUTF8_Blended((TTF_Font*)font, text, text_sdl_col);
+	if(button_text) {
+		SDL_Rect pos;
+		pos.x = w / 2 - button_text->w / 2;
+		pos.y = h / 2 - button_text->h / 2;
+		if(SDL_BlitSurface(button_text, NULL, button_surf, &pos)) {
+			fprintf(stderr, "Unable to blit surface: %s\n", SDL_GetError());
+			SDL_FreeSurface(button_surf);
+			button_surf = NULL;
+		}
+		SDL_FreeSurface(button_text);
+	}
+	else {
+		SDL_FreeSurface(button_surf);
+		button_surf = NULL;
+	}
+	return button_surf;
+}
+
 city_window::city_window(SDL_Surface* screen_, int x, int y, gui_data& data_, gui_resources& res_, city* c_)
 	: screen(screen_),
 	screen_w(x),
@@ -476,12 +503,13 @@ city_window::city_window(SDL_Surface* screen_, int x, int y, gui_data& data_, gu
 	res(res_),
 	c(c_)
 {
-	SDL_Color col = {0, 0, 0};
-	label_surf  = TTF_RenderUTF8_Blended((TTF_Font*)&res.font, c->cityname, col);
-	button_surf = TTF_RenderUTF8_Blended((TTF_Font*)&res.font, "exit", col);
-	buttons.push_back(new button<city_window>(rect(screen_w * 0.45, screen_h * 0.1, screen_w * 0.55, screen_h * 0.2),
+	rect name_rect = rect(screen_w * 0.30, screen_h * 0.1, screen_w * 0.40, screen_h * 0.08);
+	rect exit_rect = rect(screen_w * 0.75, screen_h * 0.8, screen_w * 0.15, screen_h * 0.08);
+	label_surf = make_label(c->cityname, &res.font, name_rect.w, name_rect.h, color(200, 200, 200), color(0, 0, 0));
+	button_surf = make_label("Exit", &res.font, exit_rect.w, exit_rect.h, color(128, 60, 60), color(0, 0, 0));
+	buttons.push_back(new button<city_window>(name_rect,
 				label_surf, NULL));
-	buttons.push_back(new button<city_window>(rect(screen_w * 0.75, screen_h * 0.8, screen_w * 0.90, screen_h * 0.9),
+	buttons.push_back(new button<city_window>(exit_rect,
 				button_surf, &city_window::on_exit));
 }
 
