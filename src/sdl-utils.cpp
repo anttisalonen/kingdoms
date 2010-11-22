@@ -108,4 +108,25 @@ SDL_Surface* sdl_load_image(const char* filename)
 	}
 }
 
+int draw_text(SDL_Surface* screen, const TTF_Font* font, const char* str, int x, int y, int r, int g, int b)
+{
+	if(!str)
+		return 0;
+	SDL_Surface* text;
+	SDL_Color color = {r, g, b};
+	text = TTF_RenderUTF8_Blended((TTF_Font*)font, str, color);
+	if(!text) {
+		fprintf(stderr, "Could not render text: %s\n",
+				TTF_GetError());
+		return 1;
+	}
+	else {
+		SDL_Rect dest;
+		dest.x = x;
+		dest.y = y;
+		SDL_BlitSurface(text, NULL, screen, &dest);
+		SDL_FreeSurface(text);
+		return 0;
+	}
+}
 

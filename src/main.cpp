@@ -70,8 +70,9 @@ int run()
 		while(SDL_PollEvent(&event)) {
 			switch(event.type) {
 				case SDL_KEYDOWN:
-					if(g.handle_keydown(event.key.keysym.sym, event.key.keysym.mod,
-								current_unit))
+				case SDL_MOUSEBUTTONDOWN:
+				case SDL_MOUSEBUTTONUP:
+					if(g.handle_input(event, current_unit))
 						running = false;
 					break;
 				case SDL_QUIT:
