@@ -2,6 +2,44 @@
 #include <functional>
 #include <algorithm>
 
+tileset::tileset(int w, int h)
+	: tile_w(w),
+	tile_h(h)
+{
+}
+
+int draw_terrain_tile(int x, int y, int xpos, int ypos, bool shade,
+		const map& m, 
+		const tileset& terrains,
+		SDL_Surface* screen)
+{
+	SDL_Rect dest;
+	dest.x = xpos;
+	dest.y = ypos;
+	int val = m.get_data(x, y);
+	if(val < 0 || val >= (int)terrains.textures.size()) {
+		fprintf(stderr, "Terrain at %d not loaded at (%d, %d)\n", val,
+				x, y);
+		return 1;
+	}
+	if(SDL_BlitSurface(terrains.textures[val], NULL, screen, &dest)) {
+		fprintf(stderr, "Unable to blit surface: %s\n", SDL_GetError());
+		return 1;
+	}
+	if(shade) {
+		color c(0, 0, 0);
+		for(int i = dest.y; i < dest.y + terrains.tile_h; i++) {
+			for(int j = dest.x; j < dest.x + terrains.tile_w; j++) {
+				if((i % 2) == (j % 2)) {
+					sdl_put_pixel(screen, j, i, c);
+				}
+			}
+		}
+		SDL_UpdateRect(screen, dest.x, dest.y, terrains.tile_w, terrains.tile_h);
+	}
+	return 0;
+}
+
 main_window::main_window(SDL_Surface* screen_, int x, int y, gui_data& data_, gui_resources& res_)
 	: screen(screen_),
 	screen_w(x),
@@ -224,31 +262,8 @@ int main_window::draw_main_map()
 
 int main_window::show_terrain_image(int x, int y, int xpos, int ypos, bool shade) const
 {
-	SDL_Rect dest;
-	dest.x = xpos * tile_w;
-	dest.y = ypos * tile_h;
-	int val = data.m.get_data(x, y);
-	if(val < 0 || val >= (int)res.terrains.size()) {
-		fprintf(stderr, "Terrain at %d not loaded at (%d, %d)\n", val,
-				x, y);
-		return 1;
-	}
-	if(SDL_BlitSurface(res.terrains[val], NULL, screen, &dest)) {
-		fprintf(stderr, "Unable to blit surface: %s\n", SDL_GetError());
-		return 1;
-	}
-	if(shade) {
-		color c(0, 0, 0);
-		for(int i = dest.y; i < dest.y + tile_h; i++) {
-			for(int j = dest.x; j < dest.x + tile_w; j++) {
-				if((i % 2) == (j % 2)) {
-					sdl_put_pixel(screen, j, i, c);
-				}
-			}
-		}
-		SDL_UpdateRect(screen, dest.x, dest.y, tile_w, tile_h);
-	}
-	return 0;
+	return draw_terrain_tile(x, y, xpos * tile_w, ypos * tile_h, shade,
+			data.m, res.terrains, screen);
 }
 
 color main_window::get_minimap_color(int x, int y) const
@@ -259,12 +274,12 @@ color main_window::get_minimap_color(int x, int y) const
 	    y == cam.cam_y || y == cam.cam_y + cam_total_tiles_y - 1))
 		return color(255, 255, 255);
 	int val = data.m.get_data(x, y);
-	if(val < 0 || val >= (int)res.terrains.size()) {
+	if(val < 0 || val >= (int)res.terrains.textures.size()) {
 		fprintf(stderr, "Terrain at %d not loaded at (%d, %d)\n", val,
 				x, y);
 		return color(0, 0, 0);
 	}
-	return sdl_get_pixel(res.terrains[val], 16, 16);
+	return sdl_get_pixel(res.terrains.textures[val], 16, 16);
 }
 
 int main_window::try_move_camera(bool left, bool right, bool up, bool down)
@@ -528,6 +543,26 @@ int city_window::on_exit()
 	return 1;
 }
 
+int city_window::draw_city_resources_screen(int xpos, int ypos)
+{
+	for(int i = -2; i <= 2; i++) {
+		int x = xpos + (i + 2) * res.terrains.tile_w;
+		for(int j = -2; j <= 2; j++) {
+			int y = ypos + (j + 2) * res.terrains.tile_h;
+			if(abs(i) != 2 || abs(j) != 2) {
+				int xp = c->xpos + i;
+				int yp = c->ypos + j;
+				if(in_bounds(0, xp, data.m.size_x() - 1) &&
+				   in_bounds(0, yp, data.m.size_y() - 1) && (*data.r.current_civ)->fog_at(xp, yp)) {
+					draw_terrain_tile(c->xpos + i, c->ypos + j, x, y, false,
+							data.m, res.terrains, screen);
+				}
+			}
+		}
+	}
+	return 0;
+}
+
 int city_window::draw()
 {
 	SDL_Rect rect;
@@ -536,10 +571,19 @@ int city_window::draw()
 	rect.w = screen_w * 0.90f;
 	rect.h = screen_h * 0.90f;
 	Uint32 bgcol = SDL_MapRGB(screen->format, 255, 255, 255);
+
+	// background
 	SDL_FillRect(screen, &rect, bgcol);
+
+	// buttons
 	std::for_each(buttons.begin(),
 			buttons.end(),
 			std::bind2nd(std::mem_fun(&button<city_window>::draw), screen));
+
+	// city resources screen
+	draw_city_resources_screen(screen_w * 0.3, screen_h * 0.2);
+
+	// final flip
 	if(SDL_Flip(screen)) {
 		fprintf(stderr, "Unable to flip: %s\n", SDL_GetError());
 	}
@@ -577,13 +621,14 @@ int city_window::handle_mousedown(const SDL_Event& ev)
 
 int city_window::handle_keydown(SDLKey k, SDLMod mod)
 {
-	if(k == SDLK_ESCAPE)
+	if(k == SDLK_ESCAPE || k == SDLK_RETURN || k == SDLK_KP_ENTER)
 		return 1;
 	return 0;
 }
 
-gui_resources::gui_resources(const TTF_Font& f)
-	: font(f)
+gui_resources::gui_resources(const TTF_Font& f, int tile_w, int tile_h)
+	: terrains(tile_w, tile_h),
+       	font(f)
 {
 }
 
@@ -601,7 +646,7 @@ gui::gui(int x, int y, map& mm, round& rr,
 	: screen_w(x),
 	screen_h(y),
 	data(gui_data(mm, rr)),
-	res(font_),
+	res(font_, 32, 32),
 	screen(SDL_SetVideoMode(x, y, 32, SDL_SWSURFACE)),
 	mw(screen, x, y, data, res),
 	cw(NULL)
@@ -610,9 +655,9 @@ gui::gui(int x, int y, map& mm, round& rr,
 		fprintf(stderr, "Unable to set %dx%d video: %s\n", x, y, SDL_GetError());
 		return;
 	}
-	res.terrains.resize(terrain_files.size());
+	res.terrains.textures.resize(terrain_files.size());
 	for(unsigned int i = 0; i < terrain_files.size(); i++) {
-		res.terrains[i] = sdl_load_image(terrain_files[i]);
+		res.terrains.textures[i] = sdl_load_image(terrain_files[i]);
 	}
 	res.plain_unit_images.resize(unit_files.size());
 	for(unsigned int i = 0; i < unit_files.size(); i++) {
@@ -629,8 +674,8 @@ gui::gui(int x, int y, map& mm, round& rr,
 
 gui::~gui()
 {
-	for(unsigned int i = 0; i < res.terrains.size(); i++) {
-		SDL_FreeSurface(res.terrains[i]);
+	for(unsigned int i = 0; i < res.terrains.textures.size(); i++) {
+		SDL_FreeSurface(res.terrains.textures[i]);
 	}
 }
 

@@ -21,11 +21,18 @@ struct camera {
 	int cam_y;
 };
 
+struct tileset {
+	tileset(int w, int h);
+	std::vector<SDL_Surface*> textures;
+	const int tile_w;
+	const int tile_h;
+};
+
 typedef std::map<std::pair<int, color>, SDL_Surface*> UnitImageMap;
 
 struct gui_resources {
-	gui_resources(const TTF_Font& f);
-	std::vector<SDL_Surface*> terrains;
+	gui_resources(const TTF_Font& f, int tile_w, int tile_h);
+	tileset terrains;
 	std::vector<SDL_Surface*> plain_unit_images;
 	UnitImageMap unit_images;
 	const TTF_Font& font;
@@ -107,6 +114,7 @@ class city_window {
 		int handle_keydown(SDLKey k, SDLMod mod);
 		int handle_mousedown(const SDL_Event& ev);
 		int on_exit();
+		int draw_city_resources_screen(int xpos, int ypos);
 		SDL_Surface* screen;
 		const int screen_w;
 		const int screen_h;
