@@ -58,6 +58,12 @@ class map {
 		buf2d<int> data;
 };
 
+struct coord {
+	coord(int x_, int y_);
+	int x;
+	int y;
+};
+
 class city {
 	public:
 		city(const char* name, int x, int y, int civid);
@@ -65,6 +71,7 @@ class city {
 		const int xpos;
 		const int ypos;
 		int civ_id;
+		std::list<coord> resource_coords;
 };
 
 class civilization {

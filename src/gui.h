@@ -31,12 +31,17 @@ struct tileset {
 typedef std::map<std::pair<int, color>, SDL_Surface*> UnitImageMap;
 
 struct gui_resources {
-	gui_resources(const TTF_Font& f, int tile_w, int tile_h);
+	gui_resources(const TTF_Font& f, int tile_w, int tile_h,
+			SDL_Surface* food_, SDL_Surface* prod_,
+			SDL_Surface* comm_);
 	tileset terrains;
 	std::vector<SDL_Surface*> plain_unit_images;
 	UnitImageMap unit_images;
 	const TTF_Font& font;
 	std::vector<SDL_Surface*> city_images;
+	SDL_Surface* food_icon;
+	SDL_Surface* prod_icon;
+	SDL_Surface* comm_icon;
 };
 
 class gui_data {
@@ -133,7 +138,10 @@ class gui
 				const std::vector<const char*>& terrain_files,
 				const std::vector<const char*>& unit_files,
 				const char* cityfile,
-				const TTF_Font& font_);
+				const TTF_Font& font_,
+				const char* food_icon_name,
+				const char* prod_icon_name,
+				const char* curr_icon_name);
 		~gui();
 		int display(const unit* current_unit);
 		int handle_input(const SDL_Event& ev, std::list<unit*>::iterator& current_unit);
@@ -142,9 +150,9 @@ class gui
 		void show_city_window(city* c);
 		const int screen_w;
 		const int screen_h;
+		SDL_Surface* screen;
 		gui_data data;
 		gui_resources res;
-		SDL_Surface* screen;
 		main_window mw;;
 		city_window* cw;
 };

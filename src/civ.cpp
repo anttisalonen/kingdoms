@@ -113,6 +113,12 @@ int map::size_y() const
 	return data.size_y;
 }
 
+coord::coord(int x_, int y_)
+	: x(x_),
+	y(y_)
+{
+}
+
 city::city(const char* name, int x, int y, int civid)
 	: cityname(name),
 	xpos(x),
@@ -187,6 +193,11 @@ city* civilization::add_city(const char* name, int x, int y)
 {
 	city* c = new city(name, x, y, civ_id);
 	cities.push_back(c);
+		c->resource_coords.push_back(coord(0, 0));
+	if(y != 0)
+		c->resource_coords.push_back(coord(0, -1));
+	else
+		c->resource_coords.push_back(coord(0, 1));
 	return c;
 }
 

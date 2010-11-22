@@ -95,7 +95,7 @@ SDL_Surface* sdl_load_image(const char* filename)
 		return NULL;
 	}
 	else {
-		SDL_Surface* opt = SDL_DisplayFormat(img);
+		SDL_Surface* opt = SDL_DisplayFormatAlpha(img);
 		SDL_FreeSurface(img);
 		if(!opt) {
 			fprintf(stderr, "Unable to convert image '%s': %s\n",

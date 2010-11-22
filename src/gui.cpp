@@ -8,6 +8,55 @@ tileset::tileset(int w, int h)
 {
 }
 
+int draw_rect(int x, int y, int w, int h, const color& c, 
+		int border_width, SDL_Surface* screen)
+{
+	Uint32 sdl_col = SDL_MapRGB(screen->format, c.r, c.g, c.b);
+	if(border_width == 0) {
+		SDL_Rect dest;
+		dest.x = x;
+		dest.y = y;
+		dest.w = w;
+		dest.h = h;
+		return SDL_FillRect(screen, &dest, sdl_col);
+	}
+	else {
+		SDL_Rect dest;
+		dest.x = x;
+		dest.y = y;
+		dest.w = w;
+		dest.h = border_width;
+		if(SDL_FillRect(screen, &dest, sdl_col))
+			return -1;
+		dest.w = border_width;
+		dest.h = h;
+		if(SDL_FillRect(screen, &dest, sdl_col))
+			return -1;
+		dest.x = x + w - border_width;
+		dest.y = y;
+		if(SDL_FillRect(screen, &dest, sdl_col))
+			return -1;
+		dest.x = x;
+		dest.y = y + h - border_width;
+		dest.w = w;
+		dest.h = border_width;
+		return SDL_FillRect(screen, &dest, sdl_col);
+	}
+}
+
+int draw_image(int x, int y, const SDL_Surface* tile, SDL_Surface* screen)
+{
+	SDL_Rect dest;
+	dest.x = x;
+	dest.y = y;
+
+	if(SDL_BlitSurface((SDL_Surface*)tile, NULL, screen, &dest)) {
+		fprintf(stderr, "Unable to blit surface: %s\n", SDL_GetError());
+		return 1;
+	}
+	return 0;
+}
+
 int draw_terrain_tile(int x, int y, int xpos, int ypos, bool shade,
 		const map& m, 
 		const tileset& terrains,
@@ -172,14 +221,9 @@ int main_window::draw_tile(const SDL_Surface* surf, int x, int y) const
 {
 	if(in_bounds(cam.cam_x, x, cam.cam_x + cam_total_tiles_x) &&
 	   in_bounds(cam.cam_y, y, cam.cam_y + cam_total_tiles_y)) {
-		SDL_Rect dest;
-		dest.x = (x + sidebar_size - cam.cam_x) * tile_w;
-		dest.y = (y - cam.cam_y) * tile_h;
-
-		if(SDL_BlitSurface((SDL_Surface*)surf, NULL, screen, &dest)) {
-			fprintf(stderr, "Unable to blit surface: %s\n", SDL_GetError());
-			return 1;
-		}
+		return draw_image((x + sidebar_size - cam.cam_x) * tile_w,
+				(y - cam.cam_y) * tile_h,
+				surf, screen);
 	}
 	return 0;
 }
@@ -545,6 +589,7 @@ int city_window::on_exit()
 
 int city_window::draw_city_resources_screen(int xpos, int ypos)
 {
+	// draw terrain
 	for(int i = -2; i <= 2; i++) {
 		int x = xpos + (i + 2) * res.terrains.tile_w;
 		for(int j = -2; j <= 2; j++) {
@@ -560,6 +605,32 @@ int city_window::draw_city_resources_screen(int xpos, int ypos)
 			}
 		}
 	}
+
+	// draw the city itself
+	draw_image(xpos + res.terrains.tile_w * 2,
+		   ypos + res.terrains.tile_h * 2,
+		   res.city_images[c->civ_id], screen);
+
+	// draw boxes on resource coords
+	for(std::list<coord>::const_iterator it = c->resource_coords.begin();
+			it != c->resource_coords.end();
+			++it) {
+		int tile_x = xpos + res.terrains.tile_w * (it->x + 2);
+		int tile_y = ypos + res.terrains.tile_h * (it->y + 2);
+		draw_rect(tile_x, tile_y,
+			  res.terrains.tile_w, res.terrains.tile_h, color(255, 255, 255),
+			  1, screen);
+		for(int i = 0; i < 3; i++)
+			draw_image(tile_x + i * res.terrains.tile_w / 6,
+				   tile_y, res.food_icon, screen);
+		for(int i = 0; i < 4; i++)
+			draw_image(tile_x + i * res.terrains.tile_w / 8,
+				   tile_y + 8, res.prod_icon, screen);
+		for(int i = 0; i < 2; i++)
+			draw_image(tile_x + i * res.terrains.tile_w / 4,
+				   tile_y + 16, res.comm_icon, screen);
+	}
+
 	return 0;
 }
 
@@ -626,9 +697,13 @@ int city_window::handle_keydown(SDLKey k, SDLMod mod)
 	return 0;
 }
 
-gui_resources::gui_resources(const TTF_Font& f, int tile_w, int tile_h)
+gui_resources::gui_resources(const TTF_Font& f, int tile_w, int tile_h, 
+		SDL_Surface* food_, SDL_Surface* prod_, SDL_Surface* comm_)
 	: terrains(tile_w, tile_h),
-       	font(f)
+       	font(f),
+	food_icon(food_),
+	prod_icon(prod_),
+	comm_icon(comm_)
 {
 }
 
@@ -642,12 +717,17 @@ gui::gui(int x, int y, map& mm, round& rr,
 	       	const std::vector<const char*>& terrain_files,
 		const std::vector<const char*>& unit_files,
 		const char* city_file,
-		const TTF_Font& font_)
+		const TTF_Font& font_,
+		const char* food_icon_name,
+		const char* prod_icon_name,
+		const char* curr_icon_name)
 	: screen_w(x),
 	screen_h(y),
-	data(gui_data(mm, rr)),
-	res(font_, 32, 32),
 	screen(SDL_SetVideoMode(x, y, 32, SDL_SWSURFACE)),
+	data(gui_data(mm, rr)),
+	res(font_, 32, 32, sdl_load_image(food_icon_name), 
+			sdl_load_image(prod_icon_name), 
+			sdl_load_image(curr_icon_name)),
 	mw(screen, x, y, data, res),
 	cw(NULL)
 {
