@@ -642,6 +642,23 @@ int city_window::draw_city_resources_screen(int xpos, int ypos)
 	return 0;
 }
 
+void total_resources(const city& c, const map& m, const round& r, 
+		int* food, int* prod, int* comm)
+{
+	*food = 0; *prod = 0; *comm = 0;
+	for(std::list<coord>::const_iterator it = c.resource_coords.begin();
+			it != c.resource_coords.end();
+			++it) {
+		int f, p, cm;
+		r.get_resources_by_terrain(m.get_data(c.xpos + it->x,
+				c.ypos + it->y), it->x == 0 && it->y == 0, &f,
+				&p, &cm);
+		*food += f;
+		*prod += p;
+		*comm += cm;
+	}
+}
+
 int city_window::draw()
 {
 	SDL_Rect rect;
@@ -661,6 +678,18 @@ int city_window::draw()
 
 	// city resources screen
 	draw_city_resources_screen(screen_w * 0.3, screen_h * 0.2);
+
+	// statistics
+	int food, prod, comm;
+	total_resources(*c, data.m, data.r, &food, &prod, &comm);
+	char buf[64];
+	buf[63] = '\0';
+	snprintf(buf, 63, "Food: %d", food);
+	draw_text(screen, &res.font, buf, screen_w * 0.3, screen_h * 0.60, 0, 0, 0);
+	snprintf(buf, 63, "Production: %d", prod);
+	draw_text(screen, &res.font, buf, screen_w * 0.3, screen_h * 0.70, 0, 0, 0);
+	snprintf(buf, 63, "Commerce: %d", comm);
+	draw_text(screen, &res.font, buf, screen_w * 0.3, screen_h * 0.80, 0, 0, 0);
 
 	// final flip
 	if(SDL_Flip(screen)) {
