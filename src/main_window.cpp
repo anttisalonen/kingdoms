@@ -133,18 +133,18 @@ int main_window::draw_civ_info() const
 	return 0;
 }
 
-int main_window::draw_unit_info(const unit* current_unit) const
+int main_window::draw_unit_info(const unit* u) const
 {
-	if(!current_unit)
+	if(!u)
 		return 0;
-	const unit_configuration* uconf = data.r.get_unit_configuration(current_unit->unit_id);
+	const unit_configuration* uconf = data.r.get_unit_configuration(u->unit_id);
 	if(!uconf)
 		return 1;
-	draw_text(screen, &res.font, uconf->unit_name, 10, sidebar_size * tile_h / 2 + 60, 255, 255, 255);
+	draw_text(screen, &res.font, uconf->unit_name, 10, sidebar_size * tile_h / 2 + 80, 255, 255, 255);
 	char buf[256];
 	buf[255] = '\0';
-	snprintf(buf, 255, "Moves: %-2d/%2d", current_unit->moves, uconf->max_moves);
-	draw_text(screen, &res.font, buf, 10, sidebar_size * tile_h / 2 + 80, 255, 255, 255);
+	snprintf(buf, 255, "Moves: %-2d/%2d", u->moves, uconf->max_moves);
+	draw_text(screen, &res.font, buf, 10, sidebar_size * tile_h / 2 + 100, 255, 255, 255);
 	return 0;
 }
 
@@ -372,8 +372,13 @@ int main_window::handle_civ_messages(std::list<msg>* messages)
 		msg& m = messages->front();
 		switch(m.type) {
 			case msg_new_unit:
-				printf("New unit %s produced.\n",
+				printf("New unit '%s' produced.\n",
 						m.msg_data.new_unit->uconf.unit_name);
+				break;
+			case msg_civ_discovery:
+				printf("Discovered civilization '%s'.\n",
+						data.r.civs[m.msg_data.discovered_civ_id]->civname);
+				break;
 			default:
 				break;
 		}
@@ -396,7 +401,10 @@ int main_window::handle_keydown(SDLKey k, SDLMod mod, std::list<unit*>::iterator
 		handle_civ_messages(&(*data.r.current_civ)->messages);
 		current_unit_it = (*data.r.current_civ)->units.end();
 		get_next_free_unit(current_unit_it);
-		set_current_unit(*current_unit_it);
+		if(current_unit_it != (*data.r.current_civ)->units.end())
+			set_current_unit(*current_unit_it);
+		else
+			set_current_unit(NULL);
 		draw();
 	}
 	else if(current_unit_it != (*data.r.current_civ)->units.end()) {

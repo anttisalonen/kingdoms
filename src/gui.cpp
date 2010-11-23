@@ -67,7 +67,12 @@ int gui::handle_input(const SDL_Event& ev, std::list<unit*>::iterator& current_u
 		return 0;
 	}
 	else {
-		mw.set_current_unit(*current_unit);
+		if(current_unit != (*data.r.current_civ)->units.end())
+			mw.set_current_unit(*current_unit);
+		else {
+			mw.draw();
+			mw.set_current_unit(NULL);
+		}
 		city* nc = NULL;
 		int ret;
 		ret = mw.handle_input(ev, current_unit, &nc);
