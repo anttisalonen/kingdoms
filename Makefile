@@ -4,7 +4,7 @@ LDFLAGS  = -lSDL -lSDL_image -lSDL_ttf
 BINDIR = bin
 TARGET = $(BINDIR)/main
 SRCDIR = src
-SRCS   = $(SRCDIR)/main.cpp $(SRCDIR)/color.cpp $(SRCDIR)/sdl-utils.cpp $(SRCDIR)/utils.cpp $(SRCDIR)/civ.cpp $(SRCDIR)/gui.cpp $(SRCDIR)/rect.cpp
+SRCS   = $(SRCDIR)/color.cpp $(SRCDIR)/sdl-utils.cpp $(SRCDIR)/utils.cpp $(SRCDIR)/rect.cpp $(SRCDIR)/civ.cpp $(SRCDIR)/gui.cpp $(SRCDIR)/main.cpp
 OBJS   = $(SRCS:.cpp=.o)
 DEPS   = $(SRCS:.cpp=.dep)
 
