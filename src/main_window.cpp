@@ -302,6 +302,7 @@ int main_window::process(int ms)
 		SDL_GetMouseState(&x, &y);
 		handle_mousemotion(x, y);
 	}
+	handle_civ_messages(&(*data.r.current_civ)->messages);
 	return 0;
 }
 
@@ -398,7 +399,6 @@ int main_window::handle_keydown(SDLKey k, SDLMod mod, std::list<unit*>::iterator
 			(current_unit_it == (*data.r.current_civ)->units.end() || (mod & (KMOD_LSHIFT | KMOD_RSHIFT)))) {
 		// end of turn for this civ
 		data.r.next_civ();
-		handle_civ_messages(&(*data.r.current_civ)->messages);
 		current_unit_it = (*data.r.current_civ)->units.end();
 		get_next_free_unit(current_unit_it);
 		if(current_unit_it != (*data.r.current_civ)->units.end())
@@ -446,6 +446,13 @@ int main_window::handle_keydown(SDLKey k, SDLMod mod, std::list<unit*>::iterator
 			int chx, chy;
 			numpad_to_move(k, &chx, &chy);
 			if((chx || chy) && ((*data.r.current_civ)->try_move_unit(*current_unit_it, chx, chy))) {
+				std::vector<unsigned int> discs = (*data.r.current_civ)->check_discoveries((*current_unit_it)->xpos,
+					       (*current_unit_it)->ypos, 1);
+				for(std::vector<unsigned int>::const_iterator it = discs.begin();
+						it != discs.end();
+						++it) {
+					data.r.civs[*it]->discover((*data.r.current_civ)->civ_id);
+				}
 				if((*current_unit_it)->moves == 0) {
 					// no moves left
 					get_next_free_unit(current_unit_it);

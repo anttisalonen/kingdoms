@@ -129,6 +129,7 @@ void fog_of_war::set_value(int x, int y, int val)
 
 map::map(int x, int y, const resource_configuration& resconf_)
 	: data(buf2d<int>(x, y, 0)),
+	ownership(buf2d<int>(x, y, 0)),
 	resconf(resconf_)
 {
 	for(int i = 0; i < y; i++) {
@@ -165,6 +166,48 @@ void map::get_resources_by_terrain(int terr, bool city, int* food, int* prod, in
 	*comm = resconf.terrain_comm_values[terr] + (city ? resconf.city_comm_bonus : 0);
 }
 
+void map::add_unit(unsigned int civ_id, int x, int y)
+{
+	if(!free_spot(civ_id, x, y))
+		return;
+	const int* old = ownership.get(x, y);
+	if(!old)
+		return;
+	int newval = *old;
+	if(newval == 0)
+		newval = civ_id << 16;
+	ownership.set(x, y, newval + 1);
+}
+
+void map::remove_unit(unsigned int civ_id, int x, int y)
+{
+	if(!free_spot(civ_id, x, y))
+		return;
+	const int* old = ownership.get(x, y);
+	if(!old || *old == 0)
+		return;
+	if((*old & 0xffff) == 1)
+		ownership.set(x, y, 0);
+	else
+		ownership.set(x, y, *old - 1);
+}
+
+bool map::free_spot(unsigned int civ_id, int x, int y) const
+{
+	int owner = get_spot_owner(x, y);
+	return owner == -1 || owner == (int)civ_id;
+}
+
+int map::get_spot_owner(int x, int y) const
+{
+	const int* val = ownership.get(x, y);
+	if(!val)
+		return -1;
+	if(*val == 0)
+		return -1;
+	return *val >> 16;
+}
+
 coord::coord(int x_, int y_)
 	: x(x_),
 	y(y_)
@@ -183,14 +226,16 @@ city::city(const char* name, int x, int y, unsigned int civid)
 {
 }
 
-civilization::civilization(const char* name, unsigned int civid, const color& c_, const map& m_)
+civilization::civilization(const char* name, unsigned int civid, const color& c_, map& m_)
 	: civname(name),
 	civ_id(civid),
 	col(c_),
 	m(m_),
 	fog(fog_of_war(m_.size_x(), m_.size_y())),
-	gold(0)
+	gold(0),
+	relationships(civid + 1, 0)
 {
+	relationships[civid] = 1;
 }
 
 civilization::~civilization()
@@ -277,12 +322,16 @@ int civilization::try_move_unit(unit* u, int chx, int chy)
 {
 	if((!chx && !chy) || !u || !u->moves)
 		return 0;
-	if(m.get_data(u->xpos + chx, u->ypos + chy) > 0) {
+	int newx = u->xpos + chx;
+	int newy = u->ypos + chy;
+	if(m.get_data(newx, newy) > 0 && m.free_spot(civ_id, newx, newy)) {
+		m.remove_unit(civ_id, u->xpos, u->ypos);
 		fog.shade(u->xpos, u->ypos, 1);
 		u->xpos += chx;
 		u->ypos += chy;
 		u->moves--;
 		fog.reveal(u->xpos, u->ypos, 1);
+		m.add_unit(civ_id, newx, newy);
 		return 1;
 	}
 	return 0;
@@ -302,35 +351,52 @@ city* civilization::add_city(const char* name, int x, int y)
 		c->resource_coords.push_back(coord(0, -1));
 	else
 		c->resource_coords.push_back(coord(0, 1));
+	m.add_unit(civ_id, x, y);
 	return c;
 }
 
 int civilization::get_relationship_to_civ(unsigned int civid) const
 {
-	if((int)relationships.size() >= civid)
+	if(civid == civ_id)
+		return 1;
+	if(relationships.size() <= civid)
 		return 0;
 	return relationships[civid];
 }
 
 void civilization::set_relationship_to_civ(unsigned int civid, int val)
 {
+	if(civid == civ_id)
+		return;
 	if(relationships.size() <= civid) {
-		unsigned int old_size = relationships.size();
-		relationships.resize(civid);
-		for(unsigned int i = old_size; i < civid - 1; i++)
-			relationships[i] = 0;
+		relationships.resize(civid + 1, 0);
 	}
 	relationships[civid] = val;
 }
 
-bool civilization::discover(int civid)
+bool civilization::discover(unsigned int civid)
 {
-	if(get_relationship_to_civ(civid) == 0) {
+	if(civid != civ_id && get_relationship_to_civ(civid) == 0) {
 		set_relationship_to_civ(civid, 1);
 		add_message(discovered_civ(civid));
 		return 1;
 	}
 	return 0;
+}
+
+std::vector<unsigned int> civilization::check_discoveries(int x, int y, int radius)
+{
+	std::vector<unsigned int> discs;
+	for(int i = x - radius; i <= x + radius; i++) {
+		for(int j = y - radius; j <= y + radius; j++) {
+			int owner = m.get_spot_owner(i, j);
+			if(owner != -1 && owner != (int)civ_id) {
+				discover(owner);
+				discs.push_back(owner);
+			}
+		}
+	}
+	return discs;
 }
 
 round::round(const unit_configuration_map& uconfmap_)

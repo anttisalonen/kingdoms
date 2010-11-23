@@ -70,9 +70,14 @@ class map {
 		int size_x() const;
 		int size_y() const;
 		void get_resources_by_terrain(int terr, bool city, int* food, int* prod, int* comm) const;
+		void add_unit(unsigned int civ_id, int x, int y);
+		void remove_unit(unsigned int civ_id, int x, int y);
+		bool free_spot(unsigned int civ_id, int x, int y) const;
+		int get_spot_owner(int x, int y) const;
 	private:
 		int get_index(int x, int y) const;
 		buf2d<int> data;
+		buf2d<int> ownership;
 		const resource_configuration& resconf;
 };
 
@@ -111,7 +116,7 @@ struct msg {
 
 class civilization {
 	public:
-		civilization(const char* name, unsigned int civid, const color& c_, const map& m_);
+		civilization(const char* name, unsigned int civid, const color& c_, map& m_);
 		~civilization();
 		unit* add_unit(int uid, int x, int y, const unit_configuration& uconf);
 		int try_move_unit(unit* u, int chx, int chy);
@@ -120,18 +125,19 @@ class civilization {
 		char fog_at(int x, int y) const;
 		city* add_city(const char* name, int x, int y);
 		void add_message(const msg& m);
+		int get_relationship_to_civ(unsigned int civid) const;
+		void set_relationship_to_civ(unsigned int civid, int val);
+		bool discover(unsigned int civid);
+		std::vector<unsigned int> check_discoveries(int x, int y, int radius);
 		const char* civname;
 		const unsigned int civ_id;
 		color col;
 		std::list<unit*> units;
 		std::list<city*> cities;
-		const map& m;
+		map& m;
 		fog_of_war fog;
 		int gold;
 		std::list<msg> messages;
-		int get_relationship_to_civ(unsigned int civid) const;
-		void set_relationship_to_civ(unsigned int civid, int val);
-		bool discover(int civid);
 	private:
 		std::vector<int> relationships;
 };
