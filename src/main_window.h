@@ -41,7 +41,7 @@ class main_window {
 		int try_center_camera_to_unit(unit* u);
 		void numpad_to_move(SDLKey k, int* chx, int* chy) const;
 		int handle_keydown(SDLKey k, SDLMod mod, std::list<unit*>::iterator& current_unit_it, city** c);
-		int handle_mousedown(const SDL_Event& ev, city** c);
+		int handle_mousedown(const SDL_Event& ev, std::list<unit*>::iterator& current_unit_it, city** c);
 		void get_next_free_unit(std::list<unit*>::iterator& current_unit_it) const;
 		int handle_civ_messages(std::list<msg>* messages);
 		SDL_Surface* screen;

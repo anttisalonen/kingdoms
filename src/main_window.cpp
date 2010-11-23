@@ -199,7 +199,7 @@ int main_window::draw_main_map()
 		for(std::list<city*>::const_iterator it = (*cit)->cities.begin();
 				it != (*cit)->cities.end();
 				++it) {
-			if((*data.r.current_civ)->fog_at((*it)->xpos, (*it)->ypos) == 2) {
+			if((*data.r.current_civ)->fog_at((*it)->xpos, (*it)->ypos) > 0) {
 				if(draw_city(**it)) {
 					return 1;
 				}
@@ -360,7 +360,7 @@ int main_window::handle_input(const SDL_Event& ev, std::list<unit*>::iterator& c
 		case SDL_KEYDOWN:
 			return handle_keydown(ev.key.keysym.sym, ev.key.keysym.mod, current_unit_it, c);
 		case SDL_MOUSEBUTTONDOWN:
-			return handle_mousedown(ev, c);
+			return handle_mousedown(ev, current_unit_it, c);
 		default:
 			return 0;
 	}
@@ -394,7 +394,8 @@ int main_window::handle_keydown(SDLKey k, SDLMod mod, std::list<unit*>::iterator
 		// end of turn for this civ
 		data.r.next_civ();
 		handle_civ_messages(&(*data.r.current_civ)->messages);
-		current_unit_it = (*data.r.current_civ)->units.begin();
+		current_unit_it = (*data.r.current_civ)->units.end();
+		get_next_free_unit(current_unit_it);
 		set_current_unit(*current_unit_it);
 		draw();
 	}
@@ -426,8 +427,12 @@ int main_window::handle_keydown(SDLKey k, SDLMod mod, std::list<unit*>::iterator
 			unit_changed = true;
 		}
 		else if(k == SDLK_w) {
+			std::list<unit*>::iterator old_it = current_unit_it;
 			get_next_free_unit(current_unit_it);
-			unit_changed = true;
+			if(current_unit_it == (*data.r.current_civ)->units.end())
+				current_unit_it = old_it;
+			else
+				unit_changed = true;
 		}
 		else {
 			int chx, chy;
@@ -455,7 +460,7 @@ int main_window::handle_keydown(SDLKey k, SDLMod mod, std::list<unit*>::iterator
 	return 0;
 }
 
-int main_window::handle_mousedown(const SDL_Event& ev, city** c)
+int main_window::handle_mousedown(const SDL_Event& ev, std::list<unit*>::iterator& current_unit_it, city** c)
 {
 	int sq_x = (ev.button.x - sidebar_size * tile_w) / tile_w;
 	int sq_y = ev.button.y / tile_h;
@@ -475,13 +480,15 @@ int main_window::handle_mousedown(const SDL_Event& ev, city** c)
 
 		// if no city chosen, choose unit
 		if(!*c) {
-			for(std::list<unit*>::const_iterator it = (*data.r.current_civ)->units.begin();
+			for(std::list<unit*>::iterator it = (*data.r.current_civ)->units.begin();
 					it != (*data.r.current_civ)->units.end();
 					++it) {
 				if((*it)->xpos == sq_x && (*it)->ypos == sq_y) {
 					(*it)->fortified = false;
-					if((*it)->moves > 0)
+					if((*it)->moves > 0) {
+						current_unit_it = it;
 						set_current_unit(*it);
+					}
 				}
 			}
 		}
