@@ -171,7 +171,7 @@ coord::coord(int x_, int y_)
 {
 }
 
-city::city(const char* name, int x, int y, int civid)
+city::city(const char* name, int x, int y, unsigned int civid)
 	: cityname(name),
 	xpos(x),
 	ypos(y),
@@ -183,7 +183,7 @@ city::city(const char* name, int x, int y, int civid)
 {
 }
 
-civilization::civilization(const char* name, int civid, const color& c_, const map& m_)
+civilization::civilization(const char* name, unsigned int civid, const color& c_, const map& m_)
 	: civname(name),
 	civ_id(civid),
 	col(c_),
@@ -241,6 +241,14 @@ msg new_unit_msg(unit* u)
 	return m;
 }
 
+msg discovered_civ(int civid)
+{
+	msg m;
+	m.type = msg_civ_discovery;
+	m.msg_data.discovered_civ_id = civid;
+	return m;
+}
+
 void civilization::increment_resources(const unit_configuration_map& uconfmap)
 {
 	for(std::list<city*>::iterator cit = cities.begin();
@@ -295,6 +303,34 @@ city* civilization::add_city(const char* name, int x, int y)
 	else
 		c->resource_coords.push_back(coord(0, 1));
 	return c;
+}
+
+int civilization::get_relationship_to_civ(unsigned int civid) const
+{
+	if((int)relationships.size() >= civid)
+		return 0;
+	return relationships[civid];
+}
+
+void civilization::set_relationship_to_civ(unsigned int civid, int val)
+{
+	if(relationships.size() <= civid) {
+		unsigned int old_size = relationships.size();
+		relationships.resize(civid);
+		for(unsigned int i = old_size; i < civid - 1; i++)
+			relationships[i] = 0;
+	}
+	relationships[civid] = val;
+}
+
+bool civilization::discover(int civid)
+{
+	if(get_relationship_to_civ(civid) == 0) {
+		set_relationship_to_civ(civid, 1);
+		add_message(discovered_civ(civid));
+		return 1;
+	}
+	return 0;
 }
 
 round::round(const unit_configuration_map& uconfmap_)

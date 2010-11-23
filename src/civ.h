@@ -84,11 +84,11 @@ struct coord {
 
 class city {
 	public:
-		city(const char* name, int x, int y, int civid);
+		city(const char* name, int x, int y, unsigned int civid);
 		const char* cityname;
 		const int xpos;
 		const int ypos;
-		int civ_id;
+		unsigned int civ_id;
 		std::list<coord> resource_coords;
 		int population;
 		int stored_food;
@@ -98,18 +98,20 @@ class city {
 
 enum msg_type {
 	msg_new_unit,
+	msg_civ_discovery,
 };
 
 struct msg {
 	msg_type type;
 	union {
 		unit* new_unit;
+		int discovered_civ_id;
 	} msg_data;
 };
 
 class civilization {
 	public:
-		civilization(const char* name, int civid, const color& c_, const map& m_);
+		civilization(const char* name, unsigned int civid, const color& c_, const map& m_);
 		~civilization();
 		unit* add_unit(int uid, int x, int y, const unit_configuration& uconf);
 		int try_move_unit(unit* u, int chx, int chy);
@@ -119,7 +121,7 @@ class civilization {
 		city* add_city(const char* name, int x, int y);
 		void add_message(const msg& m);
 		const char* civname;
-		const int civ_id;
+		const unsigned int civ_id;
 		color col;
 		std::list<unit*> units;
 		std::list<city*> cities;
@@ -127,7 +129,11 @@ class civilization {
 		fog_of_war fog;
 		int gold;
 		std::list<msg> messages;
+		int get_relationship_to_civ(unsigned int civid) const;
+		void set_relationship_to_civ(unsigned int civid, int val);
+		bool discover(int civid);
 	private:
+		std::vector<int> relationships;
 };
 
 class round
