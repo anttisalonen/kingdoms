@@ -5,6 +5,8 @@
 #include <vector>
 #include <map>
 
+#include <boost/function.hpp>
+
 #include "SDL/SDL.h"
 #include "SDL/SDL_image.h"
 #include "SDL/SDL_ttf.h"
@@ -42,6 +44,7 @@ struct gui_resources {
 	SDL_Surface* food_icon;
 	SDL_Surface* prod_icon;
 	SDL_Surface* comm_icon;
+	SDL_Surface* get_unit_tile(const unit& u, const color& c);
 };
 
 class gui_data {
@@ -81,6 +84,7 @@ class main_window {
 		void numpad_to_move(SDLKey k, int* chx, int* chy) const;
 		int handle_keydown(SDLKey k, SDLMod mod, std::list<unit*>::iterator& current_unit_it, city** c);
 		int handle_mousedown(const SDL_Event& ev, city** c);
+		void get_next_free_unit(std::list<unit*>::iterator& current_unit_it) const;
 		SDL_Surface* screen;
 		const int screen_w;
 		const int screen_h;
@@ -99,14 +103,13 @@ class main_window {
 
 #define CALL_MEMBER_FUN(object,ptrToMember) ((object).*(ptrToMember))
 
-template <typename T>
 class button {
 	public:
-		button(const rect& dim_, SDL_Surface* surf_, int(T::*)());
+		button(const rect& dim_, SDL_Surface* surf_, boost::function<int()> onclick_);
 		int draw(SDL_Surface* screen) const;
 		rect dim;
 		SDL_Surface* surf;
-		int (T::* onclick)();
+		boost::function<int()>onclick;
 };
 
 class city_window {
@@ -120,6 +123,7 @@ class city_window {
 		int handle_keydown(SDLKey k, SDLMod mod);
 		int handle_mousedown(const SDL_Event& ev);
 		int on_exit();
+		int on_unit(unit* u);
 		int draw_city_resources_screen(int xpos, int ypos);
 		SDL_Surface* screen;
 		const int screen_w;
@@ -127,9 +131,10 @@ class city_window {
 		gui_data& data;
 		gui_resources& res;
 		city* c;
-		std::list<button<city_window>*> buttons;
+		std::list<button*> buttons;
 		SDL_Surface* label_surf;
 		SDL_Surface* button_surf;
+		std::vector<SDL_Surface*> unit_tiles;
 };
 
 class gui

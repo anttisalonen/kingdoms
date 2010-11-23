@@ -1,6 +1,7 @@
 #include "gui.h"
 #include <functional>
 #include <algorithm>
+#include <boost/bind.hpp>
 
 tileset::tileset(int w, int h)
 	: tile_w(w),
@@ -111,6 +112,26 @@ main_window::~main_window()
 {
 }
 
+void main_window::get_next_free_unit(std::list<unit*>::iterator& current_unit_it) const
+{
+	std::list<unit*>::iterator uit = current_unit_it;
+	for(++current_unit_it;
+			current_unit_it != (*data.r.current_civ)->units.end();
+			++current_unit_it) {
+		if((*current_unit_it)->moves > 0 && !(*current_unit_it)->fortified)
+			return;
+	}
+
+	// run through the first half
+	for(current_unit_it = (*data.r.current_civ)->units.begin();
+			current_unit_it != uit;
+			++current_unit_it) {
+		if((*current_unit_it)->moves > 0 && !(*current_unit_it)->fortified)
+			return;
+	}
+	current_unit_it = (*data.r.current_civ)->units.end();
+}
+
 void main_window::set_current_unit(const unit* u)
 {
 	current_unit = u;
@@ -194,7 +215,12 @@ int main_window::draw_minimap() const
 
 int main_window::draw_civ_info() const
 {
-	return draw_text(screen, &res.font, (*data.r.current_civ)->civname, 10, sidebar_size * tile_h / 2 + 40, 255, 255, 255);
+	draw_text(screen, &res.font, (*data.r.current_civ)->civname, 10, sidebar_size * tile_h / 2 + 40, 255, 255, 255);
+	char buf[256];
+	buf[255] = '\0';
+	snprintf(buf, 255, "Gold: %d", (*data.r.current_civ)->gold);
+	draw_text(screen, &res.font, buf, 10, sidebar_size * tile_h / 2 + 60, 255, 255, 255);
+	return 0;
 }
 
 int main_window::draw_unit_info(const unit* current_unit) const
@@ -233,33 +259,37 @@ int main_window::draw_city(const city& c) const
 	return draw_tile(res.city_images[c.civ_id], c.xpos, c.ypos);
 }
 
-int main_window::draw_unit(const unit& u)
+SDL_Surface* gui_resources::get_unit_tile(const unit& u, const color& c)
 {
-	if(u.unit_id < 0 || u.unit_id >= (int)res.plain_unit_images.size()) {
+	if(u.unit_id < 0 || u.unit_id >= (int)plain_unit_images.size()) {
 		fprintf(stderr, "Image for Unit ID %d not loaded\n", u.unit_id);
-		return 1;
+		return NULL;
 	}
-	if(!(in_bounds(cam.cam_x, u.xpos, cam.cam_x + cam_total_tiles_x) &&
- 	     in_bounds(cam.cam_y, u.ypos, cam.cam_y + cam_total_tiles_y))) {
-		return 0;
-	}
-	SDL_Surface* surf = NULL;
-	color& c = data.r.civs[u.civ_id]->col;
-	UnitImageMap::const_iterator it = res.unit_images.find(std::make_pair(u.unit_id,
+	SDL_Surface* surf;
+	UnitImageMap::const_iterator it = unit_images.find(std::make_pair(u.unit_id,
 			       c));
-	if(it == res.unit_images.end()) {
+	if(it == unit_images.end()) {
 		// load image
-		SDL_Surface* plain = res.plain_unit_images[u.unit_id];
+		SDL_Surface* plain = plain_unit_images[u.unit_id];
 		SDL_Surface* result = SDL_DisplayFormat(plain);
 		sdl_change_pixel_color(result, color(0, 255, 255), c);
-		res.unit_images.insert(std::make_pair(std::make_pair(u.unit_id, c),
+		unit_images.insert(std::make_pair(std::make_pair(u.unit_id, c),
 					result));
 		surf = result;
 	}
 	else {
 		surf = it->second;
 	}
+	return surf;
+}
 
+int main_window::draw_unit(const unit& u)
+{
+	if(!(in_bounds(cam.cam_x, u.xpos, cam.cam_x + cam_total_tiles_x) &&
+ 	     in_bounds(cam.cam_y, u.ypos, cam.cam_y + cam_total_tiles_y))) {
+		return 0;
+	}
+	SDL_Surface* surf = res.get_unit_tile(u, data.r.civs[u.civ_id]->col);
 	return draw_tile(surf, u.xpos, u.ypos);
 }
 
@@ -477,9 +507,24 @@ int main_window::handle_keydown(SDLKey k, SDLMod mod, std::list<unit*>::iterator
 			if(can_build) {
 				*c = (*data.r.current_civ)->add_city("city name", (*current_unit_it)->xpos,
 						(*current_unit_it)->ypos);
+				set_default_city_production(*c, data.r.uconfmap);
 				current_unit_it = (*data.r.current_civ)->units.erase(current_unit_it);
 				unit_changed = true;
 			}
+		}
+		else if(k == SDLK_SPACE) {
+			(*current_unit_it)->moves = 0;
+			get_next_free_unit(current_unit_it);
+			unit_changed = true;
+		}
+		else if(k == SDLK_f) {
+			(*current_unit_it)->fortified = true;
+			get_next_free_unit(current_unit_it);
+			unit_changed = true;
+		}
+		else if(k == SDLK_w) {
+			get_next_free_unit(current_unit_it);
+			unit_changed = true;
 		}
 		else {
 			int chx, chy;
@@ -487,7 +532,7 @@ int main_window::handle_keydown(SDLKey k, SDLMod mod, std::list<unit*>::iterator
 			if((chx || chy) && ((*data.r.current_civ)->try_move_unit(*current_unit_it, chx, chy))) {
 				if((*current_unit_it)->moves == 0) {
 					// no moves left
-					current_unit_it++;
+					get_next_free_unit(current_unit_it);
 					unit_changed = true;
 				}
 			}
@@ -514,6 +559,8 @@ int main_window::handle_mousedown(const SDL_Event& ev, city** c)
 	if(sq_x >= 0) {
 		sq_x += cam.cam_x;
 		sq_y += cam.cam_y;
+
+		// choose city
 		for(std::list<city*>::const_iterator it = (*data.r.current_civ)->cities.begin();
 				it != (*data.r.current_civ)->cities.end();
 				++it) {
@@ -522,20 +569,30 @@ int main_window::handle_mousedown(const SDL_Event& ev, city** c)
 				break;
 			}
 		}
+
+		// if no city chosen, choose unit
+		if(!*c) {
+			for(std::list<unit*>::const_iterator it = (*data.r.current_civ)->units.begin();
+					it != (*data.r.current_civ)->units.end();
+					++it) {
+				if((*it)->xpos == sq_x && (*it)->ypos == sq_y && (*it)->fortified) {
+					(*it)->fortified = false;
+					set_current_unit(*it);
+				}
+			}
+		}
 	}
 	return 0;
 }
 
-template<typename T>
-button<T>::button(const rect& dim_, SDL_Surface* surf_, int(T::* cb)())
+button::button(const rect& dim_, SDL_Surface* surf_, boost::function<int()> onclick_)
 	: dim(dim_),
 	surf(surf_),
-	onclick(cb)
+	onclick(onclick_)
 {
 }
 
-template<typename T>
-int button<T>::draw(SDL_Surface* screen) const
+int button::draw(SDL_Surface* screen) const
 {
 	SDL_Rect dest;
 	dest.x = dim.x;
@@ -587,14 +644,44 @@ city_window::city_window(SDL_Surface* screen_, int x, int y, gui_data& data_, gu
 	rect exit_rect = rect(screen_w * 0.75, screen_h * 0.8, screen_w * 0.15, screen_h * 0.08);
 	label_surf = make_label(c->cityname, &res.font, name_rect.w, name_rect.h, color(200, 200, 200), color(0, 0, 0));
 	button_surf = make_label("Exit", &res.font, exit_rect.w, exit_rect.h, color(128, 60, 60), color(0, 0, 0));
-	buttons.push_back(new button<city_window>(name_rect,
+	buttons.push_back(new button(name_rect,
 				label_surf, NULL));
-	buttons.push_back(new button<city_window>(exit_rect,
-				button_surf, &city_window::on_exit));
+	buttons.push_back(new button(exit_rect,
+				button_surf, boost::bind(&city_window::on_exit, this)));
+
+	// create "buttons" for unit icons
+	rect unit_box = rect(screen_w * 0.5, screen_h * 0.1, screen_w * 0.4, screen_h * 0.4);
+	int unit_x = unit_box.x;
+	int unit_y = unit_box.y;
+	rect unit_coord = rect(unit_x, unit_y, res.terrains.tile_w, res.terrains.tile_h);
+	for(std::list<unit*>::const_iterator uit = data.r.civs[c->civ_id]->units.begin();
+			uit != data.r.civs[c->civ_id]->units.end();
+			++uit) {
+		if((*uit)->xpos == c->xpos && (*uit)->ypos == c->ypos) {
+			SDL_Surface* unit_tile = res.get_unit_tile(**uit,
+					data.r.civs[(*uit)->civ_id]->col);
+			unit_tiles.push_back(unit_tile);
+
+			buttons.push_back(new button(unit_coord, 
+						unit_tile,
+						boost::bind(&city_window::on_unit, this, *uit)));
+			unit_coord.x += unit_coord.w;
+			if(unit_coord.x + unit_coord.w >= unit_box.w + unit_box.w) {
+				unit_coord.x = unit_box.x;
+				unit_coord.y += unit_coord.h;
+				if(unit_coord.y + unit_coord.h >= unit_box.h + unit_box.h)
+					break;
+			}
+		}
+	}
 }
 
 city_window::~city_window()
 {
+	while(!unit_tiles.empty()) {
+		SDL_FreeSurface(unit_tiles.back());
+		unit_tiles.pop_back();
+	}
 	while(!buttons.empty()) {
 		delete buttons.back();
 		buttons.pop_back();
@@ -606,6 +693,12 @@ city_window::~city_window()
 int city_window::on_exit()
 {
 	return 1;
+}
+
+int city_window::on_unit(unit* u)
+{
+	u->fortified = false;
+	return 0;
 }
 
 int city_window::draw_city_resources_screen(int xpos, int ypos)
@@ -675,10 +768,10 @@ int city_window::draw()
 	// background
 	SDL_FillRect(screen, &rect, bgcol);
 
-	// buttons
+	// buttons (including residing units)
 	std::for_each(buttons.begin(),
 			buttons.end(),
-			std::bind2nd(std::mem_fun(&button<city_window>::draw), screen));
+			std::bind2nd(std::mem_fun(&button::draw), screen));
 
 	// city resources screen
 	draw_city_resources_screen(screen_w * 0.3, screen_h * 0.2);
@@ -688,11 +781,22 @@ int city_window::draw()
 	total_resources(*c, data.m, &food, &prod, &comm);
 	char buf[64];
 	buf[63] = '\0';
-	snprintf(buf, 63, "Food: %d (%d)", food, c->stored_food);
+	snprintf(buf, 63, "Food: %d/turn (Total: %d)", food, c->stored_food);
 	draw_text(screen, &res.font, buf, screen_w * 0.3, screen_h * 0.60, 0, 0, 0);
-	snprintf(buf, 63, "Production: %d (%d)", prod, c->stored_prod);
-	draw_text(screen, &res.font, buf, screen_w * 0.3, screen_h * 0.70, 0, 0, 0);
-	snprintf(buf, 63, "Commerce: %d", comm);
+	{
+		unit_configuration_map::const_iterator it = data.r.uconfmap.find(c->current_production_unit_id);
+		if(it == data.r.uconfmap.end()) {
+			snprintf(buf, 63, "Production: %d per turn - not producing", prod);
+		}
+		else {
+			snprintf(buf, 63, "Production: %d/turn - %s - %d/%d", 
+					prod, it->second->unit_name, 
+					c->stored_prod, 
+					it->second->production_cost);
+		}
+		draw_text(screen, &res.font, buf, screen_w * 0.3, screen_h * 0.70, 0, 0, 0);
+	}
+	snprintf(buf, 63, "Commerce: %d/turn", comm);
 	draw_text(screen, &res.font, buf, screen_w * 0.3, screen_h * 0.80, 0, 0, 0);
 
 	// final flip
@@ -716,13 +820,12 @@ int city_window::handle_input(const SDL_Event& ev)
 
 int city_window::handle_mousedown(const SDL_Event& ev)
 {
-	for(std::list<button<city_window>*>::iterator it = buttons.begin();
+	for(std::list<button*>::iterator it = buttons.begin();
 			it != buttons.end();
 			++it) {
 		if(in_rectangle((*it)->dim, ev.button.x, ev.button.y)) {
 			if((*it)->onclick) {
-				city_window_fun cb = (*it)->onclick;
-				return CALL_MEMBER_FUN(*this, cb)();
+				return (*it)->onclick();
 			}
 			else
 				return 0;

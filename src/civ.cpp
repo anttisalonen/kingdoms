@@ -18,6 +18,18 @@ void total_resources(const city& c, const map& m,
 	}
 }
 
+void set_default_city_production(city* c, const unit_configuration_map& uconfmap)
+{
+	for(unit_configuration_map::const_iterator it = uconfmap.begin();
+			it != uconfmap.end();
+			++it) {
+		if(!it->second->settler) {
+			c->current_production_unit_id = it->first;
+			return;
+		}
+	}
+}
+
 resource_configuration::resource_configuration()
 	: city_food_bonus(0),
 	city_prod_bonus(0),
@@ -33,7 +45,8 @@ unit::unit(int uid, int x, int y, int civid)
 	civ_id(civid),
 	xpos(x),
 	ypos(y),
-	moves(0)
+	moves(0),
+	fortified(false)
 {
 }
 
@@ -164,7 +177,8 @@ city::city(const char* name, int x, int y, int civid)
 	civ_id(civid),
 	population(1),
 	stored_food(0),
-	stored_prod(0)
+	stored_prod(0),
+	current_production_unit_id(-1)
 {
 }
 
@@ -211,7 +225,7 @@ void civilization::refill_moves(const unit_configuration_map& uconfmap)
 	}
 }
 
-void civilization::increment_resources()
+void civilization::increment_resources(const unit_configuration_map& uconfmap)
 {
 	for(std::list<city*>::iterator cit = cities.begin();
 			cit != cities.end();
@@ -219,8 +233,18 @@ void civilization::increment_resources()
 		int food, prod, comm;
 		total_resources(**cit, m, &food, &prod, &comm);
 		(*cit)->stored_food += food - (*cit)->population * 2;
-		(*cit)->stored_prod += prod;
 		gold += comm;
+		(*cit)->stored_prod += prod;
+		if((*cit)->current_production_unit_id > -1) {
+			unit_configuration_map::const_iterator prod_unit = uconfmap.find((*cit)->current_production_unit_id);
+			if(prod_unit != uconfmap.end()) {
+				if((int)prod_unit->second->production_cost <= (*cit)->stored_prod) {
+					add_unit((*cit)->current_production_unit_id, 
+							(*cit)->xpos, (*cit)->ypos);
+					(*cit)->stored_prod -= prod_unit->second->production_cost;
+				}
+			}
+		}
 	}
 }
 
@@ -283,7 +307,7 @@ void round::increment_resources()
 	for(std::vector<civilization*>::iterator it = civs.begin();
 	    it != civs.end();
 	    ++it) {
-		(*it)->increment_resources();
+		(*it)->increment_resources(uconfmap);
 	}
 }
 
