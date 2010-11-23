@@ -371,8 +371,8 @@ bool round::next_civ()
 	current_civ++;
 	if(current_civ == civs.end()) {
 		current_civ = civs.begin();
-		refill_moves();
 		increment_resources();
+		refill_moves();
 		return true;
 	}
 	return false;
