@@ -197,6 +197,11 @@ int city_window::draw()
 	snprintf(buf, 63, "Commerce: %d/turn", comm);
 	draw_text(screen, &res.font, buf, screen_w * 0.3, screen_h * 0.80, 0, 0, 0);
 
+	// production choice buttons if any
+	std::for_each(change_prod_buttons.begin(),
+			change_prod_buttons.end(),
+			std::bind2nd(std::mem_fun(&button::draw), screen));
+
 	// final flip
 	if(SDL_Flip(screen)) {
 		fprintf(stderr, "Unable to flip: %s\n", SDL_GetError());
