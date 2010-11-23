@@ -21,6 +21,7 @@ class main_window {
 		int draw();
 		int process(int ms);
 		int handle_input(const SDL_Event& ev, std::list<unit*>::iterator& current_unit_it, city** c);
+		void get_next_free_unit(std::list<unit*>::iterator& current_unit_it) const;
 	private:
 		int draw_main_map();
 		int draw_sidebar() const;
@@ -42,7 +43,6 @@ class main_window {
 		void numpad_to_move(SDLKey k, int* chx, int* chy) const;
 		int handle_keydown(SDLKey k, SDLMod mod, std::list<unit*>::iterator& current_unit_it, city** c);
 		int handle_mousedown(const SDL_Event& ev, std::list<unit*>::iterator& current_unit_it, city** c);
-		void get_next_free_unit(std::list<unit*>::iterator& current_unit_it) const;
 		int handle_civ_messages(std::list<msg>* messages);
 		SDL_Surface* screen;
 		const int screen_w;

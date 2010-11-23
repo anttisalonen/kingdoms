@@ -25,7 +25,7 @@ city_window::city_window(SDL_Surface* screen_, int x, int y, gui_data& data_, gu
 				change_prod_surf, boost::bind(&city_window::change_production, this)));
 
 	// create "buttons" for unit icons
-	rect unit_box = rect(screen_w * 0.5, screen_h * 0.1, screen_w * 0.4, screen_h * 0.4);
+	rect unit_box = rect(screen_w * 0.8, screen_h * 0.1, screen_w * 0.4, screen_h * 0.4);
 	int unit_x = unit_box.x;
 	int unit_y = unit_box.y;
 	rect unit_coord = rect(unit_x, unit_y, res.terrains.tile_w, res.terrains.tile_h);
