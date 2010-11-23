@@ -53,10 +53,6 @@ city_window::city_window(SDL_Surface* screen_, int x, int y, gui_data& data_, gu
 
 city_window::~city_window()
 {
-	while(!unit_tiles.empty()) {
-		SDL_FreeSurface(unit_tiles.back());
-		unit_tiles.pop_back();
-	}
 	while(!buttons.empty()) {
 		delete buttons.back();
 		buttons.pop_back();
