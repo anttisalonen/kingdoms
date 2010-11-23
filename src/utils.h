@@ -1,6 +1,8 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#define CALL_MEMBER_FUN(object,ptrToMember) ((object).*(ptrToMember))
+
 bool in_bounds(int a, int b, int c);
 
 template<typename N>
