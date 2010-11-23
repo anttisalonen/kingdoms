@@ -480,6 +480,22 @@ int main_window::handle_input(const SDL_Event& ev, std::list<unit*>::iterator& c
 	}
 }
 
+int main_window::handle_civ_messages(std::list<msg>* messages)
+{
+	while(!messages->empty()) {
+		msg& m = messages->front();
+		switch(m.type) {
+			case msg_new_unit:
+				printf("New unit %s produced.\n",
+						m.msg_data.new_unit->uconf.unit_name);
+			default:
+				break;
+		}
+		messages->pop_front();
+	}
+	return 0;
+}
+
 int main_window::handle_keydown(SDLKey k, SDLMod mod, std::list<unit*>::iterator& current_unit_it, city** c)
 {
 	if(k == SDLK_ESCAPE || k == SDLK_q)
@@ -491,6 +507,7 @@ int main_window::handle_keydown(SDLKey k, SDLMod mod, std::list<unit*>::iterator
 			(current_unit_it == (*data.r.current_civ)->units.end() || (mod & (KMOD_LSHIFT | KMOD_RSHIFT)))) {
 		// end of turn for this civ
 		data.r.next_civ();
+		handle_civ_messages(&(*data.r.current_civ)->messages);
 		current_unit_it = (*data.r.current_civ)->units.begin();
 		set_current_unit(*current_unit_it);
 		draw();
@@ -605,6 +622,25 @@ int button::draw(SDL_Surface* screen) const
 	return 0;
 }
 
+int check_button_click(const std::list<button*>& buttons,
+		const SDL_Event& ev)
+{
+	if(ev.type != SDL_MOUSEBUTTONDOWN)
+		return 0;
+	for(std::list<button*>::const_iterator it = buttons.begin();
+			it != buttons.end();
+			++it) {
+		if(in_rectangle((*it)->dim, ev.button.x, ev.button.y)) {
+			if((*it)->onclick) {
+				return (*it)->onclick();
+			}
+			else
+				return 0;
+		}
+	}
+	return 0;
+}
+
 SDL_Surface* make_label(const char* text, const TTF_Font* font, int w, int h, const color& bg_col, const color& text_col)
 {
 	SDL_Surface* button_surf = SDL_CreateRGBSurface(SDL_SWSURFACE, w, h, 32, rmask, gmask, bmask, 0);
@@ -642,12 +678,17 @@ city_window::city_window(SDL_Surface* screen_, int x, int y, gui_data& data_, gu
 {
 	rect name_rect = rect(screen_w * 0.30, screen_h * 0.1, screen_w * 0.40, screen_h * 0.08);
 	rect exit_rect = rect(screen_w * 0.75, screen_h * 0.8, screen_w * 0.15, screen_h * 0.08);
+	rect change_prod_rect = rect(screen_w * 0.75, screen_h * 0.6, screen_w * 0.15, screen_h * 0.08);
 	label_surf = make_label(c->cityname, &res.font, name_rect.w, name_rect.h, color(200, 200, 200), color(0, 0, 0));
 	button_surf = make_label("Exit", &res.font, exit_rect.w, exit_rect.h, color(128, 60, 60), color(0, 0, 0));
+	change_prod_surf = make_label("Change production", &res.font, change_prod_rect.w, 
+			change_prod_rect.h, color(128, 60, 60), color(0, 0, 0));
 	buttons.push_back(new button(name_rect,
 				label_surf, NULL));
 	buttons.push_back(new button(exit_rect,
 				button_surf, boost::bind(&city_window::on_exit, this)));
+	buttons.push_back(new button(change_prod_rect,
+				change_prod_surf, boost::bind(&city_window::change_production, this)));
 
 	// create "buttons" for unit icons
 	rect unit_box = rect(screen_w * 0.5, screen_h * 0.1, screen_w * 0.4, screen_h * 0.4);
@@ -686,8 +727,31 @@ city_window::~city_window()
 		delete buttons.back();
 		buttons.pop_back();
 	}
+	SDL_FreeSurface(change_prod_surf);
 	SDL_FreeSurface(button_surf);
 	SDL_FreeSurface(label_surf);
+}
+
+int city_window::change_production()
+{
+	rect option_rect = rect(screen_w * 0.30, screen_h * 0.1, screen_w * 0.40, screen_h * 0.08);
+	for(unit_configuration_map::const_iterator it = data.r.uconfmap.begin();
+			it != data.r.uconfmap.end();
+			++it) {
+		SDL_Surface* button_surf = make_label(it->second->unit_name, 
+				&res.font, option_rect.w, option_rect.h, color(128, 128, 128), color(0, 0, 0));
+		change_prod_labels.push_back(button_surf);
+		change_prod_buttons.push_back(new button(option_rect,
+				button_surf, boost::bind(&city_window::choose_production, this, *it)));
+		option_rect.y += screen_h * 0.09;
+	}
+	return 0;
+}
+
+int city_window::choose_production(const std::pair<int, unit_configuration*>& u)
+{
+	c->current_production_unit_id = u.first;
+	return 1;
 }
 
 int city_window::on_exit()
@@ -806,32 +870,44 @@ int city_window::draw()
 	return 0;
 }
 
+int city_window::handle_production_input(const SDL_Event& ev)
+{
+	if(ev.type == SDL_MOUSEBUTTONDOWN) {
+		return check_button_click(change_prod_buttons, ev);
+	}
+	return 0;
+}
+
 int city_window::handle_input(const SDL_Event& ev)
 {
-	switch(ev.type) {
-		case SDL_KEYDOWN:
-			return handle_keydown(ev.key.keysym.sym, ev.key.keysym.mod);
-		case SDL_MOUSEBUTTONDOWN:
-			return handle_mousedown(ev);
-		default:
-			return 0;
+	if(change_prod_buttons.size() == 0) {
+		switch(ev.type) {
+			case SDL_KEYDOWN:
+				return handle_keydown(ev.key.keysym.sym, ev.key.keysym.mod);
+			case SDL_MOUSEBUTTONDOWN:
+				return handle_mousedown(ev);
+			default:
+				return 0;
+		}
+	}
+	else {
+		if(handle_production_input(ev)) {
+			while(!change_prod_labels.empty()) {
+				SDL_FreeSurface(change_prod_labels.back());
+				change_prod_labels.pop_back();
+			}
+			while(!change_prod_buttons.empty()) {
+				delete change_prod_buttons.back();
+				change_prod_buttons.pop_back();
+			}
+		}
+		return 0;
 	}
 }
 
 int city_window::handle_mousedown(const SDL_Event& ev)
 {
-	for(std::list<button*>::iterator it = buttons.begin();
-			it != buttons.end();
-			++it) {
-		if(in_rectangle((*it)->dim, ev.button.x, ev.button.y)) {
-			if((*it)->onclick) {
-				return (*it)->onclick();
-			}
-			else
-				return 0;
-		}
-	}
-	return 0;
+	return check_button_click(buttons, ev);
 }
 
 int city_window::handle_keydown(SDLKey k, SDLMod mod)

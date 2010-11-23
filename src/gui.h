@@ -85,6 +85,7 @@ class main_window {
 		int handle_keydown(SDLKey k, SDLMod mod, std::list<unit*>::iterator& current_unit_it, city** c);
 		int handle_mousedown(const SDL_Event& ev, city** c);
 		void get_next_free_unit(std::list<unit*>::iterator& current_unit_it) const;
+		int handle_civ_messages(std::list<msg>* messages);
 		SDL_Surface* screen;
 		const int screen_w;
 		const int screen_h;
@@ -122,9 +123,12 @@ class city_window {
 	private:
 		int handle_keydown(SDLKey k, SDLMod mod);
 		int handle_mousedown(const SDL_Event& ev);
+		int handle_production_input(const SDL_Event& ev);
+		int change_production();
 		int on_exit();
 		int on_unit(unit* u);
 		int draw_city_resources_screen(int xpos, int ypos);
+		int choose_production(const std::pair<int, unit_configuration*>& u);
 		SDL_Surface* screen;
 		const int screen_w;
 		const int screen_h;
@@ -134,7 +138,11 @@ class city_window {
 		std::list<button*> buttons;
 		SDL_Surface* label_surf;
 		SDL_Surface* button_surf;
+		SDL_Surface* change_prod_surf;
 		std::vector<SDL_Surface*> unit_tiles;
+
+		std::list<button*> change_prod_buttons;
+		std::vector<SDL_Surface*> change_prod_labels;
 };
 
 class gui

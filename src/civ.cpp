@@ -40,13 +40,14 @@ resource_configuration::resource_configuration()
 	memset(terrain_comm_values, 0, sizeof(terrain_comm_values));
 }
 
-unit::unit(int uid, int x, int y, int civid)
+unit::unit(int uid, int x, int y, int civid, const unit_configuration& uconf_)
 	: unit_id(uid),
 	civ_id(civid),
 	xpos(x),
 	ypos(y),
 	moves(0),
-	fortified(false)
+	fortified(false),
+	uconf(uconf_)
 {
 }
 
@@ -204,10 +205,12 @@ civilization::~civilization()
 	}
 }
 
-void civilization::add_unit(int uid, int x, int y)
+unit* civilization::add_unit(int uid, int x, int y, const unit_configuration& uconf)
 {
-	units.push_back(new unit(uid, x, y, civ_id));
+	unit* u = new unit(uid, x, y, civ_id, uconf);
+	units.push_back(u);
 	fog.reveal(x, y, 1);
+	return u;
 }
 
 void civilization::refill_moves(const unit_configuration_map& uconfmap)
@@ -225,6 +228,19 @@ void civilization::refill_moves(const unit_configuration_map& uconfmap)
 	}
 }
 
+void civilization::add_message(const msg& m)
+{
+	messages.push_back(m);
+}
+
+msg new_unit_msg(unit* u)
+{
+	msg m;
+	m.type = msg_new_unit;
+	m.msg_data.new_unit = u;
+	return m;
+}
+
 void civilization::increment_resources(const unit_configuration_map& uconfmap)
 {
 	for(std::list<city*>::iterator cit = cities.begin();
@@ -239,9 +255,10 @@ void civilization::increment_resources(const unit_configuration_map& uconfmap)
 			unit_configuration_map::const_iterator prod_unit = uconfmap.find((*cit)->current_production_unit_id);
 			if(prod_unit != uconfmap.end()) {
 				if((int)prod_unit->second->production_cost <= (*cit)->stored_prod) {
-					add_unit((*cit)->current_production_unit_id, 
-							(*cit)->xpos, (*cit)->ypos);
+					unit* u = add_unit((*cit)->current_production_unit_id, 
+							(*cit)->xpos, (*cit)->ypos, *(prod_unit->second));
 					(*cit)->stored_prod -= prod_unit->second->production_cost;
+					add_message(new_unit_msg(u));
 				}
 			}
 		}

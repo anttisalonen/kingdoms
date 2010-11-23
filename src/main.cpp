@@ -50,10 +50,10 @@ int run()
 	uconfmap.insert(std::make_pair(1, &warrior_conf));
 
 	round r(uconfmap);
-	civ1->add_unit(0, 1, 1);
-	civ1->add_unit(1, 2, 2);
-	civ2->add_unit(0, 7, 6);
-	civ2->add_unit(1, 7, 7);
+	civ1->add_unit(0, 1, 1, settlers_conf);
+	civ1->add_unit(1, 2, 2, warrior_conf);
+	civ2->add_unit(0, 7, 6, settlers_conf);
+	civ2->add_unit(1, 7, 7, warrior_conf);
 
 	r.add_civilization(civ1);
 	r.add_civilization(civ2);

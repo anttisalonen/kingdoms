@@ -36,7 +36,7 @@ class resource_configuration {
 class unit
 {
 	public:
-		unit(int uid, int x, int y, int civid);
+		unit(int uid, int x, int y, int civid, const unit_configuration& uconf_);
 		~unit();
 		void refill_moves(unsigned int m);
 		const int unit_id;
@@ -45,6 +45,7 @@ class unit
 		int ypos;
 		unsigned int moves;
 		bool fortified;
+		const unit_configuration& uconf;
 };
 
 class fog_of_war {
@@ -95,16 +96,28 @@ class city {
 		int current_production_unit_id;
 };
 
+enum msg_type {
+	msg_new_unit,
+};
+
+struct msg {
+	msg_type type;
+	union {
+		unit* new_unit;
+	} msg_data;
+};
+
 class civilization {
 	public:
 		civilization(const char* name, int civid, const color& c_, const map& m_);
 		~civilization();
-		void add_unit(int uid, int x, int y);
+		unit* add_unit(int uid, int x, int y, const unit_configuration& uconf);
 		int try_move_unit(unit* u, int chx, int chy);
 		void refill_moves(const unit_configuration_map& uconfmap);
 		void increment_resources(const unit_configuration_map& uconfmap);
 		char fog_at(int x, int y) const;
 		city* add_city(const char* name, int x, int y);
+		void add_message(const msg& m);
 		const char* civname;
 		const int civ_id;
 		color col;
@@ -113,6 +126,7 @@ class civilization {
 		const map& m;
 		fog_of_war fog;
 		int gold;
+		std::list<msg> messages;
 	private:
 };
 
