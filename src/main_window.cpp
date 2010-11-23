@@ -478,9 +478,10 @@ int main_window::handle_mousedown(const SDL_Event& ev, city** c)
 			for(std::list<unit*>::const_iterator it = (*data.r.current_civ)->units.begin();
 					it != (*data.r.current_civ)->units.end();
 					++it) {
-				if((*it)->xpos == sq_x && (*it)->ypos == sq_y && (*it)->fortified) {
+				if((*it)->xpos == sq_x && (*it)->ypos == sq_y) {
 					(*it)->fortified = false;
-					set_current_unit(*it);
+					if((*it)->moves > 0)
+						set_current_unit(*it);
 				}
 			}
 		}
