@@ -5,6 +5,7 @@
 
 #include <vector>
 #include <list>
+#include <set>
 #include <map>
 
 #include "color.h"
@@ -17,6 +18,7 @@ class unit_configuration {
 		bool settler;
 		unsigned int production_cost;
 		unsigned int max_strength;
+		unsigned int needed_advance;
 };
 
 typedef std::map<int, unit_configuration*> unit_configuration_map;
@@ -33,6 +35,17 @@ class resource_configuration {
 		int city_prod_bonus;
 		int city_comm_bonus;
 };
+
+class advance {
+	public:
+		advance();
+		unsigned int advance_id;
+		const char* advance_name;
+		int cost;
+		unsigned int needed_advances[4];
+};
+
+typedef std::map<unsigned int, advance*> advance_map;
 
 class unit
 {
@@ -113,6 +126,7 @@ class map {
 enum msg_type {
 	msg_new_unit,
 	msg_civ_discovery,
+	msg_new_advance
 };
 
 struct msg {
@@ -120,6 +134,7 @@ struct msg {
 	union {
 		unit* new_unit;
 		int discovered_civ_id;
+		unsigned int new_advance_id;
 	} msg_data;
 };
 
@@ -131,7 +146,8 @@ class civilization {
 		void remove_unit(unit* u);
 		int try_move_unit(unit* u, int chx, int chy);
 		void refill_moves(const unit_configuration_map& uconfmap);
-		void increment_resources(const unit_configuration_map& uconfmap);
+		void increment_resources(const unit_configuration_map& uconfmap,
+				const advance_map& amap);
 		char fog_at(int x, int y) const;
 		city* add_city(const char* name, int x, int y);
 		void remove_city(city* c);
@@ -149,7 +165,12 @@ class civilization {
 		map& m;
 		fog_of_war fog;
 		int gold;
+		int science;
 		std::list<msg> messages;
+		int alloc_gold;
+		int alloc_science;
+		unsigned int research_goal_id;
+		std::set<unsigned int> researched_advances;
 	private:
 		std::vector<int> relationships;
 };
@@ -157,13 +178,14 @@ class civilization {
 class round
 {
 	public:
-		round(const unit_configuration_map& uconfmap_);
+		round(const unit_configuration_map& uconfmap_, const advance_map& amap_);
 		void add_civilization(civilization* civ);
 		bool next_civ();
 		std::vector<civilization*> civs;
 		std::vector<civilization*>::iterator current_civ;
 		const unit_configuration* get_unit_configuration(int uid) const;
 		const unit_configuration_map& uconfmap;
+		const advance_map& amap;
 	private:
 		void refill_moves();
 		void increment_resources();

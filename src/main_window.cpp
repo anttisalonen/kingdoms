@@ -383,6 +383,11 @@ int main_window::handle_input(const SDL_Event& ev, std::list<unit*>::iterator& c
 	}
 }
 
+bool not_in_set(const std::set<unsigned int>& u, const std::pair<unsigned int, advance*>& i)
+{
+	return u.find(i.first) == u.end();
+}
+
 int main_window::handle_civ_messages(std::list<msg>* messages)
 {
 	while(!messages->empty()) {
@@ -395,6 +400,24 @@ int main_window::handle_civ_messages(std::list<msg>* messages)
 			case msg_civ_discovery:
 				printf("Discovered civilization '%s'.\n",
 						data.r.civs[m.msg_data.discovered_civ_id]->civname);
+				break;
+			case msg_new_advance:
+				{
+					unsigned int adv_id = m.msg_data.new_advance_id;
+					advance_map::const_iterator it = data.r.amap.find(adv_id);
+					if(it != data.r.amap.end()) {
+						printf("Discovered advance '%s'.\n",
+								it->second->advance_name);
+					}
+					it = std::find_if(data.r.amap.begin(),
+							data.r.amap.end(),
+							 boost::bind(not_in_set, (*data.r.current_civ)->researched_advances, boost::lambda::_1));
+					if(it != data.r.amap.end()) {
+						(*data.r.current_civ)->research_goal_id = it->first;
+						printf("Now researching '%s'.\n",
+								it->second->advance_name);
+					}
+				}
 				break;
 			default:
 				break;

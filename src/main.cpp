@@ -35,23 +35,62 @@ int run()
 	civilization* civ1 = new civilization("Babylonians", 0, color(255, 0, 0), m);
 	civilization* civ2 = new civilization("Egyptians", 1, color(255, 255, 0), m);
 
+	advance warrior_code;
+	advance bronze_working;
+
+	warrior_code.advance_id = 1;
+	warrior_code.advance_name = "Warrior Code";
+	warrior_code.cost = 10;
+
+	bronze_working.advance_id = 2;
+	bronze_working.advance_name = "Bronze Working";
+	bronze_working.cost = 15;
+	bronze_working.needed_advances[0] = 1;
+
+	advance_map amap;
+	amap.insert(std::make_pair(1, &warrior_code));
+	amap.insert(std::make_pair(2, &bronze_working));
+
 	unit_configuration settlers_conf;
 	unit_configuration warrior_conf;
+	unit_configuration archer_conf;
+	unit_configuration spearman_conf;
+
 	settlers_conf.max_moves = 1;
 	settlers_conf.unit_name = "Settlers";
 	settlers_conf.settler = true;
 	settlers_conf.production_cost = 40;
 	settlers_conf.max_strength = 0;
+	settlers_conf.needed_advance = 0;
+
 	warrior_conf.max_moves = 1;
 	warrior_conf.unit_name = "Warrior";
 	warrior_conf.settler = false;
 	warrior_conf.production_cost = 10;
 	warrior_conf.max_strength = 1;
+	warrior_conf.needed_advance = 0;
+
+	archer_conf.max_moves = 1;
+	archer_conf.unit_name = "Archer";
+	archer_conf.settler = false;
+	archer_conf.production_cost = 20;
+	archer_conf.max_strength = 2;
+	archer_conf.needed_advance = 1;
+
+	spearman_conf.max_moves = 1;
+	spearman_conf.unit_name = "Spearman";
+	spearman_conf.settler = false;
+	spearman_conf.production_cost = 30;
+	spearman_conf.max_strength = 3;
+	spearman_conf.needed_advance = 2;
+
 	unit_configuration_map uconfmap;
 	uconfmap.insert(std::make_pair(0, &settlers_conf));
 	uconfmap.insert(std::make_pair(1, &warrior_conf));
+	uconfmap.insert(std::make_pair(2, &archer_conf));
+	uconfmap.insert(std::make_pair(3, &spearman_conf));
 
-	round r(uconfmap);
+	round r(uconfmap, amap);
 	civ1->add_unit(0, 1, 1, settlers_conf);
 	civ1->add_unit(1, 2, 2, warrior_conf);
 	civ2->add_unit(0, 7, 6, settlers_conf);

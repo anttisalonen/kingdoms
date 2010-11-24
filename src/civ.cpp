@@ -73,6 +73,11 @@ resource_configuration::resource_configuration()
 	memset(terrain_comm_values, 0, sizeof(terrain_comm_values));
 }
 
+advance::advance()
+{
+	memset(needed_advances, 0, sizeof(needed_advances));
+}
+
 unit::unit(int uid, int x, int y, int civid, const unit_configuration& uconf_)
 	: unit_id(uid),
 	civ_id(civid),
@@ -302,6 +307,10 @@ civilization::civilization(const char* name, unsigned int civid, const color& c_
 	m(m_),
 	fog(fog_of_war(m_.size_x(), m_.size_y())),
 	gold(0),
+	science(0),
+	alloc_gold(5),
+	alloc_science(5),
+	research_goal_id(0),
 	relationships(civid + 1, 0)
 {
 	relationships[civid] = 1;
@@ -363,6 +372,15 @@ msg new_unit_msg(unit* u)
 	return m;
 }
 
+msg new_advance_discovered(unsigned int adv_id)
+{
+	msg m;
+	m.type = msg_new_advance;
+	m.msg_data.new_advance_id = adv_id;
+	return m;
+}
+
+
 msg discovered_civ(int civid)
 {
 	msg m;
@@ -371,15 +389,17 @@ msg discovered_civ(int civid)
 	return m;
 }
 
-void civilization::increment_resources(const unit_configuration_map& uconfmap)
+void civilization::increment_resources(const unit_configuration_map& uconfmap,
+		const advance_map& amap)
 {
+	int total_commerce = 0;
 	for(std::list<city*>::iterator cit = cities.begin();
 			cit != cities.end();
 			++cit) {
 		int food, prod, comm;
 		total_resources(**cit, m, &food, &prod, &comm);
 		(*cit)->stored_food += food - (*cit)->population * 2;
-		gold += comm;
+		total_commerce += comm;
 		(*cit)->stored_prod += prod;
 		if((*cit)->current_production_unit_id > -1) {
 			unit_configuration_map::const_iterator prod_unit = uconfmap.find((*cit)->current_production_unit_id);
@@ -392,6 +412,31 @@ void civilization::increment_resources(const unit_configuration_map& uconfmap)
 				}
 			}
 		}
+	}
+	int gold_add = total_commerce * alloc_gold / 10;
+	int science_add = alloc_gold != 10 ? 
+		(total_commerce - gold_add) * alloc_science / (10 - alloc_gold) : 
+		0;
+
+#if 0
+	int luxury_add = alloc_gold + alloc_science != 10 ? 
+		(total_commerce - gold_add - science_add) * 
+		(10 - alloc_science - alloc_gold) / 
+		(10 - alloc_gold - alloc_science) : 
+		0;
+#endif
+	gold += gold_add;
+	science += science_add;
+	advance_map::const_iterator adv = amap.find(research_goal_id);
+	if(adv == amap.end()) {
+		research_goal_id = 0;
+		add_message(new_advance_discovered(0));
+	}
+	else if(adv->second->cost <= science) {
+		science -= adv->second->cost;
+		add_message(new_advance_discovered(research_goal_id));
+		researched_advances.insert(research_goal_id);
+		research_goal_id = 0;
 	}
 }
 
@@ -492,8 +537,10 @@ std::vector<unsigned int> civilization::check_discoveries(int x, int y, int radi
 	return discs;
 }
 
-round::round(const unit_configuration_map& uconfmap_)
-	: uconfmap(uconfmap_)
+round::round(const unit_configuration_map& uconfmap_,
+		const advance_map& amap_)
+	: uconfmap(uconfmap_),
+	amap(amap_)
 {
 	current_civ = civs.begin();
 }
@@ -519,7 +566,7 @@ void round::increment_resources()
 	for(std::vector<civilization*>::iterator it = civs.begin();
 	    it != civs.end();
 	    ++it) {
-		(*it)->increment_resources(uconfmap);
+		(*it)->increment_resources(uconfmap, amap);
 	}
 }
 
