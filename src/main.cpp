@@ -41,10 +41,12 @@ int run()
 	settlers_conf.unit_name = "Settlers";
 	settlers_conf.settler = true;
 	settlers_conf.production_cost = 40;
+	settlers_conf.max_strength = 0;
 	warrior_conf.max_moves = 1;
 	warrior_conf.unit_name = "Warrior";
 	warrior_conf.settler = false;
 	warrior_conf.production_cost = 10;
+	warrior_conf.max_strength = 1;
 	unit_configuration_map uconfmap;
 	uconfmap.insert(std::make_pair(0, &settlers_conf));
 	uconfmap.insert(std::make_pair(1, &warrior_conf));

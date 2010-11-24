@@ -145,6 +145,9 @@ int main_window::draw_unit_info(const unit* u) const
 	buf[255] = '\0';
 	snprintf(buf, 255, "Moves: %-2d/%2d", u->moves, uconf->max_moves);
 	draw_text(screen, &res.font, buf, 10, sidebar_size * tile_h / 2 + 100, 255, 255, 255);
+	snprintf(buf, 255, "Unit strength: %d.%d/%d", u->strength / 10, u->strength % 10,
+		      uconf->max_strength / 10);
+	draw_text(screen, &res.font, buf, 10, sidebar_size * tile_h / 2 + 120, 255, 255, 255);
 	return 0;
 }
 
@@ -388,6 +391,54 @@ int main_window::handle_civ_messages(std::list<msg>* messages)
 	return 0;
 }
 
+bool main_window::try_move_unit(std::list<unit*>::iterator& current_unit_it, int chx, int chy)
+{
+	bool unit_changed = false;
+	int tgtxpos = (*current_unit_it)->xpos + chx;
+	int tgtypos = (*current_unit_it)->ypos + chy;
+
+	// attack square?
+	if(!data.m.free_spot((*data.r.current_civ)->civ_id, tgtxpos, tgtypos)) {
+		const std::vector<unit*>& units = data.m.units_on_spot(tgtxpos, tgtypos);
+		if(units.size() != 0) {
+			unit* defender = units[0];
+			combat(*current_unit_it, defender);
+			if((*current_unit_it)->strength == 0) {
+				unit_changed = true;
+				(*data.r.current_civ)->remove_unit(*current_unit_it);
+			}
+			else if(defender->strength == 0) {
+				(*data.r.civs[defender->civ_id]).remove_unit(defender);
+			}
+		}
+		if(units.size() == 0) {
+			city* c = data.m.city_on_spot(tgtxpos, tgtypos);
+			if(c && c->civ_id != (*data.r.current_civ)->civ_id) {
+				data.m.remove_city(c);
+			}
+		}
+	}
+
+	// move to square
+	if(data.m.free_spot((*data.r.current_civ)->civ_id, tgtxpos, tgtypos)) {
+		if((*data.r.current_civ)->try_move_unit(*current_unit_it, chx, chy)) {
+			std::vector<unsigned int> discs = (*data.r.current_civ)->check_discoveries((*current_unit_it)->xpos,
+					(*current_unit_it)->ypos, 1);
+			for(std::vector<unsigned int>::const_iterator it = discs.begin();
+					it != discs.end();
+					++it) {
+				data.r.civs[*it]->discover((*data.r.current_civ)->civ_id);
+			}
+			if((*current_unit_it)->moves == 0) {
+				// no moves left
+				get_next_free_unit(current_unit_it);
+				unit_changed = true;
+			}
+		}
+	}
+	return unit_changed;
+}
+
 int main_window::handle_keydown(SDLKey k, SDLMod mod, std::list<unit*>::iterator& current_unit_it, city** c)
 {
 	if(k == SDLK_ESCAPE || k == SDLK_q)
@@ -445,19 +496,8 @@ int main_window::handle_keydown(SDLKey k, SDLMod mod, std::list<unit*>::iterator
 		else {
 			int chx, chy;
 			numpad_to_move(k, &chx, &chy);
-			if((chx || chy) && ((*data.r.current_civ)->try_move_unit(*current_unit_it, chx, chy))) {
-				std::vector<unsigned int> discs = (*data.r.current_civ)->check_discoveries((*current_unit_it)->xpos,
-					       (*current_unit_it)->ypos, 1);
-				for(std::vector<unsigned int>::const_iterator it = discs.begin();
-						it != discs.end();
-						++it) {
-					data.r.civs[*it]->discover((*data.r.current_civ)->civ_id);
-				}
-				if((*current_unit_it)->moves == 0) {
-					// no moves left
-					get_next_free_unit(current_unit_it);
-					unit_changed = true;
-				}
+			if(chx || chy) {
+				unit_changed = try_move_unit(current_unit_it, chx, chy);
 			}
 		}
 		if(unit_changed) {

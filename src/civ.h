@@ -16,6 +16,7 @@ class unit_configuration {
 		unsigned int max_moves;
 		bool settler;
 		unsigned int production_cost;
+		unsigned int max_strength;
 };
 
 typedef std::map<int, unit_configuration*> unit_configuration_map;
@@ -46,6 +47,27 @@ class unit
 		unsigned int moves;
 		bool fortified;
 		const unit_configuration& uconf;
+		unsigned int strength;
+};
+
+struct coord {
+	coord(int x_, int y_);
+	int x;
+	int y;
+};
+
+class city {
+	public:
+		city(const char* name, int x, int y, unsigned int civid);
+		const char* cityname;
+		const int xpos;
+		const int ypos;
+		unsigned int civ_id;
+		std::list<coord> resource_coords;
+		int population;
+		int stored_food;
+		int stored_prod;
+		int current_production_unit_id;
 };
 
 class fog_of_war {
@@ -70,35 +92,21 @@ class map {
 		int size_x() const;
 		int size_y() const;
 		void get_resources_by_terrain(int terr, bool city, int* food, int* prod, int* comm) const;
-		void add_unit(unsigned int civ_id, int x, int y);
-		void remove_unit(unsigned int civ_id, int x, int y);
+		void add_unit(unit* u);
+		void remove_unit(unit* u);
 		bool free_spot(unsigned int civ_id, int x, int y) const;
 		int get_spot_owner(int x, int y) const;
+		const std::vector<unit*>& units_on_spot(int x, int y) const;
+		city* city_on_spot(int x, int y) const;
+		void add_city(city* c, int x, int y);
+		void remove_city(const city* c);
 	private:
 		int get_index(int x, int y) const;
 		buf2d<int> data;
-		buf2d<int> ownership;
+		buf2d<std::vector<unit*> > unit_map;
+		buf2d<city*> city_map;
 		const resource_configuration& resconf;
-};
-
-struct coord {
-	coord(int x_, int y_);
-	int x;
-	int y;
-};
-
-class city {
-	public:
-		city(const char* name, int x, int y, unsigned int civid);
-		const char* cityname;
-		const int xpos;
-		const int ypos;
-		unsigned int civ_id;
-		std::list<coord> resource_coords;
-		int population;
-		int stored_food;
-		int stored_prod;
-		int current_production_unit_id;
+		static const std::vector<unit*> empty_unit_spot;
 };
 
 enum msg_type {
@@ -119,6 +127,7 @@ class civilization {
 		civilization(const char* name, unsigned int civid, const color& c_, map& m_);
 		~civilization();
 		unit* add_unit(int uid, int x, int y, const unit_configuration& uconf);
+		void remove_unit(unit* u);
 		int try_move_unit(unit* u, int chx, int chy);
 		void refill_moves(const unit_configuration_map& uconfmap);
 		void increment_resources(const unit_configuration_map& uconfmap);
@@ -161,5 +170,7 @@ void total_resources(const city& c, const map& m,
 		int* food, int* prod, int* comm);
 void set_default_city_production(city* c, 
 		const unit_configuration_map& uconfmap);
+void combat(unit* u1, unit* u2);
+bool can_attack(const unit& u1, const unit& u2);
 
 #endif

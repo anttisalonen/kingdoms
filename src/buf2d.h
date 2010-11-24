@@ -9,6 +9,7 @@ class buf2d {
 		buf2d(int x, int y, const N& def);
 		~buf2d();
 		const N* get(int x, int y) const;
+		N* get_mod(int x, int y);
 		void set(int x, int y, const N& val);
 		const int size_x;
 		const int size_y;
@@ -52,6 +53,14 @@ void buf2d<N>::set(int x, int y, const N& val)
 
 template<typename N>
 const N* buf2d<N>::get(int x, int y) const
+{
+	if(!in_bounds(0, x, size_x - 1) || !in_bounds(0, y, size_y - 1))
+		return NULL;
+	return &data[get_index(x, y)];
+}
+
+template<typename N>
+N* buf2d<N>::get_mod(int x, int y)
 {
 	if(!in_bounds(0, x, size_x - 1) || !in_bounds(0, y, size_y - 1))
 		return NULL;

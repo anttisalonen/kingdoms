@@ -1,5 +1,6 @@
 #include "civ.h"
 #include <string.h>
+#include <algorithm>
 
 void total_resources(const city& c, const map& m, 
 		int* food, int* prod, int* comm)
@@ -30,6 +31,38 @@ void set_default_city_production(city* c, const unit_configuration_map& uconfmap
 	}
 }
 
+bool can_attack(const unit& u1, const unit& u2)
+{
+	if(!in_bounds(u1.xpos - 1, u2.xpos, u1.xpos + 1))
+		return false;
+	if(!in_bounds(u1.ypos - 1, u2.ypos, u1.ypos + 1))
+		return false;
+	return u1.uconf.max_strength > 0;
+}
+
+void combat(unit* u1, unit* u2)
+{
+	if(!can_attack(*u1, *u2))
+		return;
+	if(u1->strength == 0 || u2->strength == 0)
+		return;
+	if(u2->uconf.max_strength == 0) {
+		u2->strength = 0;
+		return;
+	}
+	unsigned int u1chance = u1->strength ^ 2;
+	unsigned int u2chance = u2->strength ^ 2;
+	unsigned int val = rand() % (u1chance + u2chance);
+	if(val < u1chance) {
+		u1->strength = u1->strength * (val + 1) / u1chance;
+		u2->strength = 0;
+	}
+	else {
+		u1->strength = 0;
+		u2->strength = u2->strength * (val + 1 - u1chance) / u2chance;
+	}
+}
+
 resource_configuration::resource_configuration()
 	: city_food_bonus(0),
 	city_prod_bonus(0),
@@ -47,7 +80,8 @@ unit::unit(int uid, int x, int y, int civid, const unit_configuration& uconf_)
 	ypos(y),
 	moves(0),
 	fortified(false),
-	uconf(uconf_)
+	uconf(uconf_),
+	strength(10 * uconf_.max_strength)
 {
 }
 
@@ -127,9 +161,12 @@ void fog_of_war::set_value(int x, int y, int val)
 	fog.set(x, y, i | val); 
 }
 
+const std::vector<unit*> map::empty_unit_spot = std::vector<unit*>();
+
 map::map(int x, int y, const resource_configuration& resconf_)
 	: data(buf2d<int>(x, y, 0)),
-	ownership(buf2d<int>(x, y, 0)),
+	unit_map(buf2d<std::vector<unit*> >(x, y, std::vector<unit*>())),
+	city_map(buf2d<city*>(x, y, NULL)),
 	resconf(resconf_)
 {
 	for(int i = 0; i < y; i++) {
@@ -166,30 +203,24 @@ void map::get_resources_by_terrain(int terr, bool city, int* food, int* prod, in
 	*comm = resconf.terrain_comm_values[terr] + (city ? resconf.city_comm_bonus : 0);
 }
 
-void map::add_unit(unsigned int civ_id, int x, int y)
+void map::add_unit(unit* u)
 {
-	if(!free_spot(civ_id, x, y))
+	if(!free_spot(u->civ_id, u->xpos, u->ypos))
 		return;
-	const int* old = ownership.get(x, y);
+	std::vector<unit*>* old = unit_map.get_mod(u->xpos, u->ypos);
 	if(!old)
 		return;
-	int newval = *old;
-	if(newval == 0)
-		newval = civ_id << 16;
-	ownership.set(x, y, newval + 1);
+	old->push_back(u);
 }
 
-void map::remove_unit(unsigned int civ_id, int x, int y)
+void map::remove_unit(unit* u)
 {
-	if(!free_spot(civ_id, x, y))
+	if(!free_spot(u->civ_id, u->xpos, u->ypos))
 		return;
-	const int* old = ownership.get(x, y);
-	if(!old || *old == 0)
+	std::vector<unit*>* old = unit_map.get_mod(u->xpos, u->ypos);
+	if(!old || old->size() == 0)
 		return;
-	if((*old & 0xffff) == 1)
-		ownership.set(x, y, 0);
-	else
-		ownership.set(x, y, *old - 1);
+	std::remove(old->begin(), old->end(), u);
 }
 
 bool map::free_spot(unsigned int civ_id, int x, int y) const
@@ -200,12 +231,45 @@ bool map::free_spot(unsigned int civ_id, int x, int y) const
 
 int map::get_spot_owner(int x, int y) const
 {
-	const int* val = ownership.get(x, y);
+	const std::vector<unit*>* val = unit_map.get(x, y);
 	if(!val)
 		return -1;
-	if(*val == 0)
-		return -1;
-	return *val >> 16;
+	if(val->size() == 0) {
+		city* const* c = city_map.get(x, y);
+		if(c == NULL)
+			return -1;
+		return (*c)->civ_id;
+	}
+	return (*val)[0]->civ_id;
+}
+
+const std::vector<unit*>& map::units_on_spot(int x, int y) const
+{
+	const std::vector<unit*>* us = unit_map.get(x, y);
+	if(us == NULL)
+		return map::empty_unit_spot;
+	else
+		return *us;
+}
+
+city* map::city_on_spot(int x, int y) const
+{
+	city* const* c = city_map.get(x, y);
+	if(!c)
+		return NULL;
+	return *c;
+}
+
+void map::add_city(city* c, int x, int y)
+{
+	if(city_on_spot(x, y))
+		return;
+	city_map.set(x, y, c);
+}
+
+void map::remove_city(const city* c)
+{
+	city_map.set(c->xpos, c->ypos, NULL);
 }
 
 coord::coord(int x_, int y_)
@@ -256,6 +320,13 @@ unit* civilization::add_unit(int uid, int x, int y, const unit_configuration& uc
 	units.push_back(u);
 	fog.reveal(x, y, 1);
 	return u;
+}
+
+void civilization::remove_unit(unit* u)
+{
+	m.remove_unit(u);
+	std::remove(units.begin(), units.end(), u);
+	delete u;
 }
 
 void civilization::refill_moves(const unit_configuration_map& uconfmap)
@@ -325,13 +396,13 @@ int civilization::try_move_unit(unit* u, int chx, int chy)
 	int newx = u->xpos + chx;
 	int newy = u->ypos + chy;
 	if(m.get_data(newx, newy) > 0 && m.free_spot(civ_id, newx, newy)) {
-		m.remove_unit(civ_id, u->xpos, u->ypos);
+		m.remove_unit(u);
 		fog.shade(u->xpos, u->ypos, 1);
 		u->xpos += chx;
 		u->ypos += chy;
 		u->moves--;
 		fog.reveal(u->xpos, u->ypos, 1);
-		m.add_unit(civ_id, newx, newy);
+		m.add_unit(u);
 		return 1;
 	}
 	return 0;
@@ -351,7 +422,7 @@ city* civilization::add_city(const char* name, int x, int y)
 		c->resource_coords.push_back(coord(0, -1));
 	else
 		c->resource_coords.push_back(coord(0, 1));
-	m.add_unit(civ_id, x, y);
+	m.add_city(c, x, y);
 	return c;
 }
 
