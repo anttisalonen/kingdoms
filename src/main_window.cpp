@@ -1,5 +1,8 @@
 #include "main_window.h"
 
+#include <boost/bind.hpp>
+#include <boost/lambda/lambda.hpp>
+
 main_window::main_window(SDL_Surface* screen_, int x, int y, gui_data& data_, gui_resources& res_)
 	: screen(screen_),
 	screen_w(x),
@@ -145,9 +148,19 @@ int main_window::draw_unit_info(const unit* u) const
 	buf[255] = '\0';
 	snprintf(buf, 255, "Moves: %-2d/%2d", u->moves, uconf->max_moves);
 	draw_text(screen, &res.font, buf, 10, sidebar_size * tile_h / 2 + 100, 255, 255, 255);
-	snprintf(buf, 255, "Unit strength: %d.%d/%d", u->strength / 10, u->strength % 10,
-		      uconf->max_strength / 10);
-	draw_text(screen, &res.font, buf, 10, sidebar_size * tile_h / 2 + 120, 255, 255, 255);
+	if(u->strength) {
+		snprintf(buf, 255, "Unit strength:");
+		draw_text(screen, &res.font, buf, 10, sidebar_size * tile_h / 2 + 120, 255, 255, 255);
+		if(u->strength % 10) {
+			snprintf(buf, 255, "%d.%d/%d", u->strength / 10, u->strength % 10,
+					uconf->max_strength);
+		}
+		else {
+			snprintf(buf, 255, "%d/%d", u->strength / 10,
+					uconf->max_strength);
+		}
+		draw_text(screen, &res.font, buf, 10, sidebar_size * tile_h / 2 + 140, 255, 255, 255);
+	}
 	return 0;
 }
 
@@ -399,13 +412,15 @@ bool main_window::try_move_unit(std::list<unit*>::iterator& current_unit_it, int
 
 	// attack square?
 	if(!data.m.free_spot((*data.r.current_civ)->civ_id, tgtxpos, tgtypos)) {
-		const std::vector<unit*>& units = data.m.units_on_spot(tgtxpos, tgtypos);
+		const std::list<unit*>& units = data.m.units_on_spot(tgtxpos, tgtypos);
 		if(units.size() != 0) {
-			unit* defender = units[0];
+			unit* defender = units.front();
 			combat(*current_unit_it, defender);
 			if((*current_unit_it)->strength == 0) {
 				unit_changed = true;
 				(*data.r.current_civ)->remove_unit(*current_unit_it);
+				current_unit_it = (*data.r.current_civ)->units.end();
+				return unit_changed;
 			}
 			else if(defender->strength == 0) {
 				(*data.r.civs[defender->civ_id]).remove_unit(defender);
@@ -414,7 +429,22 @@ bool main_window::try_move_unit(std::list<unit*>::iterator& current_unit_it, int
 		if(units.size() == 0) {
 			city* c = data.m.city_on_spot(tgtxpos, tgtypos);
 			if(c && c->civ_id != (*data.r.current_civ)->civ_id) {
-				data.m.remove_city(c);
+				int civid = c->civ_id;
+				civilization* civ = data.r.civs[civid];
+				civ->remove_city(c);
+				if(civ->cities.size() == 0) {
+					int num_settlers = std::count_if(civ->units.begin(),
+							civ->units.end(),
+							boost::bind(&unit::is_settler, boost::lambda::_1));
+					if(num_settlers == 0) {
+						std::for_each(civ->units.begin(),
+								civ->units.end(),
+								boost::bind(&civilization::remove_unit, civ, boost::lambda::_1));
+						std::for_each(data.r.civs.begin(),
+								data.r.civs.end(),
+								boost::bind(&civilization::undiscover, boost::lambda::_1, civid));
+					}
+				}
 			}
 		}
 	}
@@ -471,7 +501,8 @@ int main_window::handle_keydown(SDLKey k, SDLMod mod, std::list<unit*>::iterator
 				*c = (*data.r.current_civ)->add_city("city name", (*current_unit_it)->xpos,
 						(*current_unit_it)->ypos);
 				set_default_city_production(*c, data.r.uconfmap);
-				current_unit_it = (*data.r.current_civ)->units.erase(current_unit_it);
+				(*data.r.current_civ)->remove_unit(*current_unit_it);
+				current_unit_it = (*data.r.current_civ)->units.end();
 				unit_changed = true;
 			}
 		}

@@ -40,6 +40,7 @@ class unit
 		unit(int uid, int x, int y, int civid, const unit_configuration& uconf_);
 		~unit();
 		void refill_moves(unsigned int m);
+		bool is_settler() const;
 		const int unit_id;
 		const int civ_id;
 		int xpos;
@@ -96,17 +97,17 @@ class map {
 		void remove_unit(unit* u);
 		bool free_spot(unsigned int civ_id, int x, int y) const;
 		int get_spot_owner(int x, int y) const;
-		const std::vector<unit*>& units_on_spot(int x, int y) const;
+		const std::list<unit*>& units_on_spot(int x, int y) const;
 		city* city_on_spot(int x, int y) const;
 		void add_city(city* c, int x, int y);
 		void remove_city(const city* c);
 	private:
 		int get_index(int x, int y) const;
 		buf2d<int> data;
-		buf2d<std::vector<unit*> > unit_map;
+		buf2d<std::list<unit*> > unit_map;
 		buf2d<city*> city_map;
 		const resource_configuration& resconf;
-		static const std::vector<unit*> empty_unit_spot;
+		static const std::list<unit*> empty_unit_spot;
 };
 
 enum msg_type {
@@ -133,10 +134,12 @@ class civilization {
 		void increment_resources(const unit_configuration_map& uconfmap);
 		char fog_at(int x, int y) const;
 		city* add_city(const char* name, int x, int y);
+		void remove_city(city* c);
 		void add_message(const msg& m);
 		int get_relationship_to_civ(unsigned int civid) const;
 		void set_relationship_to_civ(unsigned int civid, int val);
 		bool discover(unsigned int civid);
+		void undiscover(unsigned int civid);
 		std::vector<unsigned int> check_discoveries(int x, int y, int radius);
 		const char* civname;
 		const unsigned int civ_id;

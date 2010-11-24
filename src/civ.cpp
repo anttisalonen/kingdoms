@@ -94,6 +94,11 @@ void unit::refill_moves(unsigned int m)
 	moves = m;
 }
 
+bool unit::is_settler() const
+{
+	return uconf.settler;
+}
+
 fog_of_war::fog_of_war(int x, int y)
 	: fog(buf2d<int>(x, y, 0))
 {
@@ -161,11 +166,11 @@ void fog_of_war::set_value(int x, int y, int val)
 	fog.set(x, y, i | val); 
 }
 
-const std::vector<unit*> map::empty_unit_spot = std::vector<unit*>();
+const std::list<unit*> map::empty_unit_spot = std::list<unit*>();
 
 map::map(int x, int y, const resource_configuration& resconf_)
 	: data(buf2d<int>(x, y, 0)),
-	unit_map(buf2d<std::vector<unit*> >(x, y, std::vector<unit*>())),
+	unit_map(buf2d<std::list<unit*> >(x, y, std::list<unit*>())),
 	city_map(buf2d<city*>(x, y, NULL)),
 	resconf(resconf_)
 {
@@ -207,7 +212,7 @@ void map::add_unit(unit* u)
 {
 	if(!free_spot(u->civ_id, u->xpos, u->ypos))
 		return;
-	std::vector<unit*>* old = unit_map.get_mod(u->xpos, u->ypos);
+	std::list<unit*>* old = unit_map.get_mod(u->xpos, u->ypos);
 	if(!old)
 		return;
 	old->push_back(u);
@@ -217,10 +222,10 @@ void map::remove_unit(unit* u)
 {
 	if(!free_spot(u->civ_id, u->xpos, u->ypos))
 		return;
-	std::vector<unit*>* old = unit_map.get_mod(u->xpos, u->ypos);
+	std::list<unit*>* old = unit_map.get_mod(u->xpos, u->ypos);
 	if(!old || old->size() == 0)
 		return;
-	std::remove(old->begin(), old->end(), u);
+	old->remove(u);
 }
 
 bool map::free_spot(unsigned int civ_id, int x, int y) const
@@ -231,21 +236,21 @@ bool map::free_spot(unsigned int civ_id, int x, int y) const
 
 int map::get_spot_owner(int x, int y) const
 {
-	const std::vector<unit*>* val = unit_map.get(x, y);
+	const std::list<unit*>* val = unit_map.get(x, y);
 	if(!val)
 		return -1;
 	if(val->size() == 0) {
 		city* const* c = city_map.get(x, y);
-		if(c == NULL)
+		if(c == NULL || *c == NULL)
 			return -1;
 		return (*c)->civ_id;
 	}
-	return (*val)[0]->civ_id;
+	return val->front()->civ_id;
 }
 
-const std::vector<unit*>& map::units_on_spot(int x, int y) const
+const std::list<unit*>& map::units_on_spot(int x, int y) const
 {
-	const std::vector<unit*>* us = unit_map.get(x, y);
+	const std::list<unit*>* us = unit_map.get(x, y);
 	if(us == NULL)
 		return map::empty_unit_spot;
 	else
@@ -324,8 +329,9 @@ unit* civilization::add_unit(int uid, int x, int y, const unit_configuration& uc
 
 void civilization::remove_unit(unit* u)
 {
+	fog.shade(u->xpos, u->ypos, 1);
 	m.remove_unit(u);
-	std::remove(units.begin(), units.end(), u);
+	units.remove(u);
 	delete u;
 }
 
@@ -416,6 +422,7 @@ char civilization::fog_at(int x, int y) const
 city* civilization::add_city(const char* name, int x, int y)
 {
 	city* c = new city(name, x, y, civ_id);
+	fog.reveal(c->xpos, c->ypos, 1);
 	cities.push_back(c);
 		c->resource_coords.push_back(coord(0, 0));
 	if(y != 0)
@@ -424,6 +431,14 @@ city* civilization::add_city(const char* name, int x, int y)
 		c->resource_coords.push_back(coord(0, 1));
 	m.add_city(c, x, y);
 	return c;
+}
+
+void civilization::remove_city(city* c)
+{
+	fog.shade(c->xpos, c->ypos, 1);
+	m.remove_city(c);
+	cities.remove(c);
+	delete c;
 }
 
 int civilization::get_relationship_to_civ(unsigned int civid) const
@@ -453,6 +468,13 @@ bool civilization::discover(unsigned int civid)
 		return 1;
 	}
 	return 0;
+}
+
+void civilization::undiscover(unsigned int civid)
+{
+	if(civid != civ_id) {
+		set_relationship_to_civ(civid, 0);
+	}
 }
 
 std::vector<unsigned int> civilization::check_discoveries(int x, int y, int radius)
