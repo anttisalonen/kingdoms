@@ -344,6 +344,16 @@ void civilization::remove_unit(unit* u)
 	delete u;
 }
 
+void civilization::eliminate()
+{
+	while(!units.empty()) {
+		remove_unit(units.back());
+	}
+	while(!cities.empty()) {
+		remove_city(cities.back());
+	}
+}
+
 void civilization::refill_moves(const unit_configuration_map& uconfmap)
 {
 	for(std::list<unit*>::iterator uit = units.begin();

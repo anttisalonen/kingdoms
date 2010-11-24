@@ -460,12 +460,7 @@ bool main_window::try_move_unit(std::list<unit*>::iterator& current_unit_it, int
 							civ->units.end(),
 							boost::bind(&unit::is_settler, boost::lambda::_1));
 					if(num_settlers == 0) {
-						std::for_each(civ->units.begin(),
-								civ->units.end(),
-								boost::bind(&civilization::remove_unit, civ, boost::lambda::_1));
-						std::for_each(data.r.civs.begin(),
-								data.r.civs.end(),
-								boost::bind(&civilization::undiscover, boost::lambda::_1, civid));
+						civ->eliminate();
 					}
 				}
 			}

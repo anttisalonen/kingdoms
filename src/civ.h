@@ -157,6 +157,7 @@ class civilization {
 		bool discover(unsigned int civid);
 		void undiscover(unsigned int civid);
 		std::vector<unsigned int> check_discoveries(int x, int y, int radius);
+		void eliminate();
 		const char* civname;
 		const unsigned int civ_id;
 		color col;
