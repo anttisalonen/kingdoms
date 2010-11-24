@@ -133,6 +133,12 @@ int main_window::draw_civ_info() const
 	buf[255] = '\0';
 	snprintf(buf, 255, "Gold: %d", (*data.r.current_civ)->gold);
 	draw_text(screen, &res.font, buf, 10, sidebar_size * tile_h / 2 + 60, 255, 255, 255);
+	int lux = 10 - (*data.r.current_civ)->alloc_gold - (*data.r.current_civ)->alloc_science;
+	snprintf(buf, 255, "%d/%d/%d", 
+			(*data.r.current_civ)->alloc_gold * 10,
+			(*data.r.current_civ)->alloc_science * 10,
+			lux);
+	draw_text(screen, &res.font, buf, 10, sidebar_size * tile_h / 2 + 80, 255, 255, 255);
 	return 0;
 }
 
@@ -143,14 +149,14 @@ int main_window::draw_unit_info(const unit* u) const
 	const unit_configuration* uconf = data.r.get_unit_configuration(u->unit_id);
 	if(!uconf)
 		return 1;
-	draw_text(screen, &res.font, uconf->unit_name, 10, sidebar_size * tile_h / 2 + 80, 255, 255, 255);
+	draw_text(screen, &res.font, uconf->unit_name, 10, sidebar_size * tile_h / 2 + 100, 255, 255, 255);
 	char buf[256];
 	buf[255] = '\0';
 	snprintf(buf, 255, "Moves: %-2d/%2d", u->moves, uconf->max_moves);
-	draw_text(screen, &res.font, buf, 10, sidebar_size * tile_h / 2 + 100, 255, 255, 255);
+	draw_text(screen, &res.font, buf, 10, sidebar_size * tile_h / 2 + 120, 255, 255, 255);
 	if(u->strength) {
 		snprintf(buf, 255, "Unit strength:");
-		draw_text(screen, &res.font, buf, 10, sidebar_size * tile_h / 2 + 120, 255, 255, 255);
+		draw_text(screen, &res.font, buf, 10, sidebar_size * tile_h / 2 + 140, 255, 255, 255);
 		if(u->strength % 10) {
 			snprintf(buf, 255, "%d.%d/%d", u->strength / 10, u->strength % 10,
 					uconf->max_strength);
@@ -159,7 +165,7 @@ int main_window::draw_unit_info(const unit* u) const
 			snprintf(buf, 255, "%d/%d", u->strength / 10,
 					uconf->max_strength);
 		}
-		draw_text(screen, &res.font, buf, 10, sidebar_size * tile_h / 2 + 140, 255, 255, 255);
+		draw_text(screen, &res.font, buf, 10, sidebar_size * tile_h / 2 + 160, 255, 255, 255);
 	}
 	return 0;
 }
