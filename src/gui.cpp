@@ -65,6 +65,9 @@ int gui::handle_input(const SDL_Event& ev, std::list<unit*>::iterator& current_u
 				mw.get_next_free_unit(current_unit);
 			delete cw;
 			cw = NULL;
+			if(current_unit != (*data.r.current_civ)->units.end())
+				mw.set_current_unit(*current_unit);
+			mw.draw();
 		}
 		return 0;
 	}
