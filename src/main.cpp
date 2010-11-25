@@ -32,8 +32,8 @@ int run()
 
 	map m(map_x, map_y, resconf);
 
-	civilization* civ1 = new civilization("Babylonians", 0, color(255, 0, 0), m);
-	civilization* civ2 = new civilization("Egyptians", 1, color(255, 255, 0), m);
+	civilization* civ1 = new civilization("Babylonians", 0, color(255, 0, 0), m, false);
+	civilization* civ2 = new civilization("Egyptians", 1, color(255, 255, 0), m, false);
 
 	advance warrior_code;
 	advance bronze_working;

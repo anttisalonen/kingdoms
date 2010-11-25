@@ -162,7 +162,7 @@ struct msg {
 
 class civilization {
 	public:
-		civilization(const char* name, unsigned int civid, const color& c_, map& m_);
+		civilization(const char* name, unsigned int civid, const color& c_, map& m_, bool ai_);
 		~civilization();
 		unit* add_unit(int uid, int x, int y, const unit_configuration& uconf);
 		void remove_unit(unit* u);
@@ -195,6 +195,7 @@ class civilization {
 		int alloc_science;
 		unsigned int research_goal_id;
 		std::set<unsigned int> researched_advances;
+		bool ai;
 	private:
 		std::vector<int> relationships;
 };

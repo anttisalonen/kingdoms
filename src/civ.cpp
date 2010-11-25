@@ -307,7 +307,8 @@ city::city(const char* name, int x, int y, unsigned int civid)
 	production.current_production_unit_id = -1;
 }
 
-civilization::civilization(const char* name, unsigned int civid, const color& c_, map& m_)
+civilization::civilization(const char* name, unsigned int civid, 
+		const color& c_, map& m_, bool ai_)
 	: civname(name),
 	civ_id(civid),
 	col(c_),
@@ -318,6 +319,7 @@ civilization::civilization(const char* name, unsigned int civid, const color& c_
 	alloc_gold(5),
 	alloc_science(5),
 	research_goal_id(0),
+	ai(ai_),
 	relationships(civid + 1, 0)
 {
 	relationships[civid] = 1;
