@@ -32,6 +32,11 @@ void set_default_city_production(city* c, const unit_configuration_map& uconfmap
 	}
 }
 
+bool can_move_to(const unit& u, int chx, int chy)
+{
+	return (chx || chy) && !u.moves;
+}
+
 bool can_attack(const unit& u1, const unit& u2)
 {
 	if(!in_bounds(u1.xpos - 1, u2.xpos, u1.xpos + 1))
@@ -484,7 +489,7 @@ void civilization::increment_resources(const unit_configuration_map& uconfmap,
 
 int civilization::try_move_unit(unit* u, int chx, int chy)
 {
-	if((!chx && !chy) || !u || !u->moves)
+	if(!can_move_to(*u, chx, chy))
 		return 0;
 	int newx = u->xpos + chx;
 	int newy = u->ypos + chy;

@@ -431,48 +431,73 @@ action main_window::input_to_action(const SDL_Event& ev, const std::list<unit*>:
 	return action_none;
 }
 
-void main_window::perform_action(const action& a, std::list<unit*>::iterator& current_unit_it, city** c)
+bool main_window::perform_action(const action& a)
 {
 	switch(a.type) {
 		case action_eot:
 			// end of turn for this civ
 			data.r.next_civ();
-			current_unit_it = (*data.r.current_civ)->units.end();
-			get_next_free_unit(current_unit_it);
 			break;
 		case action_unit_action:
 			switch(a.data.unit_data.uatype) {
 				case action_move_unit:
-					try_move_unit(current_unit_it, a.data.unit_data.unit_action_data.move_pos.chx,
+					return try_move_unit(a.data.unit_data.u, a.data.unit_data.unit_action_data.move_pos.chx,
 						a.data.unit_data.unit_action_data.move_pos.chy);
-					break;
 				case action_found_city:
 					{
-						const unit_configuration* uconf = data.r.get_unit_configuration((*current_unit_it)->unit_id);
+						const unit_configuration* uconf = data.r.get_unit_configuration(a.data.unit_data.u->unit_id);
 						bool can_build = uconf == NULL ? false : uconf->settler;
 						if(can_build) {
-							*c = (*data.r.current_civ)->add_city("city name", (*current_unit_it)->xpos,
-									(*current_unit_it)->ypos);
-							set_default_city_production(*c, data.r.uconfmap);
-							(*data.r.current_civ)->remove_unit(*current_unit_it);
-							current_unit_it = (*data.r.current_civ)->units.end();
+							city* c = (*data.r.current_civ)->add_city("city name", a.data.unit_data.u->xpos,
+									a.data.unit_data.u->ypos);
+							set_default_city_production(c, data.r.uconfmap);
+							(*data.r.current_civ)->remove_unit(a.data.unit_data.u);
+							return true;
 						}
+						return false;
 					}
-					break;
 				case action_skip:
-					(*current_unit_it)->moves = 0;
-					get_next_free_unit(current_unit_it);
-					break;
+					a.data.unit_data.u->moves = 0;
+					return true;
 				case action_fortify:
-					(*current_unit_it)->fortified = true;
-					get_next_free_unit(current_unit_it);
-					break;
+					a.data.unit_data.u->fortified = true;
+					return true;
 				default:
 					break;
 			}
 		case action_city_action:
 			break;
 		case action_give_up:
+		default:
+			break;
+	}
+	return true;
+}
+
+void main_window::handle_successful_action(const action& a, std::list<unit*>::iterator& current_unit_it, city** c)
+{
+	switch(a.type) {
+		case action_eot:
+			// end of turn for this civ
+			get_next_free_unit(current_unit_it);
+			break;
+		case action_unit_action:
+			switch(a.data.unit_data.uatype) {
+				case action_move_unit:
+					if((*current_unit_it)->moves == 0) {
+						current_unit_it = (*data.r.current_civ)->units.end();
+					}
+					break;
+				case action_found_city:
+					current_unit_it = (*data.r.current_civ)->units.end();
+					// fall through
+				case action_skip:
+				case action_fortify:
+					get_next_free_unit(current_unit_it);
+					break;
+				default:
+					break;
+			}
 		default:
 			break;
 	}
@@ -507,7 +532,7 @@ void main_window::handle_input_gui_mod(const SDL_Event& ev, std::list<unit*>::it
 	}
 }
 
-void main_window::update_view(std::list<unit*>::iterator& current_unit_it, city** c)
+void main_window::update_view(std::list<unit*>::iterator& current_unit_it)
 {
 	if(current_unit_it != (*data.r.current_civ)->units.end()) {
 		try_center_camera_to_unit(*current_unit_it);
@@ -522,9 +547,28 @@ void main_window::update_view(std::list<unit*>::iterator& current_unit_it, city*
 int main_window::handle_input(const SDL_Event& ev, std::list<unit*>::iterator& current_unit_it, city** c)
 {
 	action a = input_to_action(ev, current_unit_it);
-	perform_action(a, current_unit_it, c);
-	handle_input_gui_mod(ev, current_unit_it, c);
-	update_view(current_unit_it, c);
+	if(a.type != action_none) {
+		// save the iterator - performing an action may destroy
+		// the current unit
+		bool already_begin = current_unit_it == (*data.r.current_civ)->units.begin();
+		if(!already_begin) {
+			current_unit_it--;
+		}
+		int success = perform_action(a);
+		if(!already_begin) {
+			current_unit_it++;
+		}
+		else {
+			current_unit_it = (*data.r.current_civ)->units.begin();
+		}
+		if(success) {
+			handle_successful_action(a, current_unit_it, c);
+		}
+	}
+	else {
+		handle_input_gui_mod(ev, current_unit_it, c);
+	}
+	update_view(current_unit_it);
 	return a.type == action_give_up;
 }
 
@@ -572,40 +616,42 @@ int main_window::handle_civ_messages(std::list<msg>* messages)
 	return 0;
 }
 
-bool main_window::try_move_unit(std::list<unit*>::iterator& current_unit_it, int chx, int chy)
+bool main_window::try_move_unit(unit* u, int chx, int chy)
 {
-	bool unit_changed = false;
-	int tgtxpos = (*current_unit_it)->xpos + chx;
-	int tgtypos = (*current_unit_it)->ypos + chy;
+	int tgtxpos = u->xpos + chx;
+	int tgtypos = u->ypos + chy;
 
 	// attack square?
 	if(!data.m.free_spot((*data.r.current_civ)->civ_id, tgtxpos, tgtypos)) {
 		const std::list<unit*>& units = data.m.units_on_spot(tgtxpos, tgtypos);
 		if(units.size() != 0) {
 			unit* defender = units.front();
-			combat(*current_unit_it, defender);
-			if((*current_unit_it)->strength == 0) {
-				unit_changed = true;
-				(*data.r.current_civ)->remove_unit(*current_unit_it);
-				current_unit_it = (*data.r.current_civ)->units.end();
-				return unit_changed;
+			if(!can_attack(*u, *defender)) {
+				return false;
+			}
+			combat(u, defender);
+			if(u->strength == 0) {
+				// lost combat
+				(*data.r.current_civ)->remove_unit(u);
+				return true;
 			}
 			else if(defender->strength == 0) {
 				(*data.r.civs[defender->civ_id]).remove_unit(defender);
-			}
-		}
-		if(units.size() == 0) {
-			city* c = data.m.city_on_spot(tgtxpos, tgtypos);
-			if(c && c->civ_id != (*data.r.current_civ)->civ_id) {
-				int civid = c->civ_id;
-				civilization* civ = data.r.civs[civid];
-				civ->remove_city(c);
-				if(civ->cities.size() == 0) {
-					int num_settlers = std::count_if(civ->units.begin(),
-							civ->units.end(),
-							boost::bind(&unit::is_settler, boost::lambda::_1));
-					if(num_settlers == 0) {
-						civ->eliminate();
+				if(data.m.units_on_spot(tgtxpos, tgtypos).size() == 0) {
+					// check if a city was conquered
+					city* c = data.m.city_on_spot(tgtxpos, tgtypos);
+					if(c && c->civ_id != (*data.r.current_civ)->civ_id) {
+						int civid = c->civ_id;
+						civilization* civ = data.r.civs[civid];
+						civ->remove_city(c);
+						if(civ->cities.size() == 0) {
+							int num_settlers = std::count_if(civ->units.begin(),
+									civ->units.end(),
+									boost::bind(&unit::is_settler, boost::lambda::_1));
+							if(num_settlers == 0) {
+								civ->eliminate();
+							}
+						}
 					}
 				}
 			}
@@ -614,22 +660,19 @@ bool main_window::try_move_unit(std::list<unit*>::iterator& current_unit_it, int
 
 	// move to square
 	if(data.m.free_spot((*data.r.current_civ)->civ_id, tgtxpos, tgtypos)) {
-		if((*data.r.current_civ)->try_move_unit(*current_unit_it, chx, chy)) {
-			std::vector<unsigned int> discs = (*data.r.current_civ)->check_discoveries((*current_unit_it)->xpos,
-					(*current_unit_it)->ypos, 1);
+		if((*data.r.current_civ)->try_move_unit(u, chx, chy)) {
+			std::vector<unsigned int> discs = (*data.r.current_civ)->check_discoveries(u->xpos,
+					u->ypos, 1);
 			for(std::vector<unsigned int>::const_iterator it = discs.begin();
 					it != discs.end();
 					++it) {
 				data.r.civs[*it]->discover((*data.r.current_civ)->civ_id);
 			}
-			if((*current_unit_it)->moves == 0) {
-				// no moves left
-				get_next_free_unit(current_unit_it);
-				unit_changed = true;
-			}
+			return true;
 		}
+		return false;
 	}
-	return unit_changed;
+	return true;
 }
 
 int main_window::try_choose_with_mouse(const SDL_Event& ev, std::list<unit*>::iterator& current_unit_it, city** c)

@@ -76,11 +76,12 @@ class main_window {
 		int try_center_camera_to_unit(unit* u);
 		void numpad_to_move(SDLKey k, int* chx, int* chy) const;
 		int handle_civ_messages(std::list<msg>* messages);
-		bool try_move_unit(std::list<unit*>::iterator& current_unit_it, int chx, int chy);
+		bool try_move_unit(unit* u, int chx, int chy);
 		action input_to_action(const SDL_Event& ev, const std::list<unit*>::iterator& current_unit_it);
-		void perform_action(const action& a, std::list<unit*>::iterator& current_unit_it, city** c);
+		bool perform_action(const action& a);
 		void handle_input_gui_mod(const SDL_Event& ev, std::list<unit*>::iterator& current_unit_it, city** c);
-		void update_view(std::list<unit*>::iterator& current_unit_it, city** c);
+		void handle_successful_action(const action& a, std::list<unit*>::iterator& current_unit_it, city** c);
+		void update_view(std::list<unit*>::iterator& current_unit_it);
 		int try_choose_with_mouse(const SDL_Event& ev, std::list<unit*>::iterator& current_unit_it, city** c);
 		SDL_Surface* screen;
 		const int screen_w;
