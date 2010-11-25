@@ -1,6 +1,7 @@
 #include "civ.h"
 #include <string.h>
 #include <algorithm>
+#include <stdio.h>
 
 #include <boost/bind.hpp>
 #include <boost/lambda/lambda.hpp>
@@ -37,7 +38,7 @@ void set_default_city_production(city* c, const unit_configuration_map& uconfmap
 
 bool can_move_to(const unit& u, int chx, int chy)
 {
-	return (chx || chy) && !u.moves;
+	return (chx || chy) && u.moves;
 }
 
 bool can_attack(const unit& u1, const unit& u2)
@@ -349,6 +350,7 @@ unit* civilization::add_unit(int uid, int x, int y, const unit_configuration& uc
 {
 	unit* u = new unit(uid, x, y, civ_id, uconf);
 	units.push_back(u);
+	m.add_unit(u);
 	fog.reveal(x, y, 1);
 	return u;
 }
@@ -659,8 +661,9 @@ const unit_configuration* round::get_unit_configuration(int uid) const
 
 bool round::perform_action(int civid, const action& a, map* m)
 {
-	if(civid < 0 || civid != current_civ_id())
+	if(civid < 0 || civid != current_civ_id()) {
 		return false;
+	}
 
 	switch(a.type) {
 		case action_eot:

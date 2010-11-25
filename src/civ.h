@@ -243,11 +243,11 @@ class round
 		void add_civilization(civilization* civ);
 		bool perform_action(int civid, const action& a, map* m);
 		const unit_configuration* get_unit_configuration(int uid) const;
+		int current_civ_id() const;
 		std::vector<civilization*> civs;
 		const unit_configuration_map& uconfmap;
 		const advance_map& amap;
 		const city_improv_map& cimap;
-		int current_civ_id() const;
 	private:
 		bool next_civ();
 		void refill_moves();

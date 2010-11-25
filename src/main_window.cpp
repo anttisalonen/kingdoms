@@ -226,7 +226,7 @@ int main_window::draw_main_map()
 		for(std::list<unit*>::const_iterator it = (*cit)->units.begin(); 
 				it != (*cit)->units.end();
 				++it) {
-			if(blink_unit)
+			if(it == current_unit && blink_unit)
 				continue;
 			if(myciv->fog_at((*it)->xpos, (*it)->ypos) == 2) {
 				if(draw_unit(**it)) {
@@ -307,6 +307,8 @@ int main_window::process(int ms)
 	int old_timer = timer;
 	timer += ms;
 	bool old_blink_unit = blink_unit;
+	if(current_unit == myciv->units.end())
+		get_next_free_unit();
 	if(timer % 1000 < 300) {
 		blink_unit = true;
 	}
@@ -477,8 +479,6 @@ void main_window::update_view()
 	if(current_unit != myciv->units.end()) {
 		try_center_camera_to_unit(*current_unit);
 	}
-	else {
-	}
 	blink_unit = false;
 	draw();
 }
@@ -493,7 +493,7 @@ int main_window::handle_input(const SDL_Event& ev, city** c)
 		if(!already_begin) {
 			current_unit--;
 		}
-		int success = data.r.perform_action(myciv->civ_id, a, &data.m);
+		bool success = data.r.perform_action(myciv->civ_id, a, &data.m);
 		if(!already_begin) {
 			current_unit++;
 		}
