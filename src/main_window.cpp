@@ -432,6 +432,7 @@ void main_window::handle_successful_action(const action& a, city** c)
 					break;
 				case action_found_city:
 					current_unit = myciv->units.end();
+					*c = myciv->cities.back();
 					// fall through
 				case action_skip:
 				case action_fortify:
