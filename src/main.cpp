@@ -12,6 +12,7 @@
 #include "buf2d.h"
 #include "civ.h"
 #include "gui.h"
+#include "ai.h"
 
 #include "SDL/SDL.h"
 #include "SDL/SDL_image.h"
@@ -124,6 +125,7 @@ int run()
 		fprintf(stderr, "Could not open font: %s\n", TTF_GetError());
 	}
 
+	ai egyptians(m, r, civ2);
 	gui g(1024, 768, m, r, terrain_files, unit_files, "share/city.png", *font,
 			"share/food_icon.png",
 			"share/prod_icon.png",
@@ -131,23 +133,29 @@ int run()
 			civ1);
 	g.display();
 	while(running) {
-		SDL_Event event;
-		while(SDL_PollEvent(&event)) {
-			switch(event.type) {
-				case SDL_KEYDOWN:
-				case SDL_MOUSEBUTTONDOWN:
-				case SDL_MOUSEBUTTONUP:
-					if(g.handle_input(event))
+		if(r.current_civ_id() == (int)civ1->civ_id) {
+			SDL_Event event;
+			while(SDL_PollEvent(&event)) {
+				switch(event.type) {
+					case SDL_KEYDOWN:
+					case SDL_MOUSEBUTTONDOWN:
+					case SDL_MOUSEBUTTONUP:
+						if(g.handle_input(event))
+							running = false;
+						break;
+					case SDL_QUIT:
 						running = false;
-					break;
-				case SDL_QUIT:
-					running = false;
-				default:
-					break;
+					default:
+						break;
+				}
 			}
+			SDL_Delay(50);
+			g.process(50);
 		}
-		SDL_Delay(50);
-		g.process(50);
+		else {
+			if(egyptians.process())
+				running = false;
+		}
 	}
 	TTF_CloseFont(font);
 	delete civ2;

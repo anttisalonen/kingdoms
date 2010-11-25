@@ -657,8 +657,11 @@ const unit_configuration* round::get_unit_configuration(int uid) const
 	return it->second;
 }
 
-bool round::perform_action(const action& a, map* m)
+bool round::perform_action(int civid, const action& a, map* m)
 {
+	if(civid < 0 || civid != current_civ_id())
+		return false;
+
 	switch(a.type) {
 		case action_eot:
 			// end of turn for this civ
@@ -759,4 +762,10 @@ bool round::try_move_unit(unit* u, int chx, int chy, map* m)
 	return true;
 }
 
+int round::current_civ_id() const
+{
+	if(current_civ == civs.end())
+		return -1;
+	return (*current_civ)->civ_id;
+}
 

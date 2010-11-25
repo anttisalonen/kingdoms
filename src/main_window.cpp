@@ -493,7 +493,7 @@ int main_window::handle_input(const SDL_Event& ev, city** c)
 		if(!already_begin) {
 			current_unit--;
 		}
-		int success = data.r.perform_action(a, &data.m);
+		int success = data.r.perform_action(myciv->civ_id, a, &data.m);
 		if(!already_begin) {
 			current_unit++;
 		}
