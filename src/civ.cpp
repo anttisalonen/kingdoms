@@ -730,17 +730,17 @@ bool round::try_move_unit(unit* u, int chx, int chy, map* m)
 				if(m->units_on_spot(tgtxpos, tgtypos).size() == 0) {
 					// check if a city was conquered
 					city* c = m->city_on_spot(tgtxpos, tgtypos);
-					if(c && c->civ_id != (*current_civ)->civ_id) {
-						int civid = c->civ_id;
-						civilization* civ = civs[civid];
+					int civid = defender->civ_id;
+					civilization* civ = civs[civid];
+					if(c && c->civ_id == civid) {
 						civ->remove_city(c);
-						if(civ->cities.size() == 0) {
-							int num_settlers = std::count_if(civ->units.begin(),
-									civ->units.end(),
-									boost::bind(&unit::is_settler, boost::lambda::_1));
-							if(num_settlers == 0) {
-								civ->eliminate();
-							}
+					}
+					if(civ->cities.size() == 0) {
+						int num_settlers = std::count_if(civ->units.begin(),
+								civ->units.end(),
+								boost::bind(&unit::is_settler, boost::lambda::_1));
+						if(num_settlers == 0) {
+							civ->eliminate();
 						}
 					}
 				}
