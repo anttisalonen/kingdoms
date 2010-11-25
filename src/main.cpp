@@ -132,6 +132,7 @@ int run()
 			"share/comm_icon.png",
 			civ1);
 	g.display();
+	g.init_turn();
 	while(running) {
 		if(r.current_civ_id() == (int)civ1->civ_id) {
 			SDL_Event event;
@@ -155,6 +156,8 @@ int run()
 		else {
 			if(egyptians.process())
 				running = false;
+			else
+				g.init_turn();
 		}
 	}
 	TTF_CloseFont(font);

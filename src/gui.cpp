@@ -88,3 +88,7 @@ int gui::process(int ms)
 		return cw->draw();
 }
 
+void gui::init_turn()
+{
+	mw.init_turn();
+}

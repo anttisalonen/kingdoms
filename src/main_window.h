@@ -21,6 +21,7 @@ class main_window {
 		int draw();
 		int process(int ms);
 		int handle_input(const SDL_Event& ev, city** c);
+		void init_turn();
 	private:
 		void get_next_free_unit();
 		int draw_main_map();

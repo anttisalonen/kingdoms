@@ -59,8 +59,6 @@ int main_window::draw()
 		SDL_UnlockSurface(screen);
 	}
 	clear_main_map();
-	if(current_unit != myciv->units.end())
-		center_camera_to_unit(*current_unit);
 	draw_main_map();
 	if(SDL_Flip(screen)) {
 		fprintf(stderr, "Unable to flip: %s\n", SDL_GetError());
@@ -310,9 +308,6 @@ int main_window::process(int ms)
 	timer += ms;
 	bool old_blink_unit = blink_unit;
 
-	// TODO: find a better place for getting the next free unit than this.
-	if(current_unit == myciv->units.end())
-		get_next_free_unit();
 	if(timer % 1000 < 300) {
 		blink_unit = true;
 	}
@@ -481,9 +476,6 @@ void main_window::handle_input_gui_mod(const SDL_Event& ev, city** c)
 
 void main_window::update_view()
 {
-	if(current_unit != myciv->units.end()) {
-		try_center_camera_to_unit(*current_unit);
-	}
 	blink_unit = false;
 	draw();
 }
@@ -596,5 +588,12 @@ int main_window::try_choose_with_mouse(const SDL_Event& ev, city** c)
 		}
 	}
 	return 0;
+}
+
+void main_window::init_turn()
+{
+	get_next_free_unit();
+	if(current_unit != myciv->units.end())
+		try_center_camera_to_unit(*current_unit);
 }
 

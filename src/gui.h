@@ -34,6 +34,7 @@ class gui
 		int display();
 		int handle_input(const SDL_Event& ev);
 		int process(int ms);
+		void init_turn();
 	private:
 		void show_city_window(city* c);
 		const int screen_w;
