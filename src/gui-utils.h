@@ -42,7 +42,6 @@ class gui_data {
 		gui_data(map& mm, round& rr);
 		map& m;
 		round& r;
-		unit* current_unit;
 };
 
 class button {
