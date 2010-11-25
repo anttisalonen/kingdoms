@@ -17,7 +17,8 @@
 class city_window {
 	typedef int(city_window::*city_window_fun)();
 	public:
-		city_window(SDL_Surface* screen_, int x, int y, gui_data& data_, gui_resources& res_, city* c_);
+		city_window(SDL_Surface* screen_, int x, int y, gui_data& data_, gui_resources& res_, city* c_,
+				civilization* myciv_);
 		~city_window();
 		int handle_input(const SDL_Event& ev);
 		int draw();
@@ -45,6 +46,7 @@ class city_window {
 
 		std::list<button*> change_prod_buttons;
 		std::vector<SDL_Surface*> change_prod_labels;
+		civilization* myciv;
 };
 
 

@@ -28,11 +28,12 @@ class gui
 				const TTF_Font& font_,
 				const char* food_icon_name,
 				const char* prod_icon_name,
-				const char* curr_icon_name);
+				const char* curr_icon_name,
+				civilization* myciv_);
 		~gui();
-		int display(const unit* current_unit);
-		int handle_input(const SDL_Event& ev, std::list<unit*>::iterator& current_unit);
-		int process(int ms, const unit* u);
+		int display();
+		int handle_input(const SDL_Event& ev);
+		int process(int ms);
 	private:
 		void show_city_window(city* c);
 		const int screen_w;
@@ -42,6 +43,7 @@ class gui
 		gui_resources res;
 		main_window mw;;
 		city_window* cw;
+		civilization* myciv;
 };
 
 #endif

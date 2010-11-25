@@ -2,13 +2,15 @@
 
 #include <boost/bind.hpp>
 
-city_window::city_window(SDL_Surface* screen_, int x, int y, gui_data& data_, gui_resources& res_, city* c_)
+city_window::city_window(SDL_Surface* screen_, int x, int y, gui_data& data_, gui_resources& res_, city* c_,
+		civilization* myciv_)
 	: screen(screen_),
 	screen_w(x),
 	screen_h(y),
 	data(data_),
 	res(res_),
-	c(c_)
+	c(c_),
+	myciv(myciv_)
 {
 	rect name_rect = rect(screen_w * 0.30, screen_h * 0.1, screen_w * 0.40, screen_h * 0.08);
 	rect exit_rect = rect(screen_w * 0.75, screen_h * 0.8, screen_w * 0.15, screen_h * 0.08);
@@ -68,8 +70,8 @@ int city_window::change_production()
 	for(unit_configuration_map::const_iterator it = data.r.uconfmap.begin();
 			it != data.r.uconfmap.end();
 			++it) {
-		if((*data.r.current_civ)->researched_advances.find(it->second->needed_advance) == 
-				(*data.r.current_civ)->researched_advances.end())
+		if(myciv->researched_advances.find(it->second->needed_advance) == 
+				myciv->researched_advances.end())
 			continue;
 		SDL_Surface* button_surf = make_label(it->second->unit_name, 
 				&res.font, option_rect.w, option_rect.h, color(128, 128, 128), color(0, 0, 0));
@@ -81,8 +83,8 @@ int city_window::change_production()
 	for(city_improv_map::const_iterator it = data.r.cimap.begin();
 			it != data.r.cimap.end();
 			++it) {
-		if((*data.r.current_civ)->researched_advances.find(it->second->needed_advance) == 
-				(*data.r.current_civ)->researched_advances.end())
+		if(myciv->researched_advances.find(it->second->needed_advance) == 
+				myciv->researched_advances.end())
 			continue;
 		if(c->built_improvements.find(it->first) != c->built_improvements.end())
 			continue;
@@ -132,7 +134,7 @@ int city_window::draw_city_resources_screen(int xpos, int ypos)
 				int xp = c->xpos + i;
 				int yp = c->ypos + j;
 				if(in_bounds(0, xp, data.m.size_x() - 1) &&
-				   in_bounds(0, yp, data.m.size_y() - 1) && (*data.r.current_civ)->fog_at(xp, yp)) {
+				   in_bounds(0, yp, data.m.size_y() - 1) && myciv->fog_at(xp, yp)) {
 					draw_terrain_tile(c->xpos + i, c->ypos + j, x, y, false,
 							data.m, res.terrains, screen);
 				}

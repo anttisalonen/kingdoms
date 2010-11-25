@@ -3,7 +3,8 @@
 #include <boost/bind.hpp>
 #include <boost/lambda/lambda.hpp>
 
-main_window::main_window(SDL_Surface* screen_, int x, int y, gui_data& data_, gui_resources& res_)
+main_window::main_window(SDL_Surface* screen_, int x, int y, gui_data& data_, gui_resources& res_,
+		civilization* myciv_)
 	: screen(screen_),
 	screen_w(x),
 	screen_h(y),
@@ -14,9 +15,10 @@ main_window::main_window(SDL_Surface* screen_, int x, int y, gui_data& data_, gu
 	cam_total_tiles_x((screen_w + tile_w - 1) / tile_w),
 	cam_total_tiles_y((screen_h + tile_h - 1) / tile_h),
 	sidebar_size(4),
-	current_unit(NULL),
-	blink_unit(NULL),
-	timer(0)
+	current_unit(myciv_->units.end()),
+	blink_unit(false),
+	timer(0),
+	myciv(myciv_)
 {
 	cam.cam_x = cam.cam_y = 0;
 }
@@ -25,30 +27,24 @@ main_window::~main_window()
 {
 }
 
-void main_window::get_next_free_unit(std::list<unit*>::iterator& current_unit_it) const
+void main_window::get_next_free_unit()
 {
-	std::list<unit*>::iterator uit = current_unit_it;
-	for(++current_unit_it;
-			current_unit_it != (*data.r.current_civ)->units.end();
-			++current_unit_it) {
-		if((*current_unit_it)->moves > 0 && !(*current_unit_it)->fortified)
+	std::list<unit*>::const_iterator uit = current_unit;
+	for(++current_unit;
+			current_unit != myciv->units.end();
+			++current_unit) {
+		if((*current_unit)->moves > 0 && !(*current_unit)->fortified)
 			return;
 	}
 
 	// run through the first half
-	for(current_unit_it = (*data.r.current_civ)->units.begin();
-			current_unit_it != uit;
-			++current_unit_it) {
-		if((*current_unit_it)->moves > 0 && !(*current_unit_it)->fortified)
+	for(current_unit = myciv->units.begin();
+			current_unit != uit;
+			++current_unit) {
+		if((*current_unit)->moves > 0 && !(*current_unit)->fortified)
 			return;
 	}
-	current_unit_it = (*data.r.current_civ)->units.end();
-}
-
-void main_window::set_current_unit(const unit* u)
-{
-	current_unit = u;
-	blink_unit = NULL;
+	current_unit = myciv->units.end();
 }
 
 int main_window::draw()
@@ -100,8 +96,8 @@ int main_window::draw_sidebar() const
 	clear_sidebar();
 	draw_minimap();
 	draw_civ_info();
-	if(current_unit)
-		draw_unit_info(current_unit);
+	if(current_unit != myciv->units.end())
+		draw_unit_info();
 	else
 		draw_eot();
 	return 0;
@@ -116,7 +112,7 @@ int main_window::draw_minimap() const
 		for(int j = 0; j < minimap_w; j++) {
 			int x = j * data.m.size_x() / minimap_w;
 			color c = get_minimap_color(x, y);
-			if((c.r == 255 && c.g == 255 && c.b == 255) || (*data.r.current_civ)->fog_at(x, y) > 0) {
+			if((c.r == 255 && c.g == 255 && c.b == 255) || myciv->fog_at(x, y) > 0) {
 				sdl_put_pixel(screen, j, i, c);
 			}
 		}
@@ -128,41 +124,41 @@ int main_window::draw_minimap() const
 
 int main_window::draw_civ_info() const
 {
-	draw_text(screen, &res.font, (*data.r.current_civ)->civname, 10, sidebar_size * tile_h / 2 + 40, 255, 255, 255);
+	draw_text(screen, &res.font, myciv->civname, 10, sidebar_size * tile_h / 2 + 40, 255, 255, 255);
 	char buf[256];
 	buf[255] = '\0';
-	snprintf(buf, 255, "Gold: %d", (*data.r.current_civ)->gold);
+	snprintf(buf, 255, "Gold: %d", myciv->gold);
 	draw_text(screen, &res.font, buf, 10, sidebar_size * tile_h / 2 + 60, 255, 255, 255);
-	int lux = 10 - (*data.r.current_civ)->alloc_gold - (*data.r.current_civ)->alloc_science;
+	int lux = 10 - myciv->alloc_gold - myciv->alloc_science;
 	snprintf(buf, 255, "%d/%d/%d", 
-			(*data.r.current_civ)->alloc_gold * 10,
-			(*data.r.current_civ)->alloc_science * 10,
+			myciv->alloc_gold * 10,
+			myciv->alloc_science * 10,
 			lux);
 	draw_text(screen, &res.font, buf, 10, sidebar_size * tile_h / 2 + 80, 255, 255, 255);
 	return 0;
 }
 
-int main_window::draw_unit_info(const unit* u) const
+int main_window::draw_unit_info() const
 {
-	if(!u)
+	if(current_unit == myciv->units.end())
 		return 0;
-	const unit_configuration* uconf = data.r.get_unit_configuration(u->unit_id);
+	const unit_configuration* uconf = data.r.get_unit_configuration((*current_unit)->unit_id);
 	if(!uconf)
 		return 1;
 	draw_text(screen, &res.font, uconf->unit_name, 10, sidebar_size * tile_h / 2 + 100, 255, 255, 255);
 	char buf[256];
 	buf[255] = '\0';
-	snprintf(buf, 255, "Moves: %-2d/%2d", u->moves, uconf->max_moves);
+	snprintf(buf, 255, "Moves: %-2d/%2d", (*current_unit)->moves, uconf->max_moves);
 	draw_text(screen, &res.font, buf, 10, sidebar_size * tile_h / 2 + 120, 255, 255, 255);
-	if(u->strength) {
+	if((*current_unit)->strength) {
 		snprintf(buf, 255, "Unit strength:");
 		draw_text(screen, &res.font, buf, 10, sidebar_size * tile_h / 2 + 140, 255, 255, 255);
-		if(u->strength % 10) {
-			snprintf(buf, 255, "%d.%d/%d", u->strength / 10, u->strength % 10,
+		if((*current_unit)->strength % 10) {
+			snprintf(buf, 255, "%d.%d/%d", (*current_unit)->strength / 10, (*current_unit)->strength % 10,
 					uconf->max_strength);
 		}
 		else {
-			snprintf(buf, 255, "%d/%d", u->strength / 10,
+			snprintf(buf, 255, "%d/%d", (*current_unit)->strength / 10,
 					uconf->max_strength);
 		}
 		draw_text(screen, &res.font, buf, 10, sidebar_size * tile_h / 2 + 160, 255, 255, 255);
@@ -207,7 +203,7 @@ int main_window::draw_main_map()
 	int jmax = std::min(cam.cam_x + cam_total_tiles_x, data.m.size_x());
 	for(int i = cam.cam_y, y = 0; i < imax; i++, y++) {
 		for(int j = cam.cam_x, x = sidebar_size; j < jmax; j++, x++) {
-			char fog = (*data.r.current_civ)->fog_at(j, i);
+			char fog = myciv->fog_at(j, i);
 			if(fog > 0) {
 				if(show_terrain_image(j, i, x, y, fog == 1)) {
 					return 1;
@@ -221,7 +217,7 @@ int main_window::draw_main_map()
 		for(std::list<city*>::const_iterator it = (*cit)->cities.begin();
 				it != (*cit)->cities.end();
 				++it) {
-			if((*data.r.current_civ)->fog_at((*it)->xpos, (*it)->ypos) > 0) {
+			if(myciv->fog_at((*it)->xpos, (*it)->ypos) > 0) {
 				if(draw_city(**it)) {
 					return 1;
 				}
@@ -230,9 +226,9 @@ int main_window::draw_main_map()
 		for(std::list<unit*>::const_iterator it = (*cit)->units.begin(); 
 				it != (*cit)->units.end();
 				++it) {
-			if(blink_unit == *it)
+			if(blink_unit)
 				continue;
-			if((*data.r.current_civ)->fog_at((*it)->xpos, (*it)->ypos) == 2) {
+			if(myciv->fog_at((*it)->xpos, (*it)->ypos) == 2) {
 				if(draw_unit(**it)) {
 					return 1;
 				}
@@ -310,12 +306,12 @@ int main_window::process(int ms)
 {
 	int old_timer = timer;
 	timer += ms;
-	const unit* old_blink_unit = blink_unit;
+	bool old_blink_unit = blink_unit;
 	if(timer % 1000 < 300) {
-		blink_unit = current_unit;
+		blink_unit = true;
 	}
 	else {
-		blink_unit = NULL;
+		blink_unit = false;
 	}
 	if(blink_unit != old_blink_unit)
 		draw();
@@ -324,7 +320,7 @@ int main_window::process(int ms)
 		SDL_GetMouseState(&x, &y);
 		handle_mousemotion(x, y);
 	}
-	handle_civ_messages(&(*data.r.current_civ)->messages);
+	handle_civ_messages(&myciv->messages);
 	return 0;
 }
 
@@ -375,7 +371,7 @@ void main_window::numpad_to_move(SDLKey k, int* chx, int* chy) const
 	}
 }
 
-action main_window::input_to_action(const SDL_Event& ev, const std::list<unit*>::iterator& current_unit_it)
+action main_window::input_to_action(const SDL_Event& ev)
 {
 	switch(ev.type) {
 		case SDL_QUIT:
@@ -386,24 +382,24 @@ action main_window::input_to_action(const SDL_Event& ev, const std::list<unit*>:
 				if(k == SDLK_ESCAPE || k == SDLK_q)
 					return action(action_give_up);
 				else if((k == SDLK_RETURN || k == SDLK_KP_ENTER) && 
-						(current_unit_it == (*data.r.current_civ)->units.end() || (ev.key.keysym.mod & (KMOD_LSHIFT | KMOD_RSHIFT)))) {
+						(current_unit == myciv->units.end() || (ev.key.keysym.mod & (KMOD_LSHIFT | KMOD_RSHIFT)))) {
 					return action(action_eot);
 				}
-				else if(current_unit_it != (*data.r.current_civ)->units.end()) {
+				else if(current_unit != myciv->units.end()) {
 					if(k == SDLK_b) {
-						return unit_action(action_found_city, *current_unit_it);
+						return unit_action(action_found_city, *current_unit);
 					}
 					else if(k == SDLK_SPACE) {
-						return unit_action(action_skip, *current_unit_it);
+						return unit_action(action_skip, *current_unit);
 					}
 					else if(k == SDLK_f) {
-						return unit_action(action_fortify, *current_unit_it);
+						return unit_action(action_fortify, *current_unit);
 					}
 					else {
 						int chx, chy;
 						numpad_to_move(k, &chx, &chy);
 						if(chx || chy) {
-							action a = unit_action(action_move_unit, *current_unit_it);
+							action a = unit_action(action_move_unit, *current_unit);
 							a.data.unit_data.unit_action_data.move_pos.chx = chx;
 							a.data.unit_data.unit_action_data.move_pos.chy = chy;
 							return a;
@@ -418,26 +414,26 @@ action main_window::input_to_action(const SDL_Event& ev, const std::list<unit*>:
 	return action_none;
 }
 
-void main_window::handle_successful_action(const action& a, std::list<unit*>::iterator& current_unit_it, city** c)
+void main_window::handle_successful_action(const action& a, city** c)
 {
 	switch(a.type) {
 		case action_eot:
 			// end of turn for this civ
-			get_next_free_unit(current_unit_it);
+			get_next_free_unit();
 			break;
 		case action_unit_action:
 			switch(a.data.unit_data.uatype) {
 				case action_move_unit:
-					if((*current_unit_it)->moves == 0) {
-						current_unit_it = (*data.r.current_civ)->units.end();
+					if((*current_unit)->moves == 0) {
+						current_unit = myciv->units.end();
 					}
 					break;
 				case action_found_city:
-					current_unit_it = (*data.r.current_civ)->units.end();
+					current_unit = myciv->units.end();
 					// fall through
 				case action_skip:
 				case action_fortify:
-					get_next_free_unit(current_unit_it);
+					get_next_free_unit();
 					break;
 				default:
 					break;
@@ -447,7 +443,7 @@ void main_window::handle_successful_action(const action& a, std::list<unit*>::it
 	}
 }
 
-void main_window::handle_input_gui_mod(const SDL_Event& ev, std::list<unit*>::iterator& current_unit_it, city** c)
+void main_window::handle_input_gui_mod(const SDL_Event& ev, city** c)
 {
 	switch(ev.type) {
 		case SDL_KEYDOWN:
@@ -456,63 +452,62 @@ void main_window::handle_input_gui_mod(const SDL_Event& ev, std::list<unit*>::it
 				if(k == SDLK_LEFT || k == SDLK_RIGHT || k == SDLK_UP || k == SDLK_DOWN) {
 					try_move_camera(k == SDLK_LEFT, k == SDLK_RIGHT, k == SDLK_UP, k == SDLK_DOWN);
 				}
-				if(current_unit_it != (*data.r.current_civ)->units.end()) {
+				if(current_unit != myciv->units.end()) {
 					if(k == SDLK_c) {
-						center_camera_to_unit(*current_unit_it);
+						center_camera_to_unit(*current_unit);
 					}
 					else if(k == SDLK_w) {
-						std::list<unit*>::iterator old_it = current_unit_it;
-						get_next_free_unit(current_unit_it);
-						if(current_unit_it == (*data.r.current_civ)->units.end())
-							current_unit_it = old_it;
+						std::list<unit*>::const_iterator old_it = current_unit;
+						get_next_free_unit();
+						if(current_unit == myciv->units.end())
+							current_unit = old_it;
 					}
 				}
 			}
 			break;
 		case SDL_MOUSEBUTTONDOWN:
-			try_choose_with_mouse(ev, current_unit_it, c);
+			try_choose_with_mouse(ev, c);
 		default:
 			break;
 	}
 }
 
-void main_window::update_view(std::list<unit*>::iterator& current_unit_it)
+void main_window::update_view()
 {
-	if(current_unit_it != (*data.r.current_civ)->units.end()) {
-		try_center_camera_to_unit(*current_unit_it);
-		set_current_unit(*current_unit_it);
+	if(current_unit != myciv->units.end()) {
+		try_center_camera_to_unit(*current_unit);
 	}
 	else {
-		set_current_unit(NULL);
 	}
+	blink_unit = false;
 	draw();
 }
 
-int main_window::handle_input(const SDL_Event& ev, std::list<unit*>::iterator& current_unit_it, city** c)
+int main_window::handle_input(const SDL_Event& ev, city** c)
 {
-	action a = input_to_action(ev, current_unit_it);
+	action a = input_to_action(ev);
 	if(a.type != action_none) {
 		// save the iterator - performing an action may destroy
 		// the current unit
-		bool already_begin = current_unit_it == (*data.r.current_civ)->units.begin();
+		bool already_begin = current_unit == myciv->units.begin();
 		if(!already_begin) {
-			current_unit_it--;
+			current_unit--;
 		}
 		int success = data.r.perform_action(a, &data.m);
 		if(!already_begin) {
-			current_unit_it++;
+			current_unit++;
 		}
 		else {
-			current_unit_it = (*data.r.current_civ)->units.begin();
+			current_unit = myciv->units.begin();
 		}
 		if(success) {
-			handle_successful_action(a, current_unit_it, c);
+			handle_successful_action(a, c);
 		}
 	}
 	else {
-		handle_input_gui_mod(ev, current_unit_it, c);
+		handle_input_gui_mod(ev, c);
 	}
-	update_view(current_unit_it);
+	update_view();
 	return a.type == action_give_up;
 }
 
@@ -544,9 +539,9 @@ int main_window::handle_civ_messages(std::list<msg>* messages)
 					}
 					it = std::find_if(data.r.amap.begin(),
 							data.r.amap.end(),
-							 boost::bind(not_in_set, (*data.r.current_civ)->researched_advances, boost::lambda::_1));
+							 boost::bind(not_in_set, myciv->researched_advances, boost::lambda::_1));
 					if(it != data.r.amap.end()) {
-						(*data.r.current_civ)->research_goal_id = it->first;
+						myciv->research_goal_id = it->first;
 						printf("Now researching '%s'.\n",
 								it->second->advance_name);
 					}
@@ -560,7 +555,7 @@ int main_window::handle_civ_messages(std::list<msg>* messages)
 	return 0;
 }
 
-int main_window::try_choose_with_mouse(const SDL_Event& ev, std::list<unit*>::iterator& current_unit_it, city** c)
+int main_window::try_choose_with_mouse(const SDL_Event& ev, city** c)
 {
 	int sq_x = (ev.button.x - sidebar_size * tile_w) / tile_w;
 	int sq_y = ev.button.y / tile_h;
@@ -569,8 +564,8 @@ int main_window::try_choose_with_mouse(const SDL_Event& ev, std::list<unit*>::it
 		sq_y += cam.cam_y;
 
 		// choose city
-		for(std::list<city*>::const_iterator it = (*data.r.current_civ)->cities.begin();
-				it != (*data.r.current_civ)->cities.end();
+		for(std::list<city*>::const_iterator it = myciv->cities.begin();
+				it != myciv->cities.end();
 				++it) {
 			if((*it)->xpos == sq_x && (*it)->ypos == sq_y) {
 				*c = *it;
@@ -580,14 +575,14 @@ int main_window::try_choose_with_mouse(const SDL_Event& ev, std::list<unit*>::it
 
 		// if no city chosen, choose unit
 		if(!*c) {
-			for(std::list<unit*>::iterator it = (*data.r.current_civ)->units.begin();
-					it != (*data.r.current_civ)->units.end();
+			for(std::list<unit*>::iterator it = myciv->units.begin();
+					it != myciv->units.end();
 					++it) {
 				if((*it)->xpos == sq_x && (*it)->ypos == sq_y) {
 					(*it)->fortified = false;
 					if((*it)->moves > 0) {
-						current_unit_it = it;
-						set_current_unit(*it);
+						current_unit = it;
+						blink_unit = false;
 					}
 				}
 			}

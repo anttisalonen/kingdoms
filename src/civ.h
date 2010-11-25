@@ -244,7 +244,6 @@ class round
 		bool perform_action(const action& a, map* m);
 		const unit_configuration* get_unit_configuration(int uid) const;
 		std::vector<civilization*> civs;
-		std::vector<civilization*>::iterator current_civ;
 		const unit_configuration_map& uconfmap;
 		const advance_map& amap;
 		const city_improv_map& cimap;
@@ -253,6 +252,7 @@ class round
 		void refill_moves();
 		void increment_resources();
 		bool try_move_unit(unit* u, int chx, int chy, map* m);
+		std::vector<civilization*>::iterator current_civ;
 };
 
 void total_resources(const city& c, const map& m,

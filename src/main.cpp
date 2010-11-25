@@ -108,7 +108,6 @@ int run()
 
 	r.add_civilization(civ1);
 	r.add_civilization(civ2);
-	std::list<unit*>::iterator current_unit = (*r.current_civ)->units.begin();
 
 	std::vector<const char*> terrain_files;
 	std::vector<const char*> unit_files;
@@ -128,8 +127,9 @@ int run()
 	gui g(1024, 768, m, r, terrain_files, unit_files, "share/city.png", *font,
 			"share/food_icon.png",
 			"share/prod_icon.png",
-			"share/comm_icon.png");
-	g.display(*current_unit);
+			"share/comm_icon.png",
+			civ1);
+	g.display();
 	while(running) {
 		SDL_Event event;
 		while(SDL_PollEvent(&event)) {
@@ -137,7 +137,7 @@ int run()
 				case SDL_KEYDOWN:
 				case SDL_MOUSEBUTTONDOWN:
 				case SDL_MOUSEBUTTONUP:
-					if(g.handle_input(event, current_unit))
+					if(g.handle_input(event))
 						running = false;
 					break;
 				case SDL_QUIT:
@@ -147,7 +147,7 @@ int run()
 			}
 		}
 		SDL_Delay(50);
-		g.process(50, *current_unit);
+		g.process(50);
 	}
 	TTF_CloseFont(font);
 	delete civ2;
