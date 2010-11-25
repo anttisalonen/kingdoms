@@ -47,6 +47,18 @@ class advance {
 
 typedef std::map<unsigned int, advance*> advance_map;
 
+class city_improvement {
+	public:
+		city_improvement();
+		unsigned int improv_id;
+		const char* improv_name;
+		int cost;
+		bool barracks;
+		unsigned int needed_advance;
+};
+
+typedef std::map<unsigned int, city_improvement*> city_improv_map;
+
 class unit
 {
 	public:
@@ -81,7 +93,12 @@ class city {
 		int population;
 		int stored_food;
 		int stored_prod;
-		int current_production_unit_id;
+		bool producing_unit;
+		union {
+			int current_production_unit_id;
+			int current_production_improv_id;
+		} production;
+		std::set<unsigned int> built_improvements;
 };
 
 class fog_of_war {
@@ -126,7 +143,8 @@ class map {
 enum msg_type {
 	msg_new_unit,
 	msg_civ_discovery,
-	msg_new_advance
+	msg_new_advance,
+	msg_new_city_improv,
 };
 
 struct msg {
@@ -135,6 +153,10 @@ struct msg {
 		unit* new_unit;
 		int discovered_civ_id;
 		unsigned int new_advance_id;
+		struct {
+			city* building_city;
+			unsigned int improv_id;
+		} city_improv_data;
 	} msg_data;
 };
 
@@ -147,7 +169,8 @@ class civilization {
 		int try_move_unit(unit* u, int chx, int chy);
 		void refill_moves(const unit_configuration_map& uconfmap);
 		void increment_resources(const unit_configuration_map& uconfmap,
-				const advance_map& amap);
+				const advance_map& amap,
+				const city_improv_map& cimap);
 		char fog_at(int x, int y) const;
 		city* add_city(const char* name, int x, int y);
 		void remove_city(city* c);
@@ -179,7 +202,9 @@ class civilization {
 class round
 {
 	public:
-		round(const unit_configuration_map& uconfmap_, const advance_map& amap_);
+		round(const unit_configuration_map& uconfmap_, 
+				const advance_map& amap_, 
+				const city_improv_map& cimap_);
 		void add_civilization(civilization* civ);
 		bool next_civ();
 		std::vector<civilization*> civs;
@@ -187,6 +212,7 @@ class round
 		const unit_configuration* get_unit_configuration(int uid) const;
 		const unit_configuration_map& uconfmap;
 		const advance_map& amap;
+		const city_improv_map& cimap;
 	private:
 		void refill_moves();
 		void increment_resources();
@@ -200,3 +226,4 @@ void combat(unit* u1, unit* u2);
 bool can_attack(const unit& u1, const unit& u2);
 
 #endif
+

@@ -51,6 +51,16 @@ int run()
 	amap.insert(std::make_pair(1, &warrior_code));
 	amap.insert(std::make_pair(2, &bronze_working));
 
+	city_improvement barracks;
+	barracks.improv_id = 1;
+	barracks.improv_name = "Barracks";
+	barracks.cost = 30;
+	barracks.barracks = true;
+	barracks.needed_advance = 1;
+
+	city_improv_map cimap;
+	cimap.insert(std::make_pair(1, &barracks));
+
 	unit_configuration settlers_conf;
 	unit_configuration warrior_conf;
 	unit_configuration archer_conf;
@@ -90,7 +100,7 @@ int run()
 	uconfmap.insert(std::make_pair(2, &archer_conf));
 	uconfmap.insert(std::make_pair(3, &spearman_conf));
 
-	round r(uconfmap, amap);
+	round r(uconfmap, amap, cimap);
 	civ1->add_unit(0, 1, 1, settlers_conf);
 	civ1->add_unit(1, 2, 2, warrior_conf);
 	civ2->add_unit(0, 7, 6, settlers_conf);

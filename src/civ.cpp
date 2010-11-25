@@ -21,11 +21,12 @@ void total_resources(const city& c, const map& m,
 
 void set_default_city_production(city* c, const unit_configuration_map& uconfmap)
 {
+	c->producing_unit = true;
 	for(unit_configuration_map::const_iterator it = uconfmap.begin();
 			it != uconfmap.end();
 			++it) {
 		if(!it->second->settler) {
-			c->current_production_unit_id = it->first;
+			c->production.current_production_unit_id = it->first;
 			return;
 		}
 	}
@@ -76,6 +77,11 @@ resource_configuration::resource_configuration()
 advance::advance()
 {
 	memset(needed_advances, 0, sizeof(needed_advances));
+}
+
+city_improvement::city_improvement()
+	: barracks(false)
+{
 }
 
 unit::unit(int uid, int x, int y, int civid, const unit_configuration& uconf_)
@@ -296,8 +302,9 @@ city::city(const char* name, int x, int y, unsigned int civid)
 	population(1),
 	stored_food(0),
 	stored_prod(0),
-	current_production_unit_id(-1)
+	producing_unit(true)
 {
+	production.current_production_unit_id = -1;
 }
 
 civilization::civilization(const char* name, unsigned int civid, const color& c_, map& m_)
@@ -399,8 +406,17 @@ msg discovered_civ(int civid)
 	return m;
 }
 
+msg new_improv_msg(city* c, unsigned int ciid)
+{
+	msg m;
+	m.type = msg_new_city_improv;
+	m.msg_data.city_improv_data.building_city = c;
+	m.msg_data.city_improv_data.improv_id = ciid;
+	return m;
+}
+
 void civilization::increment_resources(const unit_configuration_map& uconfmap,
-		const advance_map& amap)
+		const advance_map& amap, const city_improv_map& cimap)
 {
 	int total_commerce = 0;
 	for(std::list<city*>::iterator cit = cities.begin();
@@ -411,14 +427,28 @@ void civilization::increment_resources(const unit_configuration_map& uconfmap,
 		(*cit)->stored_food += food - (*cit)->population * 2;
 		total_commerce += comm;
 		(*cit)->stored_prod += prod;
-		if((*cit)->current_production_unit_id > -1) {
-			unit_configuration_map::const_iterator prod_unit = uconfmap.find((*cit)->current_production_unit_id);
+		if((*cit)->producing_unit && (*cit)->production.current_production_unit_id > -1) {
+			unit_configuration_map::const_iterator prod_unit = uconfmap.find((*cit)->production.current_production_unit_id);
 			if(prod_unit != uconfmap.end()) {
 				if((int)prod_unit->second->production_cost <= (*cit)->stored_prod) {
-					unit* u = add_unit((*cit)->current_production_unit_id, 
+					unit* u = add_unit((*cit)->production.current_production_unit_id, 
 							(*cit)->xpos, (*cit)->ypos, *(prod_unit->second));
 					(*cit)->stored_prod -= prod_unit->second->production_cost;
 					add_message(new_unit_msg(u));
+				}
+			}
+		}
+		else if((*cit)->production.current_production_improv_id > 0) {
+			city_improv_map::const_iterator prod_improv = cimap.find((*cit)->production.current_production_improv_id);
+			if(prod_improv != cimap.end()) {
+				if((int)prod_improv->second->cost <= (*cit)->stored_prod) {
+					if((*cit)->built_improvements.find(prod_improv->first) ==
+							(*cit)->built_improvements.end()) {
+						(*cit)->built_improvements.insert(prod_improv->first);
+						(*cit)->stored_prod -= prod_improv->second->cost;
+					}
+					add_message(new_improv_msg(*cit, prod_improv->first));
+					(*cit)->production.current_production_improv_id = 0;
 				}
 			}
 		}
@@ -548,9 +578,11 @@ std::vector<unsigned int> civilization::check_discoveries(int x, int y, int radi
 }
 
 round::round(const unit_configuration_map& uconfmap_,
-		const advance_map& amap_)
+		const advance_map& amap_,
+		const city_improv_map& cimap_)
 	: uconfmap(uconfmap_),
-	amap(amap_)
+	amap(amap_),
+	cimap(cimap_)
 {
 	current_civ = civs.begin();
 }
@@ -576,7 +608,7 @@ void round::increment_resources()
 	for(std::vector<civilization*>::iterator it = civs.begin();
 	    it != civs.end();
 	    ++it) {
-		(*it)->increment_resources(uconfmap, amap);
+		(*it)->increment_resources(uconfmap, amap, cimap);
 	}
 }
 

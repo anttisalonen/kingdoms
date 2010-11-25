@@ -68,19 +68,45 @@ int city_window::change_production()
 	for(unit_configuration_map::const_iterator it = data.r.uconfmap.begin();
 			it != data.r.uconfmap.end();
 			++it) {
+		if((*data.r.current_civ)->researched_advances.find(it->second->needed_advance) == 
+				(*data.r.current_civ)->researched_advances.end())
+			continue;
 		SDL_Surface* button_surf = make_label(it->second->unit_name, 
 				&res.font, option_rect.w, option_rect.h, color(128, 128, 128), color(0, 0, 0));
 		change_prod_labels.push_back(button_surf);
 		change_prod_buttons.push_back(new button(option_rect,
-				button_surf, boost::bind(&city_window::choose_production, this, *it)));
+				button_surf, boost::bind(&city_window::choose_unit_production, this, *it)));
+		option_rect.y += screen_h * 0.09;
+	}
+	for(city_improv_map::const_iterator it = data.r.cimap.begin();
+			it != data.r.cimap.end();
+			++it) {
+		if((*data.r.current_civ)->researched_advances.find(it->second->needed_advance) == 
+				(*data.r.current_civ)->researched_advances.end())
+			continue;
+		if(c->built_improvements.find(it->first) != c->built_improvements.end())
+			continue;
+		SDL_Surface* button_surf = make_label(it->second->improv_name, 
+				&res.font, option_rect.w, option_rect.h, color(160, 160, 160), color(0, 0, 0));
+		change_prod_labels.push_back(button_surf);
+		change_prod_buttons.push_back(new button(option_rect,
+				button_surf, boost::bind(&city_window::choose_improv_production, this, *it)));
 		option_rect.y += screen_h * 0.09;
 	}
 	return 0;
 }
 
-int city_window::choose_production(const std::pair<int, unit_configuration*>& u)
+int city_window::choose_unit_production(const std::pair<int, unit_configuration*>& u)
 {
-	c->current_production_unit_id = u.first;
+	c->producing_unit = true;
+	c->production.current_production_unit_id = u.first;
+	return 1;
+}
+
+int city_window::choose_improv_production(const std::pair<unsigned int, city_improvement*>& i)
+{
+	c->producing_unit = false;
+	c->production.current_production_improv_id = i.first;
 	return 1;
 }
 
@@ -178,15 +204,30 @@ int city_window::draw()
 	snprintf(buf, 63, "Food: %d/turn (Total: %d)", food, c->stored_food);
 	draw_text(screen, &res.font, buf, screen_w * 0.3, screen_h * 0.60, 0, 0, 0);
 	{
-		unit_configuration_map::const_iterator it = data.r.uconfmap.find(c->current_production_unit_id);
-		if(it == data.r.uconfmap.end()) {
+		const char* prod_tgt = NULL;
+		int prod_cost = 0;
+		if(c->producing_unit) {
+			unit_configuration_map::const_iterator it = data.r.uconfmap.find(c->production.current_production_unit_id);
+			if(it != data.r.uconfmap.end()) {
+				prod_tgt = it->second->unit_name;
+				prod_cost = it->second->production_cost;
+			}
+		}
+		else {
+			city_improv_map::const_iterator it = data.r.cimap.find(c->production.current_production_improv_id);
+			if(it != data.r.cimap.end()) {
+				prod_tgt = it->second->improv_name;
+				prod_cost = it->second->cost;
+			}
+		}
+		if(!prod_tgt) {
 			snprintf(buf, 63, "Production: %d per turn - not producing", prod);
 		}
 		else {
 			snprintf(buf, 63, "Production: %d/turn - %s - %d/%d", 
-					prod, it->second->unit_name, 
+					prod, prod_tgt,
 					c->stored_prod, 
-					it->second->production_cost);
+					prod_cost);
 		}
 		draw_text(screen, &res.font, buf, screen_w * 0.3, screen_h * 0.70, 0, 0, 0);
 	}
