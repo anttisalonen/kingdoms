@@ -71,7 +71,7 @@ int city_window::change_production()
 			it != data.r.uconfmap.end();
 			++it) {
 		if(myciv->researched_advances.find(it->second->needed_advance) == 
-				myciv->researched_advances.end())
+				myciv->researched_advances.end() && it->second->needed_advance != 0)
 			continue;
 		SDL_Surface* button_surf = make_label(it->second->unit_name, 
 				&res.font, option_rect.w, option_rect.h, color(128, 128, 128), color(0, 0, 0));
@@ -84,7 +84,7 @@ int city_window::change_production()
 			it != data.r.cimap.end();
 			++it) {
 		if(myciv->researched_advances.find(it->second->needed_advance) == 
-				myciv->researched_advances.end())
+				myciv->researched_advances.end() && it->second->needed_advance != 0)
 			continue;
 		if(c->built_improvements.find(it->first) != c->built_improvements.end())
 			continue;
