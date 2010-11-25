@@ -3,6 +3,19 @@
 #include <boost/bind.hpp>
 #include <boost/lambda/lambda.hpp>
 
+action::action(action_type t)
+	: type(t)
+{
+}
+
+action unit_action(unit_action_type t, unit* u)
+{
+	action a = action(action_unit_action);
+	a.data.unit_data.uatype = t;
+	a.data.unit_data.u = u;
+	return a;
+}
+
 main_window::main_window(SDL_Surface* screen_, int x, int y, gui_data& data_, gui_resources& res_)
 	: screen(screen_),
 	screen_w(x),
@@ -375,18 +388,144 @@ void main_window::numpad_to_move(SDLKey k, int* chx, int* chy) const
 	}
 }
 
-int main_window::handle_input(const SDL_Event& ev, std::list<unit*>::iterator& current_unit_it, city** c)
+action main_window::input_to_action(const SDL_Event& ev, const std::list<unit*>::iterator& current_unit_it)
 {
 	switch(ev.type) {
 		case SDL_QUIT:
-			return 1;
+			return action(action_give_up);
 		case SDL_KEYDOWN:
-			return handle_keydown(ev.key.keysym.sym, ev.key.keysym.mod, current_unit_it, c);
-		case SDL_MOUSEBUTTONDOWN:
-			return handle_mousedown(ev, current_unit_it, c);
+			{
+				SDLKey k = ev.key.keysym.sym;
+				if(k == SDLK_ESCAPE || k == SDLK_q)
+					return action(action_give_up);
+				else if((k == SDLK_RETURN || k == SDLK_KP_ENTER) && 
+						(current_unit_it == (*data.r.current_civ)->units.end() || (ev.key.keysym.mod & (KMOD_LSHIFT | KMOD_RSHIFT)))) {
+					return action(action_eot);
+				}
+				else if(current_unit_it != (*data.r.current_civ)->units.end()) {
+					if(k == SDLK_b) {
+						return unit_action(action_found_city, *current_unit_it);
+					}
+					else if(k == SDLK_SPACE) {
+						return unit_action(action_skip, *current_unit_it);
+					}
+					else if(k == SDLK_f) {
+						return unit_action(action_fortify, *current_unit_it);
+					}
+					else {
+						int chx, chy;
+						numpad_to_move(k, &chx, &chy);
+						if(chx || chy) {
+							action a = unit_action(action_move_unit, *current_unit_it);
+							a.data.unit_data.unit_action_data.move_pos.chx = chx;
+							a.data.unit_data.unit_action_data.move_pos.chy = chy;
+							return a;
+						}
+					}
+				}
+			}
+			break;
 		default:
-			return 0;
+			break;
 	}
+	return action_none;
+}
+
+void main_window::perform_action(const action& a, std::list<unit*>::iterator& current_unit_it, city** c)
+{
+	switch(a.type) {
+		case action_eot:
+			// end of turn for this civ
+			data.r.next_civ();
+			current_unit_it = (*data.r.current_civ)->units.end();
+			get_next_free_unit(current_unit_it);
+			break;
+		case action_unit_action:
+			switch(a.data.unit_data.uatype) {
+				case action_move_unit:
+					try_move_unit(current_unit_it, a.data.unit_data.unit_action_data.move_pos.chx,
+						a.data.unit_data.unit_action_data.move_pos.chy);
+					break;
+				case action_found_city:
+					{
+						const unit_configuration* uconf = data.r.get_unit_configuration((*current_unit_it)->unit_id);
+						bool can_build = uconf == NULL ? false : uconf->settler;
+						if(can_build) {
+							*c = (*data.r.current_civ)->add_city("city name", (*current_unit_it)->xpos,
+									(*current_unit_it)->ypos);
+							set_default_city_production(*c, data.r.uconfmap);
+							(*data.r.current_civ)->remove_unit(*current_unit_it);
+							current_unit_it = (*data.r.current_civ)->units.end();
+						}
+					}
+					break;
+				case action_skip:
+					(*current_unit_it)->moves = 0;
+					get_next_free_unit(current_unit_it);
+					break;
+				case action_fortify:
+					(*current_unit_it)->fortified = true;
+					get_next_free_unit(current_unit_it);
+					break;
+				default:
+					break;
+			}
+		case action_city_action:
+			break;
+		case action_give_up:
+		default:
+			break;
+	}
+}
+
+void main_window::handle_input_gui_mod(const SDL_Event& ev, std::list<unit*>::iterator& current_unit_it, city** c)
+{
+	switch(ev.type) {
+		case SDL_KEYDOWN:
+			{
+				SDLKey k = ev.key.keysym.sym;
+				if(k == SDLK_LEFT || k == SDLK_RIGHT || k == SDLK_UP || k == SDLK_DOWN) {
+					try_move_camera(k == SDLK_LEFT, k == SDLK_RIGHT, k == SDLK_UP, k == SDLK_DOWN);
+				}
+				if(current_unit_it != (*data.r.current_civ)->units.end()) {
+					if(k == SDLK_c) {
+						center_camera_to_unit(*current_unit_it);
+					}
+					else if(k == SDLK_w) {
+						std::list<unit*>::iterator old_it = current_unit_it;
+						get_next_free_unit(current_unit_it);
+						if(current_unit_it == (*data.r.current_civ)->units.end())
+							current_unit_it = old_it;
+					}
+				}
+			}
+			break;
+		case SDL_MOUSEBUTTONDOWN:
+			try_choose_with_mouse(ev, current_unit_it, c);
+		default:
+			break;
+	}
+}
+
+void main_window::update_view(std::list<unit*>::iterator& current_unit_it, city** c)
+{
+	if(current_unit_it != (*data.r.current_civ)->units.end()) {
+		try_center_camera_to_unit(*current_unit_it);
+		set_current_unit(*current_unit_it);
+	}
+	else {
+		set_current_unit(NULL);
+	}
+	draw();
+}
+
+int main_window::handle_input(const SDL_Event& ev, std::list<unit*>::iterator& current_unit_it, city** c)
+{
+	action a = input_to_action(ev, current_unit_it);
+	perform_action(a, current_unit_it, c);
+	handle_input_gui_mod(ev, current_unit_it, c);
+	update_view(current_unit_it, c);
+	return a.type == action_give_up;
 }
 
 bool not_in_set(const std::set<unsigned int>& u, const std::pair<unsigned int, advance*>& i)
@@ -493,84 +632,7 @@ bool main_window::try_move_unit(std::list<unit*>::iterator& current_unit_it, int
 	return unit_changed;
 }
 
-int main_window::handle_keydown(SDLKey k, SDLMod mod, std::list<unit*>::iterator& current_unit_it, city** c)
-{
-	if(k == SDLK_ESCAPE || k == SDLK_q)
-		return 1;
-	else if(k == SDLK_LEFT || k == SDLK_RIGHT || k == SDLK_UP || k == SDLK_DOWN) {
-		try_move_camera(k == SDLK_LEFT, k == SDLK_RIGHT, k == SDLK_UP, k == SDLK_DOWN);
-	}
-	else if((k == SDLK_RETURN || k == SDLK_KP_ENTER) && 
-			(current_unit_it == (*data.r.current_civ)->units.end() || (mod & (KMOD_LSHIFT | KMOD_RSHIFT)))) {
-		// end of turn for this civ
-		data.r.next_civ();
-		current_unit_it = (*data.r.current_civ)->units.end();
-		get_next_free_unit(current_unit_it);
-		if(current_unit_it != (*data.r.current_civ)->units.end())
-			set_current_unit(*current_unit_it);
-		else
-			set_current_unit(NULL);
-		draw();
-	}
-	else if(current_unit_it != (*data.r.current_civ)->units.end()) {
-		bool unit_changed = false;
-		if(k == SDLK_c) {
-			center_camera_to_unit(*current_unit_it);
-			draw();
-		}
-		else if(k == SDLK_b) {
-			const unit_configuration* uconf = data.r.get_unit_configuration((*current_unit_it)->unit_id);
-			bool can_build = uconf == NULL ? false : uconf->settler;
-			if(can_build) {
-				*c = (*data.r.current_civ)->add_city("city name", (*current_unit_it)->xpos,
-						(*current_unit_it)->ypos);
-				set_default_city_production(*c, data.r.uconfmap);
-				(*data.r.current_civ)->remove_unit(*current_unit_it);
-				current_unit_it = (*data.r.current_civ)->units.end();
-				unit_changed = true;
-			}
-		}
-		else if(k == SDLK_SPACE) {
-			(*current_unit_it)->moves = 0;
-			get_next_free_unit(current_unit_it);
-			unit_changed = true;
-		}
-		else if(k == SDLK_f) {
-			(*current_unit_it)->fortified = true;
-			get_next_free_unit(current_unit_it);
-			unit_changed = true;
-		}
-		else if(k == SDLK_w) {
-			std::list<unit*>::iterator old_it = current_unit_it;
-			get_next_free_unit(current_unit_it);
-			if(current_unit_it == (*data.r.current_civ)->units.end())
-				current_unit_it = old_it;
-			else
-				unit_changed = true;
-		}
-		else {
-			int chx, chy;
-			numpad_to_move(k, &chx, &chy);
-			if(chx || chy) {
-				unit_changed = try_move_unit(current_unit_it, chx, chy);
-			}
-		}
-		if(unit_changed) {
-			if(current_unit_it != (*data.r.current_civ)->units.end()) {
-				try_center_camera_to_unit(*current_unit_it);
-				set_current_unit(*current_unit_it);
-				draw();
-			}
-			else {
-				set_current_unit(NULL);
-				draw();
-			}
-		}
-	}
-	return 0;
-}
-
-int main_window::handle_mousedown(const SDL_Event& ev, std::list<unit*>::iterator& current_unit_it, city** c)
+int main_window::try_choose_with_mouse(const SDL_Event& ev, std::list<unit*>::iterator& current_unit_it, city** c)
 {
 	int sq_x = (ev.button.x - sidebar_size * tile_w) / tile_w;
 	int sq_y = ev.button.y / tile_h;
@@ -605,5 +667,4 @@ int main_window::handle_mousedown(const SDL_Event& ev, std::list<unit*>::iterato
 	}
 	return 0;
 }
-
 
