@@ -2,6 +2,9 @@
 #include <string.h>
 #include <algorithm>
 
+#include <boost/bind.hpp>
+#include <boost/lambda/lambda.hpp>
+
 void total_resources(const city& c, const map& m, 
 		int* food, int* prod, int* comm)
 {
@@ -584,6 +587,19 @@ std::vector<unsigned int> civilization::check_discoveries(int x, int y, int radi
 	return discs;
 }
 
+action::action(action_type t)
+	: type(t)
+{
+}
+
+action unit_action(unit_action_type t, unit* u)
+{
+	action a = action(action_unit_action);
+	a.data.unit_data.uatype = t;
+	a.data.unit_data.u = u;
+	return a;
+}
+
 round::round(const unit_configuration_map& uconfmap_,
 		const advance_map& amap_,
 		const city_improv_map& cimap_)
@@ -639,6 +655,108 @@ const unit_configuration* round::get_unit_configuration(int uid) const
 	if(it == uconfmap.end())
 		return NULL;
 	return it->second;
+}
+
+bool round::perform_action(const action& a, map* m)
+{
+	switch(a.type) {
+		case action_eot:
+			// end of turn for this civ
+			next_civ();
+			break;
+		case action_unit_action:
+			switch(a.data.unit_data.uatype) {
+				case action_move_unit:
+					return try_move_unit(a.data.unit_data.u, a.data.unit_data.unit_action_data.move_pos.chx,
+							a.data.unit_data.unit_action_data.move_pos.chy, m);
+				case action_found_city:
+					{
+						const unit_configuration* uconf = get_unit_configuration(a.data.unit_data.u->unit_id);
+						bool can_build = uconf == NULL ? false : uconf->settler;
+						if(can_build) {
+							city* c = (*current_civ)->add_city("city name", a.data.unit_data.u->xpos,
+									a.data.unit_data.u->ypos);
+							set_default_city_production(c, uconfmap);
+							(*current_civ)->remove_unit(a.data.unit_data.u);
+							return true;
+						}
+						return false;
+					}
+				case action_skip:
+					a.data.unit_data.u->moves = 0;
+					return true;
+				case action_fortify:
+					a.data.unit_data.u->fortified = true;
+					return true;
+				default:
+					break;
+			}
+		case action_city_action:
+			break;
+		case action_give_up:
+		default:
+			break;
+	}
+	return true;
+}
+
+bool round::try_move_unit(unit* u, int chx, int chy, map* m)
+{
+	int tgtxpos = u->xpos + chx;
+	int tgtypos = u->ypos + chy;
+
+	// attack square?
+	if(!m->free_spot((*current_civ)->civ_id, tgtxpos, tgtypos)) {
+		const std::list<unit*>& units = m->units_on_spot(tgtxpos, tgtypos);
+		if(units.size() != 0) {
+			unit* defender = units.front();
+			if(!can_attack(*u, *defender)) {
+				return false;
+			}
+			combat(u, defender);
+			if(u->strength == 0) {
+				// lost combat
+				(*current_civ)->remove_unit(u);
+				return true;
+			}
+			else if(defender->strength == 0) {
+				(*civs[defender->civ_id]).remove_unit(defender);
+				if(m->units_on_spot(tgtxpos, tgtypos).size() == 0) {
+					// check if a city was conquered
+					city* c = m->city_on_spot(tgtxpos, tgtypos);
+					if(c && c->civ_id != (*current_civ)->civ_id) {
+						int civid = c->civ_id;
+						civilization* civ = civs[civid];
+						civ->remove_city(c);
+						if(civ->cities.size() == 0) {
+							int num_settlers = std::count_if(civ->units.begin(),
+									civ->units.end(),
+									boost::bind(&unit::is_settler, boost::lambda::_1));
+							if(num_settlers == 0) {
+								civ->eliminate();
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// move to square
+	if(m->free_spot((*current_civ)->civ_id, tgtxpos, tgtypos)) {
+		if((*current_civ)->try_move_unit(u, chx, chy)) {
+			std::vector<unsigned int> discs = (*current_civ)->check_discoveries(u->xpos,
+					u->ypos, 1);
+			for(std::vector<unsigned int>::const_iterator it = discs.begin();
+					it != discs.end();
+					++it) {
+				civs[*it]->discover((*current_civ)->civ_id);
+			}
+			return true;
+		}
+		return false;
+	}
+	return true;
 }
 
 

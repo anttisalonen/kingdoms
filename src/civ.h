@@ -200,6 +200,40 @@ class civilization {
 		std::vector<int> relationships;
 };
 
+enum action_type {
+	action_give_up,
+	action_eot,
+	action_unit_action,
+	action_city_action,
+	action_none,
+};
+
+enum unit_action_type {
+	action_move_unit,
+	action_found_city,
+	action_skip,
+	action_fortify,
+};
+
+struct action {
+	action(action_type t);
+	action_type type;
+	union {
+		struct {
+			unit_action_type uatype;
+			unit* u;
+			union {
+				struct {
+					int chx;
+					int chy;
+				} move_pos;
+			} unit_action_data;
+		} unit_data;
+	} data;
+};
+
+action unit_action(unit_action_type t, unit* u);
+
 class round
 {
 	public:
@@ -207,14 +241,16 @@ class round
 				const advance_map& amap_, 
 				const city_improv_map& cimap_);
 		void add_civilization(civilization* civ);
-		bool next_civ();
+		bool perform_action(const action& a, map* m);
+		bool try_move_unit(unit* u, int chx, int chy, map* m);
+		const unit_configuration* get_unit_configuration(int uid) const;
 		std::vector<civilization*> civs;
 		std::vector<civilization*>::iterator current_civ;
-		const unit_configuration* get_unit_configuration(int uid) const;
 		const unit_configuration_map& uconfmap;
 		const advance_map& amap;
 		const city_improv_map& cimap;
 	private:
+		bool next_civ();
 		void refill_moves();
 		void increment_resources();
 };
