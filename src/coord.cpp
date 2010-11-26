@@ -26,4 +26,8 @@ bool coord::operator==(const coord& oth) const
 	return x == oth.x && y == oth.y;
 }
 
+bool coord::operator!=(const coord& oth) const
+{
+	return !(*this == oth);
+}
 

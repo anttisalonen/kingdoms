@@ -1,4 +1,5 @@
 #include "main_window.h"
+#include "map-astar.h"
 
 #include <boost/bind.hpp>
 #include <boost/lambda/lambda.hpp>
@@ -18,7 +19,9 @@ main_window::main_window(SDL_Surface* screen_, int x, int y, gui_data& data_, gu
 	current_unit(myciv_->units.end()),
 	blink_unit(false),
 	timer(0),
-	myciv(myciv_)
+	myciv(myciv_),
+	mouse_down_sqx(-1),
+	mouse_down_sqy(-1)
 {
 	cam.cam_x = cam.cam_y = 0;
 }
@@ -175,8 +178,8 @@ int main_window::draw_tile(const SDL_Surface* surf, int x, int y) const
 {
 	if(in_bounds(cam.cam_x, x, cam.cam_x + cam_total_tiles_x) &&
 	   in_bounds(cam.cam_y, y, cam.cam_y + cam_total_tiles_y)) {
-		return draw_image((x + sidebar_size - cam.cam_x) * tile_w,
-				(y - cam.cam_y) * tile_h,
+		return draw_image(tile_xcoord_to_pixel(x),
+				tile_ycoord_to_pixel(y),
 				surf, screen);
 	}
 	return 0;
@@ -185,6 +188,25 @@ int main_window::draw_tile(const SDL_Surface* surf, int x, int y) const
 int main_window::draw_city(const city& c) const
 {
 	return draw_tile(res.city_images[c.civ_id], c.xpos, c.ypos);
+}
+
+int main_window::tile_ycoord_to_pixel(int y) const
+{
+	return (y - cam.cam_y) * tile_h;
+}
+
+int main_window::tile_xcoord_to_pixel(int x) const
+{
+	return (x + sidebar_size - cam.cam_x) * tile_w;
+}
+
+int main_window::draw_line_by_sq(const coord& c1, const coord& c2, int r, int g, int b)
+{
+	coord start(tile_xcoord_to_pixel(c1.x) + tile_w / 2,
+			tile_ycoord_to_pixel(c1.y) + tile_h / 2);
+	coord end(tile_xcoord_to_pixel(c2.x) + tile_w / 2,
+			tile_ycoord_to_pixel(c2.y) + tile_h / 2);
+	return draw_line(screen, start.x, start.y, end.x, end.y, color(r, g, b));
 }
 
 int main_window::draw_unit(const unit& u)
@@ -233,6 +255,16 @@ int main_window::draw_main_map()
 					return 1;
 				}
 			}
+		}
+	}
+	if(!path_to_draw.empty()) {
+		std::list<coord>::const_iterator cit = path_to_draw.begin();
+		std::list<coord>::const_iterator cit2 = path_to_draw.begin();
+		cit2++;
+		while(cit2 != path_to_draw.end()) {
+			draw_line_by_sq(*cit, *cit2, 255, 255, 255);
+			cit++;
+			cit2++;
 		}
 	}
 	return 0;
@@ -464,8 +496,15 @@ void main_window::handle_input_gui_mod(const SDL_Event& ev, city** c)
 				}
 			}
 			break;
+		case SDL_MOUSEMOTION:
+			handle_mouse_motion(ev);
+			break;
 		case SDL_MOUSEBUTTONDOWN:
-			try_choose_with_mouse(ev, c);
+			handle_mouse_down(ev, c);
+			break;
+		case SDL_MOUSEBUTTONUP:
+			handle_mouse_up(ev);
+			break;
 		default:
 			break;
 	}
@@ -551,35 +590,80 @@ int main_window::handle_civ_messages(std::list<msg>* messages)
 	return 0;
 }
 
-int main_window::try_choose_with_mouse(const SDL_Event& ev, city** c)
+void main_window::mouse_coord_to_tiles(const SDL_Event& ev, int* sqx, int* sqy)
 {
-	int sq_x = (ev.button.x - sidebar_size * tile_w) / tile_w;
-	int sq_y = ev.button.y / tile_h;
-	if(sq_x >= 0) {
-		sq_x += cam.cam_x;
-		sq_y += cam.cam_y;
+	*sqx = (ev.button.x - sidebar_size * tile_w) / tile_w;
+	*sqy = ev.button.y / tile_h;
+	if(*sqx >= 0) {
+		*sqx += cam.cam_x;
+		*sqy += cam.cam_y;
+	}
+	else {
+		*sqx = -1;
+		*sqy = -1;
+	}
+}
 
-		// choose city
-		for(std::list<city*>::const_iterator it = myciv->cities.begin();
-				it != myciv->cities.end();
-				++it) {
-			if((*it)->xpos == sq_x && (*it)->ypos == sq_y) {
-				*c = *it;
-				break;
+int main_window::handle_mouse_motion(const SDL_Event& ev)
+{
+	if(current_unit == myciv->units.end())
+		return 0;
+	if(mouse_down_sqx >= 0) {
+		int curr_sqx, curr_sqy;
+		mouse_coord_to_tiles(ev, &curr_sqx, &curr_sqy);
+		coord curr(curr_sqx, curr_sqy);
+		if(curr_sqx != mouse_down_sqx || curr_sqy != mouse_down_sqy) {
+			if(path_to_draw.empty() || 
+					path_to_draw.back() != curr) {
+				path_to_draw = map_astar(data.m, **current_unit, 
+						coord((*current_unit)->xpos,
+							(*current_unit)->ypos),
+						curr);
 			}
 		}
+	}
+	else {
+		path_to_draw.clear();
+	}
+	return 0;
+}
 
-		// if no city chosen, choose unit
-		if(!*c) {
-			for(std::list<unit*>::iterator it = myciv->units.begin();
-					it != myciv->units.end();
-					++it) {
-				if((*it)->xpos == sq_x && (*it)->ypos == sq_y) {
-					(*it)->fortified = false;
-					if((*it)->moves > 0) {
-						current_unit = it;
-						blink_unit = false;
-					}
+int main_window::handle_mouse_up(const SDL_Event& ev)
+{
+	path_to_draw.clear();
+	return 0;
+}
+
+int main_window::handle_mouse_down(const SDL_Event& ev, city** c)
+{
+	mouse_coord_to_tiles(ev, &mouse_down_sqx, &mouse_down_sqy);
+	if(mouse_down_sqx >= 0)
+		try_choose_with_mouse(c);
+	return 0;
+}
+
+int main_window::try_choose_with_mouse(city** c)
+{
+	// choose city
+	for(std::list<city*>::const_iterator it = myciv->cities.begin();
+			it != myciv->cities.end();
+			++it) {
+		if((*it)->xpos == mouse_down_sqx && (*it)->ypos == mouse_down_sqy) {
+			*c = *it;
+			break;
+		}
+	}
+
+	// if no city chosen, choose unit
+	if(!*c) {
+		for(std::list<unit*>::iterator it = myciv->units.begin();
+				it != myciv->units.end();
+				++it) {
+			if((*it)->xpos == mouse_down_sqx && (*it)->ypos == mouse_down_sqy) {
+				(*it)->fortified = false;
+				if((*it)->moves > 0) {
+					current_unit = it;
+					blink_unit = false;
 				}
 			}
 		}

@@ -1,5 +1,7 @@
 #include "sdl-utils.h"
 
+#include <algorithm>
+
 void sdl_put_pixel(SDL_Surface* screen, int x, int y, const color& c)
 {
 	Uint32 color = SDL_MapRGB(screen->format, c.r, c.g, c.b);
@@ -128,5 +130,40 @@ int draw_text(SDL_Surface* screen, const TTF_Font* font, const char* str, int x,
 		SDL_FreeSurface(text);
 		return 0;
 	}
+}
+
+/* Bresenham's line algorithm */
+int draw_line(SDL_Surface* screen, int x0, int y0, int x1, int y1, const color& col)
+{
+	bool steep = abs(y1 - y0) > abs(x1 - x0);
+	if(steep) {
+		std::swap(x0, y0);
+		std::swap(x1, y1);
+	}
+	if(x0 > x1) {
+		std::swap(x0, x1);
+		std::swap(y0, y1);
+	}
+	int d_x = x1 - x0;
+	int d_y = abs(y1 - y0);
+	int error = d_x / 2;
+	int ystep;
+	int y = y0;
+	if(y0 < y1)
+		ystep = 1;
+	else
+		ystep = -1;
+	for(int x = x0; x <= x1; x++) {
+		if(steep)
+			sdl_put_pixel(screen, y, x, col);
+		else
+			sdl_put_pixel(screen, x, y, col);
+		error -= d_y;
+		if(error < 0) {
+			y += ystep;
+			error += d_x;
+		}
+	}
+	return 0;
 }
 

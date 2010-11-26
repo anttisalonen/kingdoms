@@ -27,5 +27,6 @@ color sdl_get_pixel(SDL_Surface* screen, int x, int y);
 void sdl_change_pixel_color(SDL_Surface* screen, const color& src, const color& dst);
 SDL_Surface* sdl_load_image(const char* filename);
 int draw_text(SDL_Surface* screen, const TTF_Font* font, const char* str, int x, int y, int r, int g, int b);
+int draw_line(SDL_Surface* screen, int start_x, int start_y, int end_x, int end_y, const color& col);
 
 #endif

@@ -8,6 +8,7 @@ struct coord {
 	int y;
 	bool operator<(const coord& oth) const;
 	bool operator==(const coord& oth) const;
+	bool operator!=(const coord& oth) const;
 };
 
 #endif

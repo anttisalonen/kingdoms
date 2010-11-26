@@ -48,7 +48,14 @@ class main_window {
 		void handle_input_gui_mod(const SDL_Event& ev, city** c);
 		void handle_successful_action(const action& a, city** c);
 		void update_view();
-		int try_choose_with_mouse(const SDL_Event& ev, city** c);
+		int handle_mouse_down(const SDL_Event& ev, city** c);
+		int handle_mouse_motion(const SDL_Event& ev);
+		int handle_mouse_up(const SDL_Event& ev);
+		int try_choose_with_mouse(city** c);
+		void mouse_coord_to_tiles(const SDL_Event& ev, int* sqx, int* sqy);
+		int draw_line_by_sq(const coord& c1, const coord& c2, int r, int g, int b);
+		int tile_xcoord_to_pixel(int x) const;
+		int tile_ycoord_to_pixel(int y) const;
 		SDL_Surface* screen;
 		const int screen_w;
 		const int screen_h;
@@ -64,6 +71,9 @@ class main_window {
 		bool blink_unit;
 		int timer;
 		civilization* myciv;
+		int mouse_down_sqx;
+		int mouse_down_sqy;
+		std::list<coord> path_to_draw;
 };
 
 
