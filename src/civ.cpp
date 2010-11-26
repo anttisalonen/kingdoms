@@ -36,6 +36,11 @@ void set_default_city_production(city* c, const unit_configuration_map& uconfmap
 	}
 }
 
+bool terrain_allowed(const map& m, const unit& u, int x, int y)
+{
+	return true;
+}
+
 bool can_move_to(const unit& u, int chx, int chy)
 {
 	return (chx || chy) && u.moves;
@@ -268,6 +273,16 @@ int map::get_spot_owner(int x, int y) const
 	return val->front()->civ_id;
 }
 
+int map::get_move_cost(const unit& u, int x, int y) const
+{
+	int t = get_data(x, y);
+	if(t == -1)
+		return -1;
+	if(t == 0)
+		return 1;
+	return -1;
+}
+
 const std::list<unit*>& map::units_on_spot(int x, int y) const
 {
 	const std::list<unit*>* us = unit_map.get(x, y);
@@ -295,12 +310,6 @@ void map::add_city(city* c, int x, int y)
 void map::remove_city(const city* c)
 {
 	city_map.set(c->xpos, c->ypos, NULL);
-}
-
-coord::coord(int x_, int y_)
-	: x(x_),
-	y(y_)
-{
 }
 
 city::city(const char* name, int x, int y, unsigned int civid)
@@ -602,6 +611,14 @@ action unit_action(unit_action_type t, unit* u)
 	return a;
 }
 
+action move_unit_action(unit* u, int chx, int chy)
+{
+	action a = unit_action(action_move_unit, u);
+	a.data.unit_data.unit_action_data.move_pos.chx = chx;
+	a.data.unit_data.unit_action_data.move_pos.chy = chy;
+	return a;
+}
+
 round::round(const unit_configuration_map& uconfmap_,
 		const advance_map& amap_,
 		const city_improv_map& cimap_)
@@ -732,7 +749,7 @@ bool round::try_move_unit(unit* u, int chx, int chy, map* m)
 					city* c = m->city_on_spot(tgtxpos, tgtypos);
 					int civid = defender->civ_id;
 					civilization* civ = civs[civid];
-					if(c && c->civ_id == civid) {
+					if(c && (int)c->civ_id == civid) {
 						civ->remove_city(c);
 					}
 					if(civ->cities.size() == 0) {

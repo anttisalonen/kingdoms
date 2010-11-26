@@ -8,6 +8,7 @@
 #include <set>
 #include <map>
 
+#include "coord.h"
 #include "color.h"
 #include "buf2d.h"
 
@@ -76,12 +77,6 @@ class unit
 		unsigned int strength;
 };
 
-struct coord {
-	coord(int x_, int y_);
-	int x;
-	int y;
-};
-
 class city {
 	public:
 		city(const char* name, int x, int y, unsigned int civid);
@@ -131,6 +126,7 @@ class map {
 		city* city_on_spot(int x, int y) const;
 		void add_city(city* c, int x, int y);
 		void remove_city(const city* c);
+		int get_move_cost(const unit& u, int x, int y) const;
 	private:
 		int get_index(int x, int y) const;
 		buf2d<int> data;
@@ -233,6 +229,7 @@ struct action {
 };
 
 action unit_action(unit_action_type t, unit* u);
+action move_unit_action(unit* u, int chx, int chy);
 
 class round
 {
@@ -262,6 +259,7 @@ void set_default_city_production(city* c,
 		const unit_configuration_map& uconfmap);
 void combat(unit* u1, unit* u2);
 bool can_attack(const unit& u1, const unit& u2);
+bool terrain_allowed(const map& m, const unit& u, int x, int y);
 
 #endif
 
