@@ -141,7 +141,6 @@ int run()
 					case SDL_KEYDOWN:
 					case SDL_MOUSEBUTTONDOWN:
 					case SDL_MOUSEBUTTONUP:
-					case SDL_MOUSEMOTION:
 						if(g.handle_input(event))
 							running = false;
 						break;

@@ -4,6 +4,6 @@
 #include <list>
 #include "civ.h"
 
-std::list<coord> map_astar(const map& m, const unit& u, const coord& start, const coord& goal);
+std::list<coord> map_astar(const map& m, const fog_of_war& fog, const unit& u, const coord& start, const coord& goal);
 
 #endif

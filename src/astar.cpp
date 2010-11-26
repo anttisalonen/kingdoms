@@ -4,11 +4,15 @@
 #include <set>
 #include <map>
 #include <utility>
+#include <stdio.h>
 
-bool comp_func(const std::pair<int, const coord&>& lhs, const std::pair<int, const coord&>& rhs)
-{
-	return lhs.first < rhs.first;
-}
+class comp_func {
+	public:
+		bool operator()(const std::pair<int, const coord&>& lhs, const std::pair<int, const coord&>& rhs)
+		{
+			return lhs.first > rhs.first;
+		}
+};
 
 std::list<coord> astar(graphfunc g, costfunc c, heurfunc h, 
 		goaltestfunc gtfunc, const coord& start)
@@ -19,12 +23,11 @@ std::list<coord> astar(graphfunc g, costfunc c, heurfunc h,
 	std::map<coord, int> cost_here; // real (g) cost
 	list<coord> path;
 	std::map<coord, coord> parents;
-	priority_queue<pair<int, coord> > open_nodes; // key is the total (f) cost
+	priority_queue<pair<int, coord>, vector<pair<int, coord> >, comp_func> open_nodes; // key is the total (f) cost
 
 	open_nodes.push(make_pair(0, start));
 	do {
 		// current node is the parent
-		pair<int, coord> top_node(open_nodes.top());
 		coord current(open_nodes.top().second);
 		open_nodes.pop();
 
@@ -33,7 +36,6 @@ std::list<coord> astar(graphfunc g, costfunc c, heurfunc h,
 		if(visited.find(current) != visited.end())
 			continue;
 
-		int cost_to_parent(open_nodes.top().first);
 		visited.insert(current);
 		set<coord> children = g(current);
 
@@ -49,8 +51,12 @@ std::list<coord> astar(graphfunc g, costfunc c, heurfunc h,
 			if(visited.find(*children_it) != visited.end())
 				continue;
 
-			int this_g_cost = cost_to_parent + c(current, *children_it);
-			int this_f_cost = this_g_cost + h(*children_it);
+			int edge_cost = c(current, *children_it);
+			if(edge_cost < 0) {
+				fprintf(stderr, "A* error: negative edge cost\n");
+				continue;
+			}
+			int this_g_cost = cost_here[current] + edge_cost;
 
 			// check if already in open list
 			bool add_this_as_parent = true;
@@ -62,6 +68,7 @@ std::list<coord> astar(graphfunc g, costfunc c, heurfunc h,
 					add_this_as_parent = false;
 			}
 			if(add_this_as_parent) {
+				int this_f_cost = this_g_cost + h(*children_it);
 				parents[*children_it] = current;
 				open_nodes.push(make_pair(this_f_cost, *children_it));
 				cost_here[*children_it] = this_g_cost;
@@ -70,14 +77,16 @@ std::list<coord> astar(graphfunc g, costfunc c, heurfunc h,
 	} while(!open_nodes.empty());
 	if(path.empty())
 		return path;
-	coord& curr_node = path.front();
+	coord curr_node = path.front();
+	path.pop_front();
 	while(1) {
 		std::map<coord, coord>::const_iterator par_it = parents.find(curr_node);
 		if(par_it == parents.end())
 			break;
-		path.push_front(par_it->second);
 		curr_node = par_it->second;
+		path.push_front(curr_node);
 	}
+	path.push_front(start);
 	return path;
 }
 

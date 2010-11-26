@@ -4,21 +4,23 @@
 #include "astar.h"
 #include "map-astar.h"
 
-void check_insert(std::set<coord>& s, const map& m, const unit& u, int x, int y)
+#include <stdio.h>
+void check_insert(std::set<coord>& s, const map& m, const fog_of_war& fog, const unit& u, int x, int y)
 {
 	if(x >= 0 && y >= 0 && x < m.size_x() && y < m.size_y()) {
-		if(terrain_allowed(m, u, x, y))
+		if(terrain_allowed(m, u, x, y) && fog.get_value(x, y)) {
 			s.insert(coord(x, y));
+		}
 	}
 }
 
-std::set<coord> map_graph(const map& m, const unit& u, const coord& a)
+std::set<coord> map_graph(const map& m, const fog_of_war& fog, const unit& u, const coord& a)
 {
 	std::set<coord> ret;
 	for(int i = -1; i <= 1; i++) {
 		for(int j = -1; j <= 1; j++) {
-			if(i && j) {
-				check_insert(ret, m, u, a.x + i, a.y + j);
+			if(i || j) {
+				check_insert(ret, m, fog, u, a.x + i, a.y + j);
 			}
 		}
 	}
@@ -40,15 +42,16 @@ bool map_goaltest(const coord& b, const coord& a)
 	return b == a;
 }
 
-std::list<coord> map_astar(const map& m, const unit& u, const coord& start, const coord& goal)
+std::list<coord> map_astar(const map& m, const fog_of_war& fog, const unit& u, const coord& start, const coord& goal)
 {
 	using boost::bind;
 	using boost::lambda::_1;
 	using boost::lambda::_2;
-	return astar(bind(map_graph, m, u, _1),
-			bind(map_cost, m, u, _1, _2),
-			bind(map_heur, goal, _1),
-			bind(map_goaltest, goal, _1), start);
+	using boost::ref;
+	return astar(bind(map_graph, ref(m), ref(fog), ref(u), _1),
+			bind(map_cost, ref(m), ref(u), _1, _2),
+			bind(map_heur, ref(goal), _1),
+			bind(map_goaltest, ref(goal), _1), start);
 }
 
 

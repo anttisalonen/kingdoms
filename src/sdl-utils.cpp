@@ -6,6 +6,8 @@ void sdl_put_pixel(SDL_Surface* screen, int x, int y, const color& c)
 {
 	Uint32 color = SDL_MapRGB(screen->format, c.r, c.g, c.b);
 
+	if(x < 0 || y < 0 || screen->w <= x || screen->h <= y)
+		return;
 	switch (screen->format->BytesPerPixel) {
 		case 1: { /* Assuming 8-bpp */
 				Uint8 *bufp;
@@ -110,7 +112,7 @@ SDL_Surface* sdl_load_image(const char* filename)
 	}
 }
 
-int draw_text(SDL_Surface* screen, const TTF_Font* font, const char* str, int x, int y, int r, int g, int b)
+int draw_text(SDL_Surface* screen, const TTF_Font* font, const char* str, int x, int y, Uint8 r, Uint8 g, Uint8 b)
 {
 	if(!str)
 		return 0;

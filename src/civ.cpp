@@ -38,7 +38,7 @@ void set_default_city_production(city* c, const unit_configuration_map& uconfmap
 
 bool terrain_allowed(const map& m, const unit& u, int x, int y)
 {
-	return true;
+	return m.get_move_cost(u, x, y) >= 0;
 }
 
 bool can_move_to(const unit& u, int chx, int chy)
@@ -279,8 +279,8 @@ int map::get_move_cost(const unit& u, int x, int y) const
 	if(t == -1)
 		return -1;
 	if(t == 0)
-		return 1;
-	return -1;
+		return -1;
+	return 1;
 }
 
 const std::list<unit*>& map::units_on_spot(int x, int y) const

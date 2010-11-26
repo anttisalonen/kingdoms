@@ -266,10 +266,7 @@ int main_window::draw_main_map()
 		std::list<coord>::const_iterator cit2 = path_to_draw.begin();
 		cit2++;
 		while(cit2 != path_to_draw.end()) {
-			if(tile_visible(cit->x, cit->y) &&
-			   tile_visible(cit2->x, cit2->y)) {
-				draw_line_by_sq(*cit, *cit2, 255, 255, 255);
-			}
+			draw_line_by_sq(*cit, *cit2, 255, 255, 255);
 			cit++;
 			cit2++;
 		}
@@ -353,8 +350,9 @@ int main_window::process(int ms)
 	else {
 		blink_unit = false;
 	}
-	if(blink_unit != old_blink_unit)
+	if(blink_unit != old_blink_unit) {
 		draw();
+	}
 	if(old_timer / 200 != timer / 200) {
 		int x, y;
 		SDL_GetMouseState(&x, &y);
@@ -371,6 +369,28 @@ int main_window::handle_mousemotion(int x, int y)
 			x > screen_w - border,
 			y < border,
 			y > screen_h - border);
+	check_line_drawing(x, y);
+	return 0;
+}
+
+int main_window::check_line_drawing(int x, int y)
+{
+	if(current_unit == myciv->units.end())
+		return 0;
+	if(mouse_down_sqx >= 0) {
+		int curr_sqx, curr_sqy;
+		mouse_coord_to_tiles(x, y, &curr_sqx, &curr_sqy);
+		coord curr(curr_sqx, curr_sqy);
+		if(curr_sqx != mouse_down_sqx || curr_sqy != mouse_down_sqy) {
+			if(path_to_draw.empty() || 
+					path_to_draw.back() != curr) {
+				path_to_draw = map_astar(data.m, myciv->fog, **current_unit, 
+						coord((*current_unit)->xpos,
+							(*current_unit)->ypos),
+						curr);
+			}
+		}
+	}
 	return 0;
 }
 
@@ -503,9 +523,6 @@ void main_window::handle_input_gui_mod(const SDL_Event& ev, city** c)
 				}
 			}
 			break;
-		case SDL_MOUSEMOTION:
-			handle_mouse_motion(ev);
-			break;
 		case SDL_MOUSEBUTTONDOWN:
 			handle_mouse_down(ev, c);
 			break;
@@ -597,10 +614,10 @@ int main_window::handle_civ_messages(std::list<msg>* messages)
 	return 0;
 }
 
-void main_window::mouse_coord_to_tiles(const SDL_Event& ev, int* sqx, int* sqy)
+void main_window::mouse_coord_to_tiles(int mx, int my, int* sqx, int* sqy)
 {
-	*sqx = (ev.button.x - sidebar_size * tile_w) / tile_w;
-	*sqy = ev.button.y / tile_h;
+	*sqx = (mx - sidebar_size * tile_w) / tile_w;
+	*sqy = my / tile_h;
 	if(*sqx >= 0) {
 		*sqx += cam.cam_x;
 		*sqy += cam.cam_y;
@@ -611,39 +628,17 @@ void main_window::mouse_coord_to_tiles(const SDL_Event& ev, int* sqx, int* sqy)
 	}
 }
 
-int main_window::handle_mouse_motion(const SDL_Event& ev)
-{
-	if(current_unit == myciv->units.end())
-		return 0;
-	if(mouse_down_sqx >= 0) {
-		int curr_sqx, curr_sqy;
-		mouse_coord_to_tiles(ev, &curr_sqx, &curr_sqy);
-		coord curr(curr_sqx, curr_sqy);
-		if(curr_sqx != mouse_down_sqx || curr_sqy != mouse_down_sqy) {
-			if(path_to_draw.empty() || 
-					path_to_draw.back() != curr) {
-				path_to_draw = map_astar(data.m, **current_unit, 
-						coord((*current_unit)->xpos,
-							(*current_unit)->ypos),
-						curr);
-			}
-		}
-	}
-	else {
-		path_to_draw.clear();
-	}
-	return 0;
-}
-
 int main_window::handle_mouse_up(const SDL_Event& ev)
 {
 	path_to_draw.clear();
+	mouse_down_sqx = mouse_down_sqy = -1;
 	return 0;
 }
 
 int main_window::handle_mouse_down(const SDL_Event& ev, city** c)
 {
-	mouse_coord_to_tiles(ev, &mouse_down_sqx, &mouse_down_sqy);
+	path_to_draw.clear();
+	mouse_coord_to_tiles(ev.button.x, ev.button.y, &mouse_down_sqx, &mouse_down_sqy);
 	if(mouse_down_sqx >= 0)
 		try_choose_with_mouse(c);
 	return 0;
