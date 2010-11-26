@@ -176,8 +176,7 @@ int main_window::draw_eot() const
 
 int main_window::draw_tile(const SDL_Surface* surf, int x, int y) const
 {
-	if(in_bounds(cam.cam_x, x, cam.cam_x + cam_total_tiles_x) &&
-	   in_bounds(cam.cam_y, y, cam.cam_y + cam_total_tiles_y)) {
+	if(tile_visible(x, y)) {
 		return draw_image(tile_xcoord_to_pixel(x),
 				tile_ycoord_to_pixel(y),
 				surf, screen);
@@ -200,6 +199,12 @@ int main_window::tile_xcoord_to_pixel(int x) const
 	return (x + sidebar_size - cam.cam_x) * tile_w;
 }
 
+int main_window::tile_visible(int x, int y) const
+{
+	return (in_bounds(cam.cam_x, x, cam.cam_x + cam_total_tiles_x) &&
+		in_bounds(cam.cam_y, y, cam.cam_y + cam_total_tiles_y));
+}
+
 int main_window::draw_line_by_sq(const coord& c1, const coord& c2, int r, int g, int b)
 {
 	coord start(tile_xcoord_to_pixel(c1.x) + tile_w / 2,
@@ -211,8 +216,7 @@ int main_window::draw_line_by_sq(const coord& c1, const coord& c2, int r, int g,
 
 int main_window::draw_unit(const unit& u)
 {
-	if(!(in_bounds(cam.cam_x, u.xpos, cam.cam_x + cam_total_tiles_x) &&
- 	     in_bounds(cam.cam_y, u.ypos, cam.cam_y + cam_total_tiles_y))) {
+	if(!tile_visible(u.xpos, u.ypos)) {
 		return 0;
 	}
 	SDL_Surface* surf = res.get_unit_tile(u, data.r.civs[u.civ_id]->col);
@@ -262,7 +266,10 @@ int main_window::draw_main_map()
 		std::list<coord>::const_iterator cit2 = path_to_draw.begin();
 		cit2++;
 		while(cit2 != path_to_draw.end()) {
-			draw_line_by_sq(*cit, *cit2, 255, 255, 255);
+			if(tile_visible(cit->x, cit->y) &&
+			   tile_visible(cit2->x, cit2->y)) {
+				draw_line_by_sq(*cit, *cit2, 255, 255, 255);
+			}
 			cit++;
 			cit2++;
 		}

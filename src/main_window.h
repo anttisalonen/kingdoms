@@ -56,6 +56,7 @@ class main_window {
 		int draw_line_by_sq(const coord& c1, const coord& c2, int r, int g, int b);
 		int tile_xcoord_to_pixel(int x) const;
 		int tile_ycoord_to_pixel(int y) const;
+		int tile_visible(int x, int y) const;
 		SDL_Surface* screen;
 		const int screen_w;
 		const int screen_h;
