@@ -400,10 +400,7 @@ action main_window::input_to_action(const SDL_Event& ev)
 						int chx, chy;
 						numpad_to_move(k, &chx, &chy);
 						if(chx || chy) {
-							action a = unit_action(action_move_unit, *current_unit);
-							a.data.unit_data.unit_action_data.move_pos.chx = chx;
-							a.data.unit_data.unit_action_data.move_pos.chy = chy;
-							return a;
+							return move_unit_action(*current_unit, chx, chy);
 						}
 					}
 				}
