@@ -104,7 +104,6 @@ int draw_terrain_tile(int x, int y, int xpos, int ypos, bool shade,
 				}
 			}
 		}
-		SDL_UpdateRect(screen, dest.x, dest.y, terrains.tile_w, terrains.tile_h);
 	}
 	return 0;
 }

@@ -58,11 +58,11 @@ int main_window::draw()
 		}
 	}
 	draw_sidebar();
+	clear_main_map();
+	draw_main_map();
 	if (SDL_MUSTLOCK(screen)) {
 		SDL_UnlockSurface(screen);
 	}
-	clear_main_map();
-	draw_main_map();
 	if(SDL_Flip(screen)) {
 		fprintf(stderr, "Unable to flip: %s\n", SDL_GetError());
 		return 1;
@@ -211,7 +211,8 @@ int main_window::draw_line_by_sq(const coord& c1, const coord& c2, int r, int g,
 			tile_ycoord_to_pixel(c1.y) + tile_h / 2);
 	coord end(tile_xcoord_to_pixel(c2.x) + tile_w / 2,
 			tile_ycoord_to_pixel(c2.y) + tile_h / 2);
-	return draw_line(screen, start.x, start.y, end.x, end.y, color(r, g, b));
+	draw_line(screen, start.x, start.y, end.x, end.y, color(r, g, b));
+	return 0;
 }
 
 int main_window::draw_unit(const unit& u)
@@ -388,6 +389,8 @@ int main_window::check_line_drawing(int x, int y)
 						coord((*current_unit)->xpos,
 							(*current_unit)->ypos),
 						curr);
+				mouse_down_sqx = curr_sqx;
+				mouse_down_sqy = curr_sqy;
 			}
 		}
 	}
@@ -536,7 +539,7 @@ void main_window::handle_input_gui_mod(const SDL_Event& ev, city** c)
 
 void main_window::update_view()
 {
-	blink_unit = false;
+	blink_unit = true;
 	draw();
 }
 

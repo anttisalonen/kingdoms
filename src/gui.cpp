@@ -11,7 +11,7 @@ gui::gui(int x, int y, map& mm, round& rr,
 		civilization* myciv_)
 	: screen_w(x),
 	screen_h(y),
-	screen(SDL_SetVideoMode(x, y, 32, SDL_SWSURFACE)),
+	screen(SDL_SetVideoMode(x, y, 32, SDL_HWSURFACE | SDL_DOUBLEBUF)),
 	data(gui_data(mm, rr)),
 	res(font_, 32, 32, sdl_load_image(food_icon_name), 
 			sdl_load_image(prod_icon_name), 
