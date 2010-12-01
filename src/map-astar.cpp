@@ -54,4 +54,15 @@ std::list<coord> map_astar(const map& m, const fog_of_war& fog, const unit& u, c
 			bind(map_goaltest, ref(goal), _1), start);
 }
 
+std::list<coord> map_path_to_nearest(const map& m, const fog_of_war& fog, const unit& u, const coord& start, boost::function<bool(const coord& a)> goaltestfunc)
+{
+	using boost::bind;
+	using boost::lambda::_1;
+	using boost::lambda::_2;
+	using boost::ref;
+	return astar(bind(map_graph, ref(m), ref(fog), ref(u), _1),
+			boost::lambda::constant(1),
+			boost::lambda::constant(0),
+			goaltestfunc, start);
+}
 
