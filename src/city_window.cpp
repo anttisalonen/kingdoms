@@ -70,8 +70,7 @@ int city_window::change_production()
 	for(unit_configuration_map::const_iterator it = data.r.uconfmap.begin();
 			it != data.r.uconfmap.end();
 			++it) {
-		if(myciv->researched_advances.find(it->second->needed_advance) == 
-				myciv->researched_advances.end() && it->second->needed_advance != 0)
+		if(!myciv->unit_discovered(*(it->second)))
 			continue;
 		SDL_Surface* button_surf = make_label(it->second->unit_name, 
 				&res.font, option_rect.w, option_rect.h, color(128, 128, 128), color(0, 0, 0));
@@ -83,8 +82,7 @@ int city_window::change_production()
 	for(city_improv_map::const_iterator it = data.r.cimap.begin();
 			it != data.r.cimap.end();
 			++it) {
-		if(myciv->researched_advances.find(it->second->needed_advance) == 
-				myciv->researched_advances.end() && it->second->needed_advance != 0)
+		if(!myciv->improv_discovered(*(it->second)))
 			continue;
 		if(c->built_improvements.find(it->first) != c->built_improvements.end())
 			continue;
@@ -100,15 +98,13 @@ int city_window::change_production()
 
 int city_window::choose_unit_production(const std::pair<int, unit_configuration*>& u)
 {
-	c->producing_unit = true;
-	c->production.current_production_unit_id = u.first;
+	c->set_unit_production(u.first);
 	return 1;
 }
 
 int city_window::choose_improv_production(const std::pair<unsigned int, city_improvement*>& i)
 {
-	c->producing_unit = false;
-	c->production.current_production_improv_id = i.first;
+	c->set_improv_production(i.first);
 	return 1;
 }
 

@@ -563,6 +563,9 @@ int main_window::handle_input(const SDL_Event& ev, city** c)
 		if(success) {
 			handle_successful_action(a, c);
 		}
+		else {
+			printf("Unable to perform action.\n");
+		}
 	}
 	else {
 		handle_input_gui_mod(ev, c);

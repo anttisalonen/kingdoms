@@ -94,6 +94,9 @@ class city {
 			int current_production_improv_id;
 		} production;
 		std::set<unsigned int> built_improvements;
+		bool producing_something() const;
+		void set_unit_production(int uid);
+		void set_improv_production(int uid);
 };
 
 class fog_of_war {
@@ -124,6 +127,7 @@ class map {
 		int get_spot_owner(int x, int y) const;
 		const std::list<unit*>& units_on_spot(int x, int y) const;
 		city* city_on_spot(int x, int y) const;
+		bool has_city_of(const coord& co, unsigned int civ_id) const;
 		void add_city(city* c, int x, int y);
 		void remove_city(const city* c);
 		int get_move_cost(const unit& u, int x, int y) const;
@@ -176,6 +180,8 @@ class civilization {
 		bool discover(unsigned int civid);
 		void undiscover(unsigned int civid);
 		std::vector<unsigned int> check_discoveries(int x, int y, int radius);
+		bool unit_discovered(const unit_configuration& uconf) const;
+		bool improv_discovered(const city_improvement& uconf) const;
 		void eliminate();
 		const char* civname;
 		const unsigned int civ_id;

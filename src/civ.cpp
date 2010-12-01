@@ -65,8 +65,12 @@ void combat(unit* u1, unit* u2)
 		u2->strength = 0;
 		return;
 	}
-	unsigned int u1chance = u1->strength ^ 2;
-	unsigned int u2chance = u2->strength ^ 2;
+	unsigned int s1 = u1->strength;
+	unsigned int s2 = u2->strength;
+	if(u2->fortified)
+		s2 *= 2;
+	unsigned int u1chance = s1 ^ 2;
+	unsigned int u2chance = s2 ^ 2;
 	unsigned int val = rand() % (u1chance + u2chance);
 	if(val < u1chance) {
 		u1->strength = u1->strength * (val + 1) / u1chance;
@@ -312,6 +316,15 @@ void map::remove_city(const city* c)
 	city_map.set(c->xpos, c->ypos, NULL);
 }
 
+bool map::has_city_of(const coord& co, unsigned int civ_id) const
+{
+	city* c = city_on_spot(co.x, co.y);
+	if(c)
+		return c->civ_id == civ_id;
+	else
+		return false;
+}
+
 city::city(const char* name, int x, int y, unsigned int civid)
 	: cityname(name),
 	xpos(x),
@@ -323,6 +336,26 @@ city::city(const char* name, int x, int y, unsigned int civid)
 	producing_unit(true)
 {
 	production.current_production_unit_id = -1;
+}
+
+bool city::producing_something() const
+{
+	if(producing_unit)
+		return production.current_production_unit_id != -1;
+	else
+		return production.current_production_improv_id != -1;
+}
+
+void city::set_unit_production(int uid)
+{
+	producing_unit = true;
+	production.current_production_unit_id = uid;
+}
+
+void city::set_improv_production(int ciid)
+{
+	producing_unit = false;
+	production.current_production_improv_id = ciid;
 }
 
 civilization::civilization(const char* name, unsigned int civid, 
@@ -598,6 +631,18 @@ std::vector<unsigned int> civilization::check_discoveries(int x, int y, int radi
 	return discs;
 }
 
+bool civilization::improv_discovered(const city_improvement& uconf) const
+{
+	return researched_advances.find(uconf.needed_advance) != researched_advances.end() || 
+			uconf.needed_advance == 0;
+}
+
+bool civilization::unit_discovered(const unit_configuration& uconf) const
+{
+	return researched_advances.find(uconf.needed_advance) != researched_advances.end() || 
+			uconf.needed_advance == 0;
+}
+
 action::action(action_type t)
 	: type(t)
 {
@@ -729,7 +774,8 @@ bool round::try_move_unit(unit* u, int chx, int chy, map* m)
 	int tgtypos = u->ypos + chy;
 
 	// attack square?
-	if(!m->free_spot((*current_civ)->civ_id, tgtxpos, tgtypos)) {
+	int def_id = m->get_spot_owner(tgtxpos, tgtypos);
+	if(def_id >= 0 && def_id != u->civ_id) {
 		const std::list<unit*>& units = m->units_on_spot(tgtxpos, tgtypos);
 		if(units.size() != 0) {
 			unit* defender = units.front();
@@ -737,28 +783,29 @@ bool round::try_move_unit(unit* u, int chx, int chy, map* m)
 				return false;
 			}
 			combat(u, defender);
+			u->moves--;
 			if(u->strength == 0) {
 				// lost combat
 				(*current_civ)->remove_unit(u);
 				return true;
 			}
 			else if(defender->strength == 0) {
-				(*civs[defender->civ_id]).remove_unit(defender);
-				if(m->units_on_spot(tgtxpos, tgtypos).size() == 0) {
-					// check if a city was conquered
-					city* c = m->city_on_spot(tgtxpos, tgtypos);
-					int civid = defender->civ_id;
-					civilization* civ = civs[civid];
-					if(c && (int)c->civ_id == civid) {
-						civ->remove_city(c);
-					}
-					if(civ->cities.size() == 0) {
-						int num_settlers = std::count_if(civ->units.begin(),
-								civ->units.end(),
-								boost::bind(&unit::is_settler, boost::lambda::_1));
-						if(num_settlers == 0) {
-							civ->eliminate();
-						}
+				// won combat
+				(*civs[def_id]).remove_unit(defender);
+			}
+		}
+		if(m->units_on_spot(tgtxpos, tgtypos).size() == 0) {
+			// check if a city was conquered
+			city* c = m->city_on_spot(tgtxpos, tgtypos);
+			if(c) {
+				civilization* civ = civs[def_id];
+				civ->remove_city(c);
+				if(civ->cities.size() == 0) {
+					int num_settlers = std::count_if(civ->units.begin(),
+							civ->units.end(),
+							boost::bind(&unit::is_settler, boost::lambda::_1));
+					if(num_settlers == 0) {
+						civ->eliminate();
 					}
 				}
 			}

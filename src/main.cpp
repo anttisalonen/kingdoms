@@ -154,7 +154,7 @@ int run()
 			g.process(50);
 		}
 		else {
-			if(egyptians.process())
+			if(egyptians.play())
 				running = false;
 			else
 				g.init_turn();
