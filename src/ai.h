@@ -77,11 +77,13 @@ struct ai_tunable_parameters {
 
 class ai {
 	typedef std::map<unit*, orders*> ordersmap_t;
+	typedef std::map<city*, city_production*> cityordersmap_t;
 	typedef std::priority_queue<std::pair<int, orders*> > ordersqueue_t;
 	public:
 		ai(map& m_, round& r_, civilization* c);
 		bool play();
 	private:
+		city_production* create_city_orders(city* c);
 		orders* create_orders(unit* u);
 		orders* found_new_city(unit* u);
 		orders* military_unit_orders(unit* u);
@@ -89,10 +91,15 @@ class ai {
 		city* find_nearest_own_city(const unit* u) const;
 		void get_defense_prio(ordersqueue_t& pq, unit* u);
 		void get_exploration_prio(ordersqueue_t& pq, unit* u);
+		void handle_new_advance(unsigned int adv_id);
+		void handle_civ_discovery(int civ_id);
+		void handle_new_unit(const msg& m);
+		void handle_new_improv(const msg& m);
 		map& m;
 		round& r;
 		civilization* myciv;
 		ordersmap_t ordersmap;
+		cityordersmap_t cityordersmap;
 		ai_tunable_parameters param;
 };
 

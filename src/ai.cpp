@@ -192,14 +192,57 @@ ai::ai(map& m_, round& r_, civilization* c)
 
 bool ai::play()
 {
+	// handle messages
+	while(!myciv->messages.empty())  {
+		msg& m = myciv->messages.front();
+		switch(m.type) {
+			case msg_new_unit:
+				handle_new_unit(m);
+				break;
+			case msg_civ_discovery:
+				handle_civ_discovery(m.msg_data.discovered_civ_id);
+				break;
+			case msg_new_advance:
+				handle_new_advance(m.msg_data.new_advance_id);
+				break;
+			case msg_new_city_improv:
+				handle_new_improv(m);
+				break;
+			default:
+				break;
+		}
+		myciv->messages.pop_front();
+	}
+
+	// assign orders to cities not producing anything
+	for(std::list<city*>::iterator it = myciv->cities.begin();
+			it != myciv->cities.end();
+			++it) {
+		if(!(*it)->producing_something()) {
+			cityordersmap[*it] = create_city_orders(*it);
+		}
+	}
+
+	// perform city orders
+	for(cityordersmap_t::iterator oit = cityordersmap.begin();
+			oit != cityordersmap.end();
+			++oit) {
+		oit->first->set_production(*oit->second);
+		delete oit->second;
+	}
+	cityordersmap.clear();
+
+	// assign orders to units
 	for(std::list<unit*>::iterator it = myciv->units.begin();
 			it != myciv->units.end();
 			++it) {
 		ordersmap_t::iterator oit = ordersmap.find(*it);
 		// check whether previous orders were given
 		if(oit == ordersmap.end())
-			oit = ordersmap.insert(std::make_pair(*it, create_orders(*it))).first;
+			ordersmap[*it] = create_orders(*it);
 	}
+
+	// perform unit orders
 	for(ordersmap_t::iterator oit = ordersmap.begin();
 			oit != ordersmap.end();
 			++oit) {
@@ -216,8 +259,27 @@ bool ai::play()
 			}
 		}
 	}
+
+	// send end of turn
 	int success = r.perform_action(myciv->civ_id, action(action_eot), &m);
 	return !success;
+}
+
+city_production* ai::create_city_orders(city* c)
+{
+	city_production* cp = new city_production();
+
+	cp->producing_unit = true;
+	// TODO: make intelligent
+	for(unit_configuration_map::const_iterator it = r.uconfmap.begin();
+			it != r.uconfmap.end();
+			++it) {
+		if(!it->second->settler) {
+			cp->current_production_id = it->first;
+			break;
+		}
+	}
+	return cp;
 }
 
 orders* ai::create_orders(unit* u)
@@ -331,5 +393,25 @@ city* ai::find_nearest_own_city(const unit* u) const
 		return m.city_on_spot(path_to_city.back().x,
 				path_to_city.back().y);
 	}
+}
+
+void ai::handle_new_advance(unsigned int adv_id)
+{
+}
+
+void ai::handle_civ_discovery(int civ_id)
+{
+}
+
+void ai::handle_new_improv(const msg& m)
+{
+	city* c = m.msg_data.city_prod_data.building_city;
+	cityordersmap[c] = create_city_orders(c);
+}
+
+void ai::handle_new_unit(const msg& m)
+{
+	city* c = m.msg_data.city_prod_data.building_city;
+	cityordersmap[c] = create_city_orders(c);
 }
 
