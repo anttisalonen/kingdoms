@@ -73,20 +73,23 @@ struct ai_tunable_parameters {
 	int exploration_min_prio;
 	int exploration_max_prio;
 	int exploration_length_decr_coeff;
+	int found_city_base_prio;
+	int unit_prodcost_prio_coeff;
 };
 
 class ai {
 	typedef std::map<unit*, orders*> ordersmap_t;
 	typedef std::map<city*, city_production*> cityordersmap_t;
-	typedef std::priority_queue<std::pair<int, orders*> > ordersqueue_t;
+	typedef std::pair<int, orders*> orderprio_t;
+	typedef std::priority_queue<orderprio_t> ordersqueue_t;
 	public:
 		ai(map& m_, round& r_, civilization* c);
 		bool play();
 	private:
 		city_production* create_city_orders(city* c);
-		orders* create_orders(unit* u);
-		orders* found_new_city(unit* u);
-		orders* military_unit_orders(unit* u);
+		orderprio_t create_orders(unit* u);
+		orderprio_t found_new_city(unit* u);
+		orderprio_t military_unit_orders(unit* u);
 		void find_best_city_pos(const unit* u, int* tgtx, int* tgty) const;
 		city* find_nearest_own_city(const unit* u) const;
 		void get_defense_prio(ordersqueue_t& pq, unit* u);

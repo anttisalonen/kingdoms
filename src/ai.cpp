@@ -179,7 +179,9 @@ ai_tunable_parameters::ai_tunable_parameters()
 	def_per_unit_prio(100),
 	exploration_min_prio(100),
 	exploration_max_prio(1000),
-	exploration_length_decr_coeff(10)
+	exploration_length_decr_coeff(10),
+	found_city_base_prio(1000),
+	unit_prodcost_prio_coeff(1)
 {
 }
 
@@ -238,8 +240,10 @@ bool ai::play()
 			++it) {
 		ordersmap_t::iterator oit = ordersmap.find(*it);
 		// check whether previous orders were given
-		if(oit == ordersmap.end())
-			ordersmap[*it] = create_orders(*it);
+		if(oit == ordersmap.end()) {
+			orderprio_t o = create_orders(*it);
+			ordersmap[*it] = o.second;
+		}
 	}
 
 	// perform unit orders
@@ -270,19 +274,26 @@ city_production* ai::create_city_orders(city* c)
 	city_production* cp = new city_production();
 
 	cp->producing_unit = true;
-	// TODO: make intelligent
+	std::priority_queue<std::pair<int, int> > unitpq;
 	for(unit_configuration_map::const_iterator it = r.uconfmap.begin();
 			it != r.uconfmap.end();
 			++it) {
-		if(!it->second->settler) {
-			cp->current_production_id = it->first;
-			break;
-		}
+		unit dummy(0, c->xpos, c->ypos, myciv->civ_id,
+				*it->second);
+		orderprio_t o = create_orders(&dummy);
+		unitpq.push(std::make_pair(o.first - param.unit_prodcost_prio_coeff * it->second->production_cost, 
+					it->first));
+	}
+	if(unitpq.empty()) {
+		cp->current_production_id = -1;
+	}
+	else {
+		cp->current_production_id = unitpq.top().second;
 	}
 	return cp;
 }
 
-orders* ai::create_orders(unit* u)
+ai::orderprio_t ai::create_orders(unit* u)
 {
 	if(u->uconf.settler) {
 		return found_new_city(u);
@@ -290,18 +301,18 @@ orders* ai::create_orders(unit* u)
 	return military_unit_orders(u);
 }
 
-orders* ai::military_unit_orders(unit* u)
+ai::orderprio_t ai::military_unit_orders(unit* u)
 {
 	ordersqueue_t ordersq;
 	get_exploration_prio(ordersq, u);
 	get_defense_prio(ordersq, u);
-	std::pair<int, orders*> best = ordersq.top();
+	orderprio_t best = ordersq.top();
 	ordersq.pop();
 	while(!ordersq.empty()) {
 		delete ordersq.top().second;
 		ordersq.pop();
 	}
-	return best.second;
+	return best;
 }
 
 void ai::get_exploration_prio(ordersqueue_t& pq, unit* u)
@@ -343,9 +354,10 @@ void ai::get_defense_prio(ordersqueue_t& pq, unit* u)
 	pq.push(std::make_pair(prio, o));
 }
 
-orders* ai::found_new_city(unit* u)
+ai::orderprio_t ai::found_new_city(unit* u)
 {
 	int tgtx, tgty;
+	int prio = param.found_city_base_prio;
 	if(myciv->cities.size() == 0) {
 		tgtx = u->xpos;
 		tgty = u->ypos;
@@ -356,7 +368,7 @@ orders* ai::found_new_city(unit* u)
 	orders_composite* o = new orders_composite();
 	o->add_orders(new goto_orders(m, myciv->fog, u, tgtx, tgty));
 	o->add_orders(new primitive_orders(unit_action(action_found_city, u)));
-	return o;
+	return std::make_pair(prio, o);
 }
 
 void ai::find_best_city_pos(const unit* u, int* tgtx, int* tgty) const
