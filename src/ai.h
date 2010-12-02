@@ -42,7 +42,7 @@ class goto_orders : public orders {
 		virtual void drop_action();
 		virtual bool finished();
 		int path_length();
-	private:
+	protected:
 		int tgtx;
 		int tgty;
 		const map& m;
@@ -51,19 +51,37 @@ class goto_orders : public orders {
 		std::list<coord> path;
 };
 
-class explore_orders : public orders {
+class explore_orders : public goto_orders {
 	public:
-		explore_orders(const map& m_, const fog_of_war& fog_, unit* u_);
+		explore_orders(const map& m_, const fog_of_war& fog_, unit* u_, 
+				bool autocontinue_);
+		void drop_action();
+	private:
+		void get_new_path();
+		bool autocontinue;
+};
+
+class wait_orders : public orders {
+	public:
+		wait_orders(unit* u_, unsigned int rounds);
 		action get_action();
 		void drop_action();
 		bool finished();
-		int path_length();
 	private:
-		void get_new_path();
-		const map& m;
-		const fog_of_war& fog;
 		unit* u;
-		std::list<coord> path;
+		unsigned int rounds_to_go;
+};
+
+class attack_orders : public goto_orders {
+	public:
+		attack_orders(const map& m_, const fog_of_war& fog_, unit* u_, int x_, int y_);
+		action get_action();
+		void drop_action();
+		bool finished();
+	private:
+		void check_for_enemies();
+		int att_x;
+		int att_y;
 };
 
 struct ai_tunable_parameters {
@@ -75,6 +93,8 @@ struct ai_tunable_parameters {
 	int exploration_length_decr_coeff;
 	int found_city_base_prio;
 	int unit_prodcost_prio_coeff;
+	int offense_dist_prio_coeff;
+	int max_offense_prio;
 };
 
 class ai {
@@ -91,8 +111,9 @@ class ai {
 		orderprio_t found_new_city(unit* u);
 		orderprio_t military_unit_orders(unit* u);
 		void find_best_city_pos(const unit* u, int* tgtx, int* tgty) const;
-		city* find_nearest_own_city(const unit* u) const;
+		city* find_nearest_city(const unit* u, bool own) const;
 		void get_defense_prio(ordersqueue_t& pq, unit* u);
+		void get_offense_prio(ordersqueue_t& pq, unit* u);
 		void get_exploration_prio(ordersqueue_t& pq, unit* u);
 		void handle_new_advance(unsigned int adv_id);
 		void handle_civ_discovery(int civ_id);
