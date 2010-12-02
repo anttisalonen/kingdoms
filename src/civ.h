@@ -98,6 +98,7 @@ class city {
 		bool producing_something() const;
 		void set_unit_production(int uid);
 		void set_improv_production(int uid);
+		void set_production(const city_production& c);
 };
 
 class fog_of_war {
@@ -151,13 +152,12 @@ enum msg_type {
 struct msg {
 	msg_type type;
 	union {
-		unit* new_unit;
-		int discovered_civ_id;
-		unsigned int new_advance_id;
 		struct {
 			city* building_city;
-			unsigned int improv_id;
-		} city_improv_data;
+			int prod_id;
+		} city_prod_data;
+		int discovered_civ_id;
+		unsigned int new_advance_id;
 	} msg_data;
 };
 

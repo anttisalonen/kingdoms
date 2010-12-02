@@ -355,6 +355,12 @@ void city::set_improv_production(int ciid)
 	production.current_production_id = ciid;
 }
 
+void city::set_production(const city_production& c)
+{
+	production.producing_unit = c.producing_unit;
+	production.current_production_id = c.current_production_id;
+}
+
 civilization::civilization(const char* name, unsigned int civid, 
 		const color& c_, map& m_, bool ai_)
 	: civname(name),
@@ -432,11 +438,12 @@ void civilization::add_message(const msg& m)
 	messages.push_back(m);
 }
 
-msg new_unit_msg(unit* u)
+msg new_unit_msg(unit* u, city* c)
 {
 	msg m;
 	m.type = msg_new_unit;
-	m.msg_data.new_unit = u;
+	m.msg_data.city_prod_data.building_city = c;
+	m.msg_data.city_prod_data.prod_id = u->unit_id;
 	return m;
 }
 
@@ -461,8 +468,8 @@ msg new_improv_msg(city* c, unsigned int ciid)
 {
 	msg m;
 	m.type = msg_new_city_improv;
-	m.msg_data.city_improv_data.building_city = c;
-	m.msg_data.city_improv_data.improv_id = ciid;
+	m.msg_data.city_prod_data.building_city = c;
+	m.msg_data.city_prod_data.prod_id = ciid;
 	return m;
 }
 
@@ -486,7 +493,7 @@ void civilization::increment_resources(const unit_configuration_map& uconfmap,
 						unit* u = add_unit((*cit)->production.current_production_id, 
 								(*cit)->xpos, (*cit)->ypos, *(prod_unit->second));
 						(*cit)->stored_prod -= prod_unit->second->production_cost;
-						add_message(new_unit_msg(u));
+						add_message(new_unit_msg(u, (*cit)));
 					}
 				}
 			}

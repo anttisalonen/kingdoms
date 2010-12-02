@@ -587,8 +587,13 @@ int main_window::handle_civ_messages(std::list<msg>* messages)
 		msg& m = messages->front();
 		switch(m.type) {
 			case msg_new_unit:
-				printf("New unit '%s' produced.\n",
-						m.msg_data.new_unit->uconf.unit_name);
+				{
+					unit_configuration_map::const_iterator it = data.r.uconfmap.find(m.msg_data.city_prod_data.prod_id);
+					if(it != data.r.uconfmap.end()) {
+						printf("New unit '%s' produced.\n",
+								it->second->unit_name);
+					}
+				}
 				break;
 			case msg_civ_discovery:
 				printf("Discovered civilization '%s'.\n",
@@ -609,6 +614,15 @@ int main_window::handle_civ_messages(std::list<msg>* messages)
 						myciv->research_goal_id = it->first;
 						printf("Now researching '%s'.\n",
 								it->second->advance_name);
+					}
+				}
+				break;
+			case msg_new_city_improv:
+				{
+					city_improv_map::const_iterator it = data.r.cimap.find(m.msg_data.city_prod_data.prod_id);
+					if(it != data.r.cimap.end()) {
+						printf("New improvement '%s' built.\n",
+								it->second->improv_name);
 					}
 				}
 				break;
