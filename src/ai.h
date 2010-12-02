@@ -1,6 +1,8 @@
 #ifndef AI_H
 #define AI_H
 
+#include <utility>
+#include <queue>
 #include "civ.h"
 
 class orders {
@@ -39,6 +41,7 @@ class goto_orders : public orders {
 		virtual action get_action();
 		virtual void drop_action();
 		virtual bool finished();
+		int path_length();
 	private:
 		int tgtx;
 		int tgty;
@@ -48,21 +51,49 @@ class goto_orders : public orders {
 		std::list<coord> path;
 };
 
+class explore_orders : public orders {
+	public:
+		explore_orders(const map& m_, const fog_of_war& fog_, unit* u_);
+		action get_action();
+		void drop_action();
+		bool finished();
+		int path_length();
+	private:
+		void get_new_path();
+		const map& m;
+		const fog_of_war& fog;
+		unit* u;
+		std::list<coord> path;
+};
+
+struct ai_tunable_parameters {
+	ai_tunable_parameters();
+	int def_wanted_units_in_city;
+	int def_per_unit_prio;
+	int exploration_min_prio;
+	int exploration_max_prio;
+	int exploration_length_decr_coeff;
+};
+
 class ai {
 	typedef std::map<unit*, orders*> ordersmap_t;
+	typedef std::priority_queue<std::pair<int, orders*> > ordersqueue_t;
 	public:
 		ai(map& m_, round& r_, civilization* c);
 		bool play();
 	private:
 		orders* create_orders(unit* u);
 		orders* found_new_city(unit* u);
+		orders* military_unit_orders(unit* u);
 		void find_best_city_pos(const unit* u, int* tgtx, int* tgty) const;
-		void find_nearest_own_city(const unit* u, int* tgtx, int* tgty) const;
-		orders* defend_nearest_city(unit* u);
+		city* find_nearest_own_city(const unit* u) const;
+		void get_defense_prio(ordersqueue_t& pq, unit* u);
+		void get_exploration_prio(ordersqueue_t& pq, unit* u);
 		map& m;
 		round& r;
 		civilization* myciv;
 		ordersmap_t ordersmap;
+		ai_tunable_parameters param;
 };
 
 #endif
