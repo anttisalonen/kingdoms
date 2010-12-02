@@ -25,12 +25,12 @@ void total_resources(const city& c, const map& m,
 
 void set_default_city_production(city* c, const unit_configuration_map& uconfmap)
 {
-	c->producing_unit = true;
+	c->production.producing_unit = true;
 	for(unit_configuration_map::const_iterator it = uconfmap.begin();
 			it != uconfmap.end();
 			++it) {
 		if(!it->second->settler) {
-			c->production.current_production_unit_id = it->first;
+			c->production.current_production_id = it->first;
 			return;
 		}
 	}
@@ -332,30 +332,27 @@ city::city(const char* name, int x, int y, unsigned int civid)
 	civ_id(civid),
 	population(1),
 	stored_food(0),
-	stored_prod(0),
-	producing_unit(true)
+	stored_prod(0)
 {
-	production.current_production_unit_id = -1;
+	production.producing_unit = true;
+	production.current_production_id = -1;
 }
 
 bool city::producing_something() const
 {
-	if(producing_unit)
-		return production.current_production_unit_id != -1;
-	else
-		return production.current_production_improv_id != -1;
+	return production.current_production_id != -1;
 }
 
 void city::set_unit_production(int uid)
 {
-	producing_unit = true;
-	production.current_production_unit_id = uid;
+	production.producing_unit = true;
+	production.current_production_id = uid;
 }
 
 void city::set_improv_production(int ciid)
 {
-	producing_unit = false;
-	production.current_production_improv_id = ciid;
+	production.producing_unit = false;
+	production.current_production_id = ciid;
 }
 
 civilization::civilization(const char* name, unsigned int civid, 
@@ -481,28 +478,30 @@ void civilization::increment_resources(const unit_configuration_map& uconfmap,
 		(*cit)->stored_food += food - (*cit)->population * 2;
 		total_commerce += comm;
 		(*cit)->stored_prod += prod;
-		if((*cit)->producing_unit && (*cit)->production.current_production_unit_id > -1) {
-			unit_configuration_map::const_iterator prod_unit = uconfmap.find((*cit)->production.current_production_unit_id);
-			if(prod_unit != uconfmap.end()) {
-				if((int)prod_unit->second->production_cost <= (*cit)->stored_prod) {
-					unit* u = add_unit((*cit)->production.current_production_unit_id, 
-							(*cit)->xpos, (*cit)->ypos, *(prod_unit->second));
-					(*cit)->stored_prod -= prod_unit->second->production_cost;
-					add_message(new_unit_msg(u));
+		if((*cit)->production.current_production_id > -1) {
+			if((*cit)->production.producing_unit) {
+				unit_configuration_map::const_iterator prod_unit = uconfmap.find((*cit)->production.current_production_id);
+				if(prod_unit != uconfmap.end()) {
+					if((int)prod_unit->second->production_cost <= (*cit)->stored_prod) {
+						unit* u = add_unit((*cit)->production.current_production_id, 
+								(*cit)->xpos, (*cit)->ypos, *(prod_unit->second));
+						(*cit)->stored_prod -= prod_unit->second->production_cost;
+						add_message(new_unit_msg(u));
+					}
 				}
 			}
-		}
-		else if((*cit)->production.current_production_improv_id > 0) {
-			city_improv_map::const_iterator prod_improv = cimap.find((*cit)->production.current_production_improv_id);
-			if(prod_improv != cimap.end()) {
-				if((int)prod_improv->second->cost <= (*cit)->stored_prod) {
-					if((*cit)->built_improvements.find(prod_improv->first) ==
-							(*cit)->built_improvements.end()) {
-						(*cit)->built_improvements.insert(prod_improv->first);
-						(*cit)->stored_prod -= prod_improv->second->cost;
+			else {
+				city_improv_map::const_iterator prod_improv = cimap.find((*cit)->production.current_production_id);
+				if(prod_improv != cimap.end()) {
+					if((int)prod_improv->second->cost <= (*cit)->stored_prod) {
+						if((*cit)->built_improvements.find(prod_improv->first) ==
+								(*cit)->built_improvements.end()) {
+							(*cit)->built_improvements.insert(prod_improv->first);
+							(*cit)->stored_prod -= prod_improv->second->cost;
+						}
+						add_message(new_improv_msg(*cit, prod_improv->first));
+						(*cit)->production.current_production_id = -1;
 					}
-					add_message(new_improv_msg(*cit, prod_improv->first));
-					(*cit)->production.current_production_improv_id = 0;
 				}
 			}
 		}

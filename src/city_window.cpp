@@ -204,15 +204,15 @@ int city_window::draw()
 	{
 		const char* prod_tgt = NULL;
 		int prod_cost = 0;
-		if(c->producing_unit) {
-			unit_configuration_map::const_iterator it = data.r.uconfmap.find(c->production.current_production_unit_id);
+		if(c->production.producing_unit) {
+			unit_configuration_map::const_iterator it = data.r.uconfmap.find(c->production.current_production_id);
 			if(it != data.r.uconfmap.end()) {
 				prod_tgt = it->second->unit_name;
 				prod_cost = it->second->production_cost;
 			}
 		}
 		else {
-			city_improv_map::const_iterator it = data.r.cimap.find(c->production.current_production_improv_id);
+			city_improv_map::const_iterator it = data.r.cimap.find(c->production.current_production_id);
 			if(it != data.r.cimap.end()) {
 				prod_tgt = it->second->improv_name;
 				prod_cost = it->second->cost;

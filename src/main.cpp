@@ -53,7 +53,7 @@ int run()
 	amap.insert(std::make_pair(2, &bronze_working));
 
 	city_improvement barracks;
-	barracks.improv_id = 1;
+	barracks.improv_id = 0;
 	barracks.improv_name = "Barracks";
 	barracks.cost = 30;
 	barracks.barracks = true;

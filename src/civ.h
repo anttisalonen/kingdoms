@@ -77,6 +77,11 @@ class unit
 		unsigned int strength;
 };
 
+struct city_production {
+	bool producing_unit;
+	int current_production_id;
+};
+
 class city {
 	public:
 		city(const char* name, int x, int y, unsigned int civid);
@@ -88,11 +93,7 @@ class city {
 		int population;
 		int stored_food;
 		int stored_prod;
-		bool producing_unit;
-		union {
-			int current_production_unit_id;
-			int current_production_improv_id;
-		} production;
+		city_production production;
 		std::set<unsigned int> built_improvements;
 		bool producing_something() const;
 		void set_unit_production(int uid);
