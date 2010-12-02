@@ -126,7 +126,8 @@ int run()
 	}
 
 	ai egyptians(m, r, civ2);
-	gui g(1024, 768, m, r, terrain_files, unit_files, "share/city.png", *font,
+	gui g(1024, 768, m, r, terrain_files, unit_files, "share/empty.png", 
+			"share/city.png", *font,
 			"share/food_icon.png",
 			"share/prod_icon.png",
 			"share/comm_icon.png",

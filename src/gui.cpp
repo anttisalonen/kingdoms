@@ -3,6 +3,7 @@
 gui::gui(int x, int y, map& mm, round& rr,
 	       	const std::vector<const char*>& terrain_files,
 		const std::vector<const char*>& unit_files,
+		const char* default_unit_file,
 		const char* city_file,
 		const TTF_Font& font_,
 		const char* food_icon_name,
@@ -28,9 +29,29 @@ gui::gui(int x, int y, map& mm, round& rr,
 	for(unsigned int i = 0; i < terrain_files.size(); i++) {
 		res.terrains.textures[i] = sdl_load_image(terrain_files[i]);
 	}
-	res.plain_unit_images.resize(unit_files.size());
+	res.plain_unit_images.resize(rr.uconfmap.size());
 	for(unsigned int i = 0; i < unit_files.size(); i++) {
 		res.plain_unit_images[i] = sdl_load_image(unit_files[i]);
+	}
+	if(unit_files.size() < rr.uconfmap.size()) {
+		if(default_unit_file) {
+			for(unsigned int i = unit_files.size(); i < rr.uconfmap.size(); i++) {
+				const unit_configuration* uconf = rr.get_unit_configuration(i);
+				if(uconf) {
+					fprintf(stderr, "Note: no graphics available for Unit %s - using the default.\n",
+							uconf->unit_name);
+					res.plain_unit_images[i] = sdl_load_image(default_unit_file);
+				}
+				else {
+					fprintf(stderr, "Warning: no unit configuration for ID %d.\n",
+							i);
+				}
+			}
+		}
+		else {
+			fprintf(stderr, "Warning: units with ID >= %d have no graphics, and no default image file is defined.\n",
+					unit_files.size());
+		}
 	}
 	res.city_images.resize(rr.civs.size());
 	for(unsigned int i = 0; i < rr.civs.size(); i++) {

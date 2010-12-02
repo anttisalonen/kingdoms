@@ -24,6 +24,7 @@ class gui
 		gui(int x, int y, map& mm, round& rr,
 				const std::vector<const char*>& terrain_files,
 				const std::vector<const char*>& unit_files,
+				const char* default_unit_file,
 				const char* cityfile,
 				const TTF_Font& font_,
 				const char* food_icon_name,
