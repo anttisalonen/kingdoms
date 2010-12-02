@@ -235,11 +235,11 @@ bool attack_orders::finished()
 }
 
 ai_tunable_parameters::ai_tunable_parameters()
-	: def_wanted_units_in_city(3),
-	def_per_unit_prio(100),
+	: max_defense_prio(1000),
+	defense_units_prio_coeff(400),
 	exploration_min_prio(100),
 	exploration_max_prio(1000),
-	exploration_length_decr_coeff(10),
+	exploration_length_decr_coeff(50),
 	found_city_base_prio(1000),
 	unit_prodcost_prio_coeff(1),
 	offense_dist_prio_coeff(50),
@@ -300,26 +300,42 @@ bool ai::play()
 	// lost units
 	{
 		ordersmap_t::iterator oit = ordersmap.begin();
-		for(std::list<unit*>::iterator it = myciv->units.begin();
-				it != myciv->units.end();
+
+		// copy the unit pointers for sorting - if the performace
+		// suffers too much, maybe rather use std::set<unit*> as a
+		// civ member variable instead
+		std::list<unit*> units(myciv->units.begin(), myciv->units.end());
+		units.sort();
+		for(std::list<unit*>::iterator it = units.begin();
+				it != units.end();
 				++it) {
 			while(oit != ordersmap.end() && *it > oit->first) {
 				// orders given for a unit that doesn't exist
 				// (anymore) - delete orders
 				delete oit->second;
-				ordersmap.erase(oit--);
+				ordersmap.erase(oit++);
 			}
 			if(oit != ordersmap.end() && *it == oit->first) {
 				// orders already given
-				++oit;
-				continue;
+				if(oit->second->finished()) {
+					delete oit->second;
+					ordersmap.erase(oit);
+				}
+				else {
+					++oit;
+					continue;
+				}
 			}
-			if(oit == ordersmap.end() || *it < oit->first) {
-				// no orders given
-				orderprio_t o = create_orders(*it);
-				oit = ordersmap.insert(std::make_pair(*it, o.second)).first;
-				++oit;
-			}
+			// no orders given
+			orderprio_t o = create_orders(*it);
+			oit = ordersmap.insert(std::make_pair(*it, o.second)).first;
+			++oit;
+		}
+		// delete orders of the units that don't exist anymore
+		// (address greater than the last element in the unit list)
+		while(oit != ordersmap.end()) {
+			delete oit->second;
+			ordersmap.erase(oit++);
 		}
 	}
 
@@ -334,10 +350,6 @@ bool ai::play()
 		}
 		else {
 			oit->second->drop_action();
-			if(oit->second->finished()) {
-				delete oit->second;
-				ordersmap.erase(oit--);
-			}
 		}
 	}
 
@@ -381,9 +393,11 @@ ai::orderprio_t ai::create_orders(unit* u)
 ai::orderprio_t ai::military_unit_orders(unit* u)
 {
 	ordersqueue_t ordersq;
+	printf("AI: ");
 	get_exploration_prio(ordersq, u);
 	get_defense_prio(ordersq, u);
 	get_offense_prio(ordersq, u);
+	printf("\n");
 	orderprio_t best = ordersq.top();
 	ordersq.pop();
 	while(!ordersq.empty()) {
@@ -407,6 +421,7 @@ void ai::get_exploration_prio(ordersqueue_t& pq, unit* u)
 				param.exploration_max_prio - 
 					e->path_length() * param.exploration_length_decr_coeff, 
 				param.exploration_max_prio);
+	printf("exploration: %d; ", prio);
 	pq.push(std::make_pair(prio, o));
 }
 
@@ -422,14 +437,15 @@ void ai::get_defense_prio(ordersqueue_t& pq, unit* u)
 			tgtx = c->xpos;
 			tgty = c->ypos;
 			const std::list<unit*>& units = m.units_on_spot(tgtx, tgty);
-			prio = std::max<int>(0, param.def_wanted_units_in_city - units.size()) * 
-				param.def_per_unit_prio;
+			prio = std::max<int>(0, param.max_defense_prio - 
+					param.defense_units_prio_coeff * units.size());
 		}
 	}
 	orders_composite* o = new orders_composite();
 	o->add_orders(new goto_orders(m, myciv->fog, u, tgtx, tgty));
 	o->add_orders(new primitive_orders(unit_action(action_fortify, u)));
 	o->add_orders(new wait_orders(u, 10)); // time not updating orders
+	printf("defense: %d; ", prio);
 	pq.push(std::make_pair(prio, o));
 }
 
@@ -439,7 +455,7 @@ void ai::get_offense_prio(ordersqueue_t& pq, unit* u)
 	int prio = -1;
 	tgtx = u->xpos;
 	tgty = u->ypos;
-	city* c = find_nearest_city(u, true);
+	city* c = find_nearest_city(u, false);
 	if(c) {
 		tgtx = c->xpos;
 		tgty = c->ypos;
@@ -448,6 +464,7 @@ void ai::get_offense_prio(ordersqueue_t& pq, unit* u)
 	}
 	orders_composite* o = new orders_composite();
 	o->add_orders(new attack_orders(m, myciv->fog, u, tgtx, tgty));
+	printf("offense: %d; ", prio);
 	pq.push(std::make_pair(prio, o));
 }
 

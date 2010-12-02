@@ -180,7 +180,15 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Unable to init SDL_ttf: %s\n", TTF_GetError());
 	}
 	SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
-	run();
+	try {
+		run();
+	}
+	catch (std::exception& e) {
+		printf("std::exception: %s\n", e.what());
+	}
+	catch(...) {
+		printf("Unknown exception.\n");
+	}
 
 	TTF_Quit();
 	SDL_Quit();

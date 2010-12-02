@@ -257,6 +257,8 @@ class round
 		void refill_moves();
 		void increment_resources();
 		bool try_move_unit(unit* u, int chx, int chy, map* m);
+		void check_city_conquer(map* m, int tgtxpos, int tgtypos);
+		void check_civ_elimination(int civ_id);
 		std::vector<civilization*>::iterator current_civ;
 };
 

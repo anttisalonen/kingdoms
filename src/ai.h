@@ -86,8 +86,8 @@ class attack_orders : public goto_orders {
 
 struct ai_tunable_parameters {
 	ai_tunable_parameters();
-	int def_wanted_units_in_city;
-	int def_per_unit_prio;
+	int max_defense_prio;
+	int defense_units_prio_coeff;
 	int exploration_min_prio;
 	int exploration_max_prio;
 	int exploration_length_decr_coeff;

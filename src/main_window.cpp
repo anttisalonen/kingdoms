@@ -576,10 +576,15 @@ int main_window::handle_input(const SDL_Event& ev, city** c)
 	return a.type == action_give_up;
 }
 
-bool not_in_set(const std::set<unsigned int>& u, const std::pair<unsigned int, advance*>& i)
-{
-	return u.find(i.first) == u.end();
-}
+class not_in_set {
+	private:
+		const std::set<unsigned int>& u;
+	public:
+		not_in_set(const std::set<unsigned int>& u_) : u(u_) { }
+		bool operator()(const std::pair<unsigned int, advance*>& i) {
+			return u.find(i.first) == u.end();
+		}
+};
 
 int main_window::handle_civ_messages(std::list<msg>* messages)
 {
@@ -609,7 +614,7 @@ int main_window::handle_civ_messages(std::list<msg>* messages)
 					}
 					it = std::find_if(data.r.amap.begin(),
 							data.r.amap.end(),
-							 boost::bind(not_in_set, myciv->researched_advances, boost::lambda::_1));
+							not_in_set(myciv->researched_advances));
 					if(it != data.r.amap.end()) {
 						myciv->research_goal_id = it->first;
 						printf("Now researching '%s'.\n",

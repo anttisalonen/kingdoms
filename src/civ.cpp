@@ -72,13 +72,17 @@ void combat(unit* u1, unit* u2)
 	unsigned int u1chance = s1 ^ 2;
 	unsigned int u2chance = s2 ^ 2;
 	unsigned int val = rand() % (u1chance + u2chance);
+	printf("Combat on (%d, %d) - ",
+			u2->xpos, u2->ypos);
 	if(val < u1chance) {
 		u1->strength = u1->strength * (val + 1) / u1chance;
 		u2->strength = 0;
+		printf("attacker won\n");
 	}
 	else {
 		u1->strength = 0;
 		u2->strength = u2->strength * (val + 1 - u1chance) / u2chance;
+		printf("defender won\n");
 	}
 }
 
@@ -774,6 +778,28 @@ bool round::perform_action(int civid, const action& a, map* m)
 	return true;
 }
 
+void round::check_city_conquer(map* m, int tgtxpos, int tgtypos)
+{
+	city* c = m->city_on_spot(tgtxpos, tgtypos);
+	if(c) {
+		civilization* civ = civs[c->civ_id];
+		civ->remove_city(c);
+	}
+}
+
+void round::check_civ_elimination(int civ_id)
+{
+	civilization* civ = civs[civ_id];
+	if(civ->cities.size() == 0) {
+		int num_settlers = std::count_if(civ->units.begin(),
+				civ->units.end(),
+				boost::bind(&unit::is_settler, boost::lambda::_1));
+		if(num_settlers == 0) {
+			civ->eliminate();
+		}
+	}
+}
+
 bool round::try_move_unit(unit* u, int chx, int chy, map* m)
 {
 	int tgtxpos = u->xpos + chx;
@@ -789,7 +815,6 @@ bool round::try_move_unit(unit* u, int chx, int chy, map* m)
 				return false;
 			}
 			combat(u, defender);
-			u->moves--;
 			if(u->strength == 0) {
 				// lost combat
 				(*current_civ)->remove_unit(u);
@@ -802,19 +827,8 @@ bool round::try_move_unit(unit* u, int chx, int chy, map* m)
 		}
 		if(m->units_on_spot(tgtxpos, tgtypos).size() == 0) {
 			// check if a city was conquered
-			city* c = m->city_on_spot(tgtxpos, tgtypos);
-			if(c) {
-				civilization* civ = civs[def_id];
-				civ->remove_city(c);
-				if(civ->cities.size() == 0) {
-					int num_settlers = std::count_if(civ->units.begin(),
-							civ->units.end(),
-							boost::bind(&unit::is_settler, boost::lambda::_1));
-					if(num_settlers == 0) {
-						civ->eliminate();
-					}
-				}
-			}
+			check_city_conquer(m, tgtxpos, tgtypos);
+			check_civ_elimination(def_id);
 		}
 	}
 
@@ -828,9 +842,15 @@ bool round::try_move_unit(unit* u, int chx, int chy, map* m)
 					++it) {
 				civs[*it]->discover((*current_civ)->civ_id);
 			}
+			if(def_id >= 0 && def_id != u->civ_id)
+				check_city_conquer(m, tgtxpos, tgtypos);
 			return true;
 		}
 		return false;
+	}
+	else {
+		// won combat - but no move
+		u->moves--;
 	}
 	return true;
 }
