@@ -6,6 +6,8 @@
 #include <utility>
 #include <stdio.h>
 
+// #define DEBUG_ASTAR
+
 class comp_func {
 	public:
 		bool operator()(const std::pair<int, const coord&>& lhs, const std::pair<int, const coord&>& rhs)
@@ -78,15 +80,23 @@ std::list<coord> astar(graphfunc g, costfunc c, heurfunc h,
 	if(path.empty())
 		return path;
 	coord curr_node = path.front();
-	path.pop_front();
 	while(1) {
 		std::map<coord, coord>::const_iterator par_it = parents.find(curr_node);
 		if(par_it == parents.end())
 			break;
 		curr_node = par_it->second;
-		path.push_front(curr_node);
+		path.push_back(curr_node);
 	}
-	path.push_front(start);
+	path.reverse();
+#ifdef DEBUG_ASTAR
+	printf("Found path: ");
+	for(std::list<coord>::const_iterator it = path.begin();
+			it != path.end();
+			++it) {
+		printf("(%d, %d) ", it->x, it->y);
+	}
+	printf("\n");
+#endif
 	return path;
 }
 
