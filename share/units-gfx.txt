@@ -1,2 +1,2 @@
-"Settlers"	"settlers.png"
-"Warrior"	"warrior.png"
+settlers.png
+warrior.png

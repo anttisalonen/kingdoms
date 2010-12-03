@@ -22,8 +22,8 @@ class gui
 {
 	public:
 		gui(int x, int y, map& mm, round& rr,
-				const std::vector<const char*>& terrain_files,
-				const std::vector<const char*>& unit_files,
+				const std::vector<std::string>& terrain_files,
+				const std::vector<std::string>& unit_files,
 				const char* default_unit_file,
 				const char* cityfile,
 				const TTF_Font& font_,

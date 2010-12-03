@@ -1,8 +1,8 @@
 #include "gui.h"
 
 gui::gui(int x, int y, map& mm, round& rr,
-	       	const std::vector<const char*>& terrain_files,
-		const std::vector<const char*>& unit_files,
+	       	const std::vector<std::string>& terrain_files,
+		const std::vector<std::string>& unit_files,
 		const char* default_unit_file,
 		const char* city_file,
 		const TTF_Font& font_,
@@ -27,11 +27,11 @@ gui::gui(int x, int y, map& mm, round& rr,
 	}
 	res.terrains.textures.resize(terrain_files.size());
 	for(unsigned int i = 0; i < terrain_files.size(); i++) {
-		res.terrains.textures[i] = sdl_load_image(terrain_files[i]);
+		res.terrains.textures[i] = sdl_load_image(terrain_files[i].c_str());
 	}
 	res.plain_unit_images.resize(rr.uconfmap.size());
 	for(unsigned int i = 0; i < unit_files.size(); i++) {
-		res.plain_unit_images[i] = sdl_load_image(unit_files[i]);
+		res.plain_unit_images[i] = sdl_load_image(unit_files[i].c_str());
 	}
 	if(unit_files.size() < rr.uconfmap.size()) {
 		if(default_unit_file) {

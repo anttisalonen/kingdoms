@@ -9,6 +9,8 @@
 #include <fstream>
 #include <sstream>
 
+#include <boost/algorithm/string.hpp>
+
 #include "color.h"
 #include "utils.h"
 #include "sdl-utils.h"
@@ -169,6 +171,24 @@ round* parse_configs(const std::string& confpath, const std::string& terrainfile
 	return r;
 }
 
+std::vector<std::string> get_file_list(const std::string& prefix, const std::string& filepath)
+{
+	using namespace std;
+	ifstream ifs(filepath.c_str(), ifstream::in);
+	int linenum = 0;
+	std::vector<std::string> results;
+	while(ifs.good()) {
+		linenum++;
+		string line;
+		getline(ifs, line);
+		boost::trim(line);
+		if(line.length())
+			results.push_back(line.insert(0, prefix));
+	}
+	ifs.close();
+	return results;
+}
+
 int run()
 {
 	const int map_x = 64;
@@ -197,12 +217,8 @@ int run()
 	r->add_civilization(civs[0]);
 	r->add_civilization(civs[1]);
 
-	std::vector<const char*> terrain_files;
-	std::vector<const char*> unit_files;
-	terrain_files.push_back("share/terrain1.png");
-	terrain_files.push_back("share/terrain2.png");
-	unit_files.push_back("share/settlers.png");
-	unit_files.push_back("share/warrior.png");
+	std::vector<std::string> terrain_files = get_file_list("share/", "share/terrain-gfx.txt");
+	std::vector<std::string> unit_files = get_file_list("share/", "share/units-gfx.txt");
 
 	bool running = true;
 
