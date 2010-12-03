@@ -78,6 +78,7 @@ class unit
 		bool fortified;
 		const unit_configuration& uconf;
 		unsigned int strength;
+		bool veteran;
 };
 
 struct city_production {
@@ -102,6 +103,7 @@ class city {
 		void set_unit_production(int uid);
 		void set_improv_production(int uid);
 		void set_production(const city_production& c);
+		bool has_barracks(const city_improv_map& cimap) const;
 };
 
 class fog_of_war {

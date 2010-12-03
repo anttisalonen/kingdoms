@@ -67,13 +67,18 @@ void combat(unit* u1, unit* u2)
 	}
 	unsigned int s1 = u1->strength;
 	unsigned int s2 = u2->strength;
+	if(u1->veteran)
+		s1 *= 1.5f;
+	if(u2->veteran)
+		s2 *= 1.5f;
 	if(u2->fortified)
 		s2 *= 2;
 	unsigned int u1chance = s1 ^ 2;
 	unsigned int u2chance = s2 ^ 2;
 	unsigned int val = rand() % (u1chance + u2chance);
-	printf("Combat on (%d, %d) - ",
-			u2->xpos, u2->ypos);
+	printf("Combat on (%d, %d) - chances: (%3.2f) - ",
+			u2->xpos, u2->ypos,
+			u1chance / ((float)u1chance + u2chance));
 	if(val < u1chance) {
 		u1->strength = u1->strength * (val + 1) / u1chance;
 		u2->strength = 0;
@@ -114,7 +119,8 @@ unit::unit(int uid, int x, int y, int civid, const unit_configuration& uconf_)
 	moves(0),
 	fortified(false),
 	uconf(uconf_),
-	strength(10 * uconf_.max_strength)
+	strength(10 * uconf_.max_strength),
+	veteran(false)
 {
 }
 
@@ -365,6 +371,20 @@ void city::set_production(const city_production& c)
 	production.current_production_id = c.current_production_id;
 }
 
+bool city::has_barracks(const city_improv_map& cimap) const
+{
+	for(std::set<unsigned int>::const_iterator it = built_improvements.begin();
+			it != built_improvements.end();
+			++it) {
+		city_improv_map::const_iterator cit = cimap.find(*it);
+		if(cit != cimap.end()) {
+			if(cit->second.barracks)
+				return true;
+		}
+	}
+	return false;
+}
+
 civilization::civilization(std::string name, unsigned int civid, 
 		const color& c_, map* m_, bool ai_)
 	: civname(name),
@@ -498,6 +518,8 @@ void civilization::increment_resources(const unit_configuration_map& uconfmap,
 					if((int)prod_unit->second.production_cost <= (*cit)->stored_prod) {
 						unit* u = add_unit((*cit)->production.current_production_id, 
 								(*cit)->xpos, (*cit)->ypos, prod_unit->second);
+						if((*cit)->has_barracks(cimap))
+							u->veteran = true;
 						(*cit)->stored_prod -= prod_unit->second.production_cost;
 						add_message(new_unit_msg(u, (*cit)));
 					}
