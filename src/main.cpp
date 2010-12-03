@@ -61,7 +61,7 @@ std::vector<std::vector<std::string> > parser(const std::string& filepath, unsig
 			else if(line[i] == '\\') {
 				escaping = true;
 			}
-			else if(!(line[i] == ' ' || line[i] == '\t')) {
+			else if(quoting || !(line[i] == ' ' || line[i] == '\t')) {
 				filling = true;
 				value += line[i];
 			}
@@ -195,6 +195,9 @@ int run()
 	const int map_y = 32;
 
 	resource_configuration resconf;
+	resconf.city_food_bonus = 1;
+	resconf.city_prod_bonus = 1;
+	resconf.city_comm_bonus = 1;
 
 	std::vector<civilization*> civs;
 	round* r = parse_configs("share/", "terrain.txt", "units.txt", "civs.txt",
