@@ -242,8 +242,8 @@ int window::handle_input(const SDL_Event& ev)
 				subwindows.erase(it--);
 			}
 		}
+		return 0;
 	}
-	return 0;
 }
 
 int window::process(int ms)
