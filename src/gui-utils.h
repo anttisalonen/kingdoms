@@ -54,6 +54,29 @@ class button {
 		boost::function<int()>onclick;
 };
 
+class window {
+	public:
+		window(SDL_Surface* screen_, int w, int h, gui_data& data_, gui_resources& res_);
+		virtual ~window() { } 
+		int draw();
+		int process(int ms);
+		void init_turn();
+		int handle_input(const SDL_Event& ev);
+		void add_subwindow(window* w);
+	protected:
+		virtual int handle_window_input(const SDL_Event& ev) = 0;
+		virtual int draw_window() = 0;
+		virtual int process_window(int ms) { return 0; }
+		virtual void init_window_turn() { }
+		SDL_Surface* screen;
+		const int screen_w;
+		const int screen_h;
+		gui_data& data;
+		gui_resources& res;
+	private:
+		std::list<window*> subwindows;
+};
+
 int draw_rect(int x, int y, int w, int h, const color& c, 
 		int border_width, SDL_Surface* screen);
 int draw_image(int x, int y, const SDL_Surface* tile, SDL_Surface* screen);

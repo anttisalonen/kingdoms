@@ -13,14 +13,14 @@ struct camera {
 	int cam_y;
 };
 
-class main_window {
+class main_window : public window {
 	public:
 		main_window(SDL_Surface* screen_, int x, int y, gui_data& data_, gui_resources& res_,
 				civilization* myciv_);
 		~main_window();
-		int draw();
+		int draw_window();
 		int process(int ms);
-		int handle_input(const SDL_Event& ev, city** c);
+		int handle_window_input(const SDL_Event& ev);
 		void init_turn();
 	private:
 		void get_next_free_unit();
@@ -57,11 +57,6 @@ class main_window {
 		int tile_xcoord_to_pixel(int x) const;
 		int tile_ycoord_to_pixel(int y) const;
 		int tile_visible(int x, int y) const;
-		SDL_Surface* screen;
-		const int screen_w;
-		const int screen_h;
-		gui_data& data;
-		gui_resources& res;
 		const int tile_w;
 		const int tile_h;
 		const int cam_total_tiles_x;

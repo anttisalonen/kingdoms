@@ -1,13 +1,10 @@
 #include "main_window.h"
 #include "map-astar.h"
+#include "city_window.h"
 
 main_window::main_window(SDL_Surface* screen_, int x, int y, gui_data& data_, gui_resources& res_,
 		civilization* myciv_)
-	: screen(screen_),
-	screen_w(x),
-	screen_h(y),
-	data(data_),
-	res(res_),
+	: window(screen_, x, y, data_, res_),
 	tile_w(32),
 	tile_h(32),
 	cam_total_tiles_x((screen_w + tile_w - 1) / tile_w),
@@ -47,7 +44,7 @@ void main_window::get_next_free_unit()
 	current_unit = myciv->units.end();
 }
 
-int main_window::draw()
+int main_window::draw_window()
 {
 	if (SDL_MUSTLOCK(screen)) {
 		if (SDL_LockSurface(screen) < 0) {
@@ -540,8 +537,9 @@ void main_window::update_view()
 	draw();
 }
 
-int main_window::handle_input(const SDL_Event& ev, city** c)
+int main_window::handle_window_input(const SDL_Event& ev)
 {
+	city* c = NULL;
 	action a = input_to_action(ev);
 	if(a.type != action_none) {
 		// save the iterator - performing an action may destroy
@@ -558,18 +556,22 @@ int main_window::handle_input(const SDL_Event& ev, city** c)
 			current_unit = myciv->units.begin();
 		}
 		if(success) {
-			handle_successful_action(a, c);
+			handle_successful_action(a, &c);
 		}
 		else {
 			printf("Unable to perform action.\n");
 		}
 	}
 	else {
-		handle_input_gui_mod(ev, c);
+		handle_input_gui_mod(ev, &c);
 	}
 	if(current_unit == myciv->units.end())
 		get_next_free_unit();
 	update_view();
+	if(c) {
+		add_subwindow(new city_window(screen, screen_w, screen_h, data, res, c,
+					myciv));
+	}
 	return a.type == action_give_up;
 }
 

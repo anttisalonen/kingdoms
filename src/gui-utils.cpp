@@ -202,4 +202,63 @@ int check_button_click(const std::list<button*>& buttons,
 	return 0;
 }
 
+window::window(SDL_Surface* screen_, int w, int h, gui_data& data_, gui_resources& res_)
+	: screen(screen_),
+	screen_w(w),
+	screen_h(h),
+	data(data_),
+	res(res_)
+{
+}
+
+void window::add_subwindow(window* w)
+{
+	subwindows.push_back(w);
+}
+
+int window::draw()
+{
+	if(subwindows.empty()) {
+		return draw_window();
+	}
+	else {
+		std::for_each(subwindows.begin(), subwindows.end(), std::mem_fun(&window::draw));
+		return 0;
+	}
+}
+
+int window::handle_input(const SDL_Event& ev)
+{
+	if(subwindows.empty()) {
+		return handle_window_input(ev);
+	}
+	else {
+		for(std::list<window*>::iterator it = subwindows.begin();
+				it != subwindows.end();
+				++it) {
+			int p = (*it)->handle_input(ev);
+			if(p) {
+				delete *it;
+				subwindows.erase(it--);
+			}
+		}
+	}
+	return 0;
+}
+
+int window::process(int ms)
+{
+	int ret = process_window(ms);
+	if(ret)
+		return ret;
+	std::for_each(subwindows.begin(), subwindows.end(), 
+			std::bind2nd(std::mem_fun(&window::process), ms));
+	return 0;
+}
+
+void window::init_turn()
+{
+	init_window_turn();
+	std::for_each(subwindows.begin(), subwindows.end(), std::mem_fun(&window::init_turn));
+}
 

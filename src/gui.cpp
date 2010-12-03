@@ -18,7 +18,6 @@ gui::gui(int x, int y, map& mm, round& rr,
 			sdl_load_image(prod_icon_name), 
 			sdl_load_image(curr_icon_name)),
 	mw(screen, x, y, data, res, myciv_),
-	cw(NULL),
 	myciv(myciv_)
 {
 	if (!screen) {
@@ -81,41 +80,18 @@ gui::~gui()
 int gui::display()
 {
 	mw.draw();
-	if(cw)
-		cw->draw();
 	return 0;
 }
 
 int gui::handle_input(const SDL_Event& ev)
 {
-	if(cw) {
-		int ret = cw->handle_input(ev);
-		if(ret) {
-			delete cw;
-			cw = NULL;
-			mw.draw();
-		}
-		return 0;
-	}
-	else {
-		mw.draw();
-		city* nc = NULL;
-		int ret;
-		ret = mw.handle_input(ev, &nc);
-		if(!ret && nc) {
-			cw = new city_window(screen, screen_w, screen_h, data, res, nc,
-					myciv);
-		}
-		return ret;
-	}
+	mw.draw();
+	return mw.handle_input(ev);
 }
 
 int gui::process(int ms)
 {
-	if(!cw)
-		return mw.process(ms);
-	else
-		return cw->draw();
+	return mw.process(ms);
 }
 
 void gui::init_turn()

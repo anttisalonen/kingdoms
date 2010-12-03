@@ -4,11 +4,7 @@
 
 city_window::city_window(SDL_Surface* screen_, int x, int y, gui_data& data_, gui_resources& res_, city* c_,
 		civilization* myciv_)
-	: screen(screen_),
-	screen_w(x),
-	screen_h(y),
-	data(data_),
-	res(res_),
+	: window(screen_, x, y, data_, res_),
 	c(c_),
 	myciv(myciv_)
 {
@@ -174,7 +170,7 @@ int city_window::draw_city_resources_screen(int xpos, int ypos)
 	return 0;
 }
 
-int city_window::draw()
+int city_window::draw_window()
 {
 	SDL_Rect rect;
 	rect.x = screen_w * 0.05f;
@@ -252,7 +248,7 @@ int city_window::handle_production_input(const SDL_Event& ev)
 	return 0;
 }
 
-int city_window::handle_input(const SDL_Event& ev)
+int city_window::handle_window_input(const SDL_Event& ev)
 {
 	if(change_prod_buttons.size() == 0) {
 		switch(ev.type) {
