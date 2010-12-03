@@ -1,0 +1,4 @@
+# Terrain name - food - production - commerce - type
+Sea		1 0 2 0
+Grassland	2 0 1 1
+

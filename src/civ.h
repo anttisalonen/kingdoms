@@ -4,6 +4,7 @@
 #include <stdlib.h>
 
 #include <vector>
+#include <string>
 #include <list>
 #include <set>
 #include <map>
@@ -14,7 +15,7 @@
 
 class unit_configuration {
 	public:
-		const char* unit_name;
+		std::string unit_name;
 		unsigned int max_moves;
 		bool settler;
 		unsigned int production_cost;
@@ -22,16 +23,18 @@ class unit_configuration {
 		unsigned int needed_advance;
 };
 
-typedef std::map<int, unit_configuration*> unit_configuration_map;
+typedef std::map<int, unit_configuration> unit_configuration_map;
 
 const int num_terrain_types = 16;
 
 class resource_configuration {
 	public:
 		resource_configuration();
+		std::string resource_name[num_terrain_types];
 		int terrain_food_values[num_terrain_types];
 		int terrain_prod_values[num_terrain_types];
 		int terrain_comm_values[num_terrain_types];
+		int terrain_type[num_terrain_types];
 		int city_food_bonus;
 		int city_prod_bonus;
 		int city_comm_bonus;
@@ -41,24 +44,24 @@ class advance {
 	public:
 		advance();
 		unsigned int advance_id;
-		const char* advance_name;
+		std::string advance_name;
 		int cost;
 		unsigned int needed_advances[4];
 };
 
-typedef std::map<unsigned int, advance*> advance_map;
+typedef std::map<unsigned int, advance> advance_map;
 
 class city_improvement {
 	public:
 		city_improvement();
 		unsigned int improv_id;
-		const char* improv_name;
+		std::string improv_name;
 		int cost;
 		bool barracks;
 		unsigned int needed_advance;
 };
 
-typedef std::map<unsigned int, city_improvement*> city_improv_map;
+typedef std::map<unsigned int, city_improvement> city_improv_map;
 
 class unit
 {
@@ -84,8 +87,8 @@ struct city_production {
 
 class city {
 	public:
-		city(const char* name, int x, int y, unsigned int civid);
-		const char* cityname;
+		city(std::string name, int x, int y, unsigned int civid);
+		std::string cityname;
 		const int xpos;
 		const int ypos;
 		unsigned int civ_id;
@@ -163,7 +166,7 @@ struct msg {
 
 class civilization {
 	public:
-		civilization(const char* name, unsigned int civid, const color& c_, map& m_, bool ai_);
+		civilization(std::string name, unsigned int civid, const color& c_, map* m_, bool ai_);
 		~civilization();
 		unit* add_unit(int uid, int x, int y, const unit_configuration& uconf);
 		void remove_unit(unit* u);
@@ -173,7 +176,7 @@ class civilization {
 				const advance_map& amap,
 				const city_improv_map& cimap);
 		char fog_at(int x, int y) const;
-		city* add_city(const char* name, int x, int y);
+		city* add_city(std::string name, int x, int y);
 		void remove_city(city* c);
 		void add_message(const msg& m);
 		int get_relationship_to_civ(unsigned int civid) const;
@@ -184,12 +187,13 @@ class civilization {
 		bool unit_discovered(const unit_configuration& uconf) const;
 		bool improv_discovered(const city_improvement& uconf) const;
 		void eliminate();
-		const char* civname;
+		void set_map(map* m_);
+		std::string civname;
 		const unsigned int civ_id;
 		color col;
 		std::list<unit*> units;
 		std::list<city*> cities;
-		map& m;
+		map* m;
 		fog_of_war fog;
 		int gold;
 		int science;
@@ -249,9 +253,9 @@ class round
 		const unit_configuration* get_unit_configuration(int uid) const;
 		int current_civ_id() const;
 		std::vector<civilization*> civs;
-		const unit_configuration_map& uconfmap;
-		const advance_map& amap;
-		const city_improv_map& cimap;
+		const unit_configuration_map uconfmap;
+		const advance_map amap;
+		const city_improv_map cimap;
 	private:
 		bool next_civ();
 		void refill_moves();

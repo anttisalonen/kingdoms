@@ -1,0 +1,3 @@
+# civ name - color (r, g, b)
+Babylonians	255 0 0
+Egyptians	255 255 0

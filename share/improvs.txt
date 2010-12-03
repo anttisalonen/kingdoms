@@ -1,0 +1,4 @@
+# name - cost - needed advance - flags
+# flags: barracks
+"Barracks"	30	1	1
+

@@ -30,8 +30,8 @@ class city_window {
 		int on_exit();
 		int on_unit(unit* u);
 		int draw_city_resources_screen(int xpos, int ypos);
-		int choose_unit_production(const std::pair<int, unit_configuration*>& u);
-		int choose_improv_production(const std::pair<unsigned int, city_improvement*>& i);
+		int choose_unit_production(const std::pair<int, unit_configuration>& u);
+		int choose_improv_production(const std::pair<unsigned int, city_improvement>& i);
 		SDL_Surface* screen;
 		const int screen_w;
 		const int screen_h;

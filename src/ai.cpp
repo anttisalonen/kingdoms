@@ -368,9 +368,9 @@ city_production* ai::create_city_orders(city* c)
 			it != r.uconfmap.end();
 			++it) {
 		unit dummy(0, c->xpos, c->ypos, myciv->civ_id,
-				*it->second);
+				it->second);
 		orderprio_t o = create_orders(&dummy);
-		unitpq.push(std::make_pair(o.first - param.unit_prodcost_prio_coeff * it->second->production_cost, 
+		unitpq.push(std::make_pair(o.first - param.unit_prodcost_prio_coeff * it->second.production_cost, 
 					it->first));
 	}
 	if(unitpq.empty()) {

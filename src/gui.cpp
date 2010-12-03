@@ -39,7 +39,7 @@ gui::gui(int x, int y, map& mm, round& rr,
 				const unit_configuration* uconf = rr.get_unit_configuration(i);
 				if(uconf) {
 					fprintf(stderr, "Note: no graphics available for Unit %s - using the default.\n",
-							uconf->unit_name);
+							uconf->unit_name.c_str());
 					res.plain_unit_images[i] = sdl_load_image(default_unit_file);
 				}
 				else {
@@ -67,6 +67,15 @@ gui::~gui()
 	for(unsigned int i = 0; i < res.terrains.textures.size(); i++) {
 		SDL_FreeSurface(res.terrains.textures[i]);
 	}
+	for(unsigned int i = 0; i < res.city_images.size(); i++) {
+		SDL_FreeSurface(res.city_images[i]);
+	}
+	for(unsigned int i = 0; i < res.plain_unit_images.size(); i++) {
+		SDL_FreeSurface(res.plain_unit_images[i]);
+	}
+	SDL_FreeSurface(res.food_icon);
+	SDL_FreeSurface(res.prod_icon);
+	SDL_FreeSurface(res.comm_icon);
 }
 
 int gui::display()

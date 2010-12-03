@@ -1,9 +1,6 @@
 #include "main_window.h"
 #include "map-astar.h"
 
-#include <boost/bind.hpp>
-#include <boost/lambda/lambda.hpp>
-
 main_window::main_window(SDL_Surface* screen_, int x, int y, gui_data& data_, gui_resources& res_,
 		civilization* myciv_)
 	: screen(screen_),
@@ -127,7 +124,7 @@ int main_window::draw_minimap() const
 
 int main_window::draw_civ_info() const
 {
-	draw_text(screen, &res.font, myciv->civname, 10, sidebar_size * tile_h / 2 + 40, 255, 255, 255);
+	draw_text(screen, &res.font, myciv->civname.c_str(), 10, sidebar_size * tile_h / 2 + 40, 255, 255, 255);
 	char buf[256];
 	buf[255] = '\0';
 	snprintf(buf, 255, "Gold: %d", myciv->gold);
@@ -148,7 +145,7 @@ int main_window::draw_unit_info() const
 	const unit_configuration* uconf = data.r.get_unit_configuration((*current_unit)->unit_id);
 	if(!uconf)
 		return 1;
-	draw_text(screen, &res.font, uconf->unit_name, 10, sidebar_size * tile_h / 2 + 100, 255, 255, 255);
+	draw_text(screen, &res.font, uconf->unit_name.c_str(), 10, sidebar_size * tile_h / 2 + 100, 255, 255, 255);
 	char buf[256];
 	buf[255] = '\0';
 	snprintf(buf, 255, "Moves: %-2d/%2d", (*current_unit)->moves, uconf->max_moves);
@@ -581,7 +578,7 @@ class not_in_set {
 		const std::set<unsigned int>& u;
 	public:
 		not_in_set(const std::set<unsigned int>& u_) : u(u_) { }
-		bool operator()(const std::pair<unsigned int, advance*>& i) {
+		bool operator()(const std::pair<unsigned int, advance>& i) {
 			return u.find(i.first) == u.end();
 		}
 };
@@ -596,13 +593,13 @@ int main_window::handle_civ_messages(std::list<msg>* messages)
 					unit_configuration_map::const_iterator it = data.r.uconfmap.find(m.msg_data.city_prod_data.prod_id);
 					if(it != data.r.uconfmap.end()) {
 						printf("New unit '%s' produced.\n",
-								it->second->unit_name);
+								it->second.unit_name.c_str());
 					}
 				}
 				break;
 			case msg_civ_discovery:
 				printf("Discovered civilization '%s'.\n",
-						data.r.civs[m.msg_data.discovered_civ_id]->civname);
+						data.r.civs[m.msg_data.discovered_civ_id]->civname.c_str());
 				break;
 			case msg_new_advance:
 				{
@@ -610,7 +607,7 @@ int main_window::handle_civ_messages(std::list<msg>* messages)
 					advance_map::const_iterator it = data.r.amap.find(adv_id);
 					if(it != data.r.amap.end()) {
 						printf("Discovered advance '%s'.\n",
-								it->second->advance_name);
+								it->second.advance_name.c_str());
 					}
 					it = std::find_if(data.r.amap.begin(),
 							data.r.amap.end(),
@@ -618,7 +615,7 @@ int main_window::handle_civ_messages(std::list<msg>* messages)
 					if(it != data.r.amap.end()) {
 						myciv->research_goal_id = it->first;
 						printf("Now researching '%s'.\n",
-								it->second->advance_name);
+								it->second.advance_name.c_str());
 					}
 				}
 				break;
@@ -627,7 +624,7 @@ int main_window::handle_civ_messages(std::list<msg>* messages)
 					city_improv_map::const_iterator it = data.r.cimap.find(m.msg_data.city_prod_data.prod_id);
 					if(it != data.r.cimap.end()) {
 						printf("New improvement '%s' built.\n",
-								it->second->improv_name);
+								it->second.improv_name.c_str());
 					}
 				}
 				break;

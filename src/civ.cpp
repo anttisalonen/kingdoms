@@ -29,7 +29,7 @@ void set_default_city_production(city* c, const unit_configuration_map& uconfmap
 	for(unit_configuration_map::const_iterator it = uconfmap.begin();
 			it != uconfmap.end();
 			++it) {
-		if(!it->second->settler) {
+		if(!it->second.settler) {
 			c->production.current_production_id = it->first;
 			return;
 		}
@@ -329,7 +329,7 @@ bool map::has_city_of(const coord& co, unsigned int civ_id) const
 		return false;
 }
 
-city::city(const char* name, int x, int y, unsigned int civid)
+city::city(std::string name, int x, int y, unsigned int civid)
 	: cityname(name),
 	xpos(x),
 	ypos(y),
@@ -365,13 +365,13 @@ void city::set_production(const city_production& c)
 	production.current_production_id = c.current_production_id;
 }
 
-civilization::civilization(const char* name, unsigned int civid, 
-		const color& c_, map& m_, bool ai_)
+civilization::civilization(std::string name, unsigned int civid, 
+		const color& c_, map* m_, bool ai_)
 	: civname(name),
 	civ_id(civid),
 	col(c_),
 	m(m_),
-	fog(fog_of_war(m_.size_x(), m_.size_y())),
+	fog(fog_of_war(0, 0)),
 	gold(0),
 	science(0),
 	alloc_gold(5),
@@ -381,6 +381,8 @@ civilization::civilization(const char* name, unsigned int civid,
 	relationships(civid + 1, 0)
 {
 	relationships[civid] = 1;
+	if(m)
+		fog = fog_of_war(m->size_x(), m->size_y());
 }
 
 civilization::~civilization()
@@ -399,7 +401,7 @@ unit* civilization::add_unit(int uid, int x, int y, const unit_configuration& uc
 {
 	unit* u = new unit(uid, x, y, civ_id, uconf);
 	units.push_back(u);
-	m.add_unit(u);
+	m->add_unit(u);
 	fog.reveal(x, y, 1);
 	return u;
 }
@@ -407,7 +409,7 @@ unit* civilization::add_unit(int uid, int x, int y, const unit_configuration& uc
 void civilization::remove_unit(unit* u)
 {
 	fog.shade(u->xpos, u->ypos, 1);
-	m.remove_unit(u);
+	m->remove_unit(u);
 	units.remove(u);
 	delete u;
 }
@@ -432,7 +434,7 @@ void civilization::refill_moves(const unit_configuration_map& uconfmap)
 		if(max_moves_it == uconfmap.end())
 			max_moves = 0;
 		else
-			max_moves = max_moves_it->second->max_moves;
+			max_moves = max_moves_it->second.max_moves;
 		(*uit)->refill_moves(max_moves);
 	}
 }
@@ -485,7 +487,7 @@ void civilization::increment_resources(const unit_configuration_map& uconfmap,
 			cit != cities.end();
 			++cit) {
 		int food, prod, comm;
-		total_resources(**cit, m, &food, &prod, &comm);
+		total_resources(**cit, *m, &food, &prod, &comm);
 		(*cit)->stored_food += food - (*cit)->population * 2;
 		total_commerce += comm;
 		(*cit)->stored_prod += prod;
@@ -493,10 +495,10 @@ void civilization::increment_resources(const unit_configuration_map& uconfmap,
 			if((*cit)->production.producing_unit) {
 				unit_configuration_map::const_iterator prod_unit = uconfmap.find((*cit)->production.current_production_id);
 				if(prod_unit != uconfmap.end()) {
-					if((int)prod_unit->second->production_cost <= (*cit)->stored_prod) {
+					if((int)prod_unit->second.production_cost <= (*cit)->stored_prod) {
 						unit* u = add_unit((*cit)->production.current_production_id, 
-								(*cit)->xpos, (*cit)->ypos, *(prod_unit->second));
-						(*cit)->stored_prod -= prod_unit->second->production_cost;
+								(*cit)->xpos, (*cit)->ypos, prod_unit->second);
+						(*cit)->stored_prod -= prod_unit->second.production_cost;
 						add_message(new_unit_msg(u, (*cit)));
 					}
 				}
@@ -504,11 +506,11 @@ void civilization::increment_resources(const unit_configuration_map& uconfmap,
 			else {
 				city_improv_map::const_iterator prod_improv = cimap.find((*cit)->production.current_production_id);
 				if(prod_improv != cimap.end()) {
-					if((int)prod_improv->second->cost <= (*cit)->stored_prod) {
+					if((int)prod_improv->second.cost <= (*cit)->stored_prod) {
 						if((*cit)->built_improvements.find(prod_improv->first) ==
 								(*cit)->built_improvements.end()) {
 							(*cit)->built_improvements.insert(prod_improv->first);
-							(*cit)->stored_prod -= prod_improv->second->cost;
+							(*cit)->stored_prod -= prod_improv->second.cost;
 						}
 						add_message(new_improv_msg(*cit, prod_improv->first));
 						(*cit)->production.current_production_id = -1;
@@ -536,8 +538,8 @@ void civilization::increment_resources(const unit_configuration_map& uconfmap,
 		research_goal_id = 0;
 		add_message(new_advance_discovered(0));
 	}
-	else if(adv->second->cost <= science) {
-		science -= adv->second->cost;
+	else if(adv->second.cost <= science) {
+		science -= adv->second.cost;
 		add_message(new_advance_discovered(research_goal_id));
 		researched_advances.insert(research_goal_id);
 		research_goal_id = 0;
@@ -550,14 +552,14 @@ int civilization::try_move_unit(unit* u, int chx, int chy)
 		return 0;
 	int newx = u->xpos + chx;
 	int newy = u->ypos + chy;
-	if(m.get_data(newx, newy) > 0 && m.free_spot(civ_id, newx, newy)) {
-		m.remove_unit(u);
+	if(m->get_data(newx, newy) > 0 && m->free_spot(civ_id, newx, newy)) {
+		m->remove_unit(u);
 		fog.shade(u->xpos, u->ypos, 1);
 		u->xpos += chx;
 		u->ypos += chy;
 		u->moves--;
 		fog.reveal(u->xpos, u->ypos, 1);
-		m.add_unit(u);
+		m->add_unit(u);
 		return 1;
 	}
 	return 0;
@@ -568,7 +570,7 @@ char civilization::fog_at(int x, int y) const
 	return fog.get_value(x, y);
 }
 
-city* civilization::add_city(const char* name, int x, int y)
+city* civilization::add_city(std::string name, int x, int y)
 {
 	city* c = new city(name, x, y, civ_id);
 	fog.reveal(c->xpos, c->ypos, 1);
@@ -578,14 +580,14 @@ city* civilization::add_city(const char* name, int x, int y)
 		c->resource_coords.push_back(coord(0, -1));
 	else
 		c->resource_coords.push_back(coord(0, 1));
-	m.add_city(c, x, y);
+	m->add_city(c, x, y);
 	return c;
 }
 
 void civilization::remove_city(city* c)
 {
 	fog.shade(c->xpos, c->ypos, 1);
-	m.remove_city(c);
+	m->remove_city(c);
 	cities.remove(c);
 	delete c;
 }
@@ -631,7 +633,7 @@ std::vector<unsigned int> civilization::check_discoveries(int x, int y, int radi
 	std::vector<unsigned int> discs;
 	for(int i = x - radius; i <= x + radius; i++) {
 		for(int j = y - radius; j <= y + radius; j++) {
-			int owner = m.get_spot_owner(i, j);
+			int owner = m->get_spot_owner(i, j);
 			if(owner != -1 && owner != (int)civ_id) {
 				discover(owner);
 				discs.push_back(owner);
@@ -651,6 +653,14 @@ bool civilization::unit_discovered(const unit_configuration& uconf) const
 {
 	return researched_advances.find(uconf.needed_advance) != researched_advances.end() || 
 			uconf.needed_advance == 0;
+}
+
+void civilization::set_map(map* m_)
+{
+	if(m_ && !m) {
+		m = m_;
+		fog = fog_of_war(m->size_x(), m->size_y());
+	}
 }
 
 action::action(action_type t)
@@ -728,7 +738,7 @@ const unit_configuration* round::get_unit_configuration(int uid) const
 	unit_configuration_map::const_iterator it = uconfmap.find(uid);
 	if(it == uconfmap.end())
 		return NULL;
-	return it->second;
+	return &it->second;
 }
 
 bool round::perform_action(int civid, const action& a, map* m)

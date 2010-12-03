@@ -1,0 +1,3 @@
+# name - cost - needed discoveries (4x)
+"Warrior Code"		10	0 0 0 0
+"Bronze Working"	15	1 0 0 0

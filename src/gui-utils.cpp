@@ -118,6 +118,15 @@ gui_resources::gui_resources(const TTF_Font& f, int tile_w, int tile_h,
 {
 }
 
+gui_resources::~gui_resources()
+{
+	for(UnitImageMap::iterator it = unit_images.begin();
+			it != unit_images.end();
+			++it) {
+		SDL_FreeSurface(it->second);
+	}
+}
+
 gui_data::gui_data(map& mm, round& rr)
 	: m(mm),
 	r(rr)

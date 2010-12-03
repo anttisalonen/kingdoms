@@ -15,7 +15,7 @@ city_window::city_window(SDL_Surface* screen_, int x, int y, gui_data& data_, gu
 	rect name_rect = rect(screen_w * 0.30, screen_h * 0.1, screen_w * 0.40, screen_h * 0.08);
 	rect exit_rect = rect(screen_w * 0.75, screen_h * 0.8, screen_w * 0.15, screen_h * 0.08);
 	rect change_prod_rect = rect(screen_w * 0.75, screen_h * 0.6, screen_w * 0.15, screen_h * 0.08);
-	label_surf = make_label(c->cityname, &res.font, name_rect.w, name_rect.h, color(200, 200, 200), color(0, 0, 0));
+	label_surf = make_label(c->cityname.c_str(), &res.font, name_rect.w, name_rect.h, color(200, 200, 200), color(0, 0, 0));
 	button_surf = make_label("Exit", &res.font, exit_rect.w, exit_rect.h, color(128, 60, 60), color(0, 0, 0));
 	change_prod_surf = make_label("Change production", &res.font, change_prod_rect.w, 
 			change_prod_rect.h, color(128, 60, 60), color(0, 0, 0));
@@ -70,9 +70,9 @@ int city_window::change_production()
 	for(unit_configuration_map::const_iterator it = data.r.uconfmap.begin();
 			it != data.r.uconfmap.end();
 			++it) {
-		if(!myciv->unit_discovered(*(it->second)))
+		if(!myciv->unit_discovered(it->second))
 			continue;
-		SDL_Surface* button_surf = make_label(it->second->unit_name, 
+		SDL_Surface* button_surf = make_label(it->second.unit_name.c_str(), 
 				&res.font, option_rect.w, option_rect.h, color(128, 128, 128), color(0, 0, 0));
 		change_prod_labels.push_back(button_surf);
 		change_prod_buttons.push_back(new button(option_rect,
@@ -82,11 +82,11 @@ int city_window::change_production()
 	for(city_improv_map::const_iterator it = data.r.cimap.begin();
 			it != data.r.cimap.end();
 			++it) {
-		if(!myciv->improv_discovered(*(it->second)))
+		if(!myciv->improv_discovered(it->second))
 			continue;
 		if(c->built_improvements.find(it->first) != c->built_improvements.end())
 			continue;
-		SDL_Surface* button_surf = make_label(it->second->improv_name, 
+		SDL_Surface* button_surf = make_label(it->second.improv_name.c_str(), 
 				&res.font, option_rect.w, option_rect.h, color(160, 160, 160), color(0, 0, 0));
 		change_prod_labels.push_back(button_surf);
 		change_prod_buttons.push_back(new button(option_rect,
@@ -96,13 +96,13 @@ int city_window::change_production()
 	return 0;
 }
 
-int city_window::choose_unit_production(const std::pair<int, unit_configuration*>& u)
+int city_window::choose_unit_production(const std::pair<int, unit_configuration>& u)
 {
 	c->set_unit_production(u.first);
 	return 1;
 }
 
-int city_window::choose_improv_production(const std::pair<unsigned int, city_improvement*>& i)
+int city_window::choose_improv_production(const std::pair<unsigned int, city_improvement>& i)
 {
 	c->set_improv_production(i.first);
 	return 1;
@@ -207,15 +207,15 @@ int city_window::draw()
 		if(c->production.producing_unit) {
 			unit_configuration_map::const_iterator it = data.r.uconfmap.find(c->production.current_production_id);
 			if(it != data.r.uconfmap.end()) {
-				prod_tgt = it->second->unit_name;
-				prod_cost = it->second->production_cost;
+				prod_tgt = it->second.unit_name.c_str();
+				prod_cost = it->second.production_cost;
 			}
 		}
 		else {
 			city_improv_map::const_iterator it = data.r.cimap.find(c->production.current_production_id);
 			if(it != data.r.cimap.end()) {
-				prod_tgt = it->second->improv_name;
-				prod_cost = it->second->cost;
+				prod_tgt = it->second.improv_name.c_str();
+				prod_cost = it->second.cost;
 			}
 		}
 		if(!prod_tgt) {

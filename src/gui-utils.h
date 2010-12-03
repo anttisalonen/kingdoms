@@ -26,6 +26,7 @@ struct gui_resources {
 	gui_resources(const TTF_Font& f, int tile_w, int tile_h,
 			SDL_Surface* food_, SDL_Surface* prod_,
 			SDL_Surface* comm_);
+	~gui_resources();
 	tileset terrains;
 	std::vector<SDL_Surface*> plain_unit_images;
 	UnitImageMap unit_images;
