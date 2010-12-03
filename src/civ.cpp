@@ -73,11 +73,11 @@ void combat(unit* u1, unit* u2)
 		s2 *= 1.5f;
 	if(u2->fortified)
 		s2 *= 2;
-	unsigned int u1chance = s1 ^ 2;
-	unsigned int u2chance = s2 ^ 2;
+	unsigned int u1chance = s1 * s1;
+	unsigned int u2chance = s2 * s2;
 	unsigned int val = rand() % (u1chance + u2chance);
-	printf("Combat on (%d, %d) - chances: (%3.2f) - ",
-			u2->xpos, u2->ypos,
+	printf("Combat on (%d, %d) - chances: (%d vs %d - %3.2f) - ",
+			u2->xpos, u2->ypos, u1chance, u2chance,
 			u1chance / ((float)u1chance + u2chance));
 	if(val < u1chance) {
 		u1->strength = u1->strength * (val + 1) / u1chance;
@@ -874,8 +874,10 @@ bool round::try_move_unit(unit* u, int chx, int chy, map* m)
 					++it) {
 				civs[*it]->discover((*current_civ)->civ_id);
 			}
-			if(def_id >= 0 && def_id != u->civ_id)
+			if(def_id >= 0 && def_id != u->civ_id) {
 				check_city_conquer(m, tgtxpos, tgtypos);
+				check_civ_elimination(def_id);
+			}
 			return true;
 		}
 		return false;
