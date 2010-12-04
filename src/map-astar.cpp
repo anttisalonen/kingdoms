@@ -8,8 +8,13 @@
 void check_insert(std::set<coord>& s, const map& m, const fog_of_war& fog, const unit& u, int x, int y)
 {
 	if(x >= 0 && y >= 0 && x < m.size_x() && y < m.size_y()) {
-		if(terrain_allowed(m, u, x, y) && fog.get_value(x, y)) {
-			s.insert(coord(x, y));
+		if(terrain_allowed(m, u, x, y)) {
+			int fogval = fog.get_value(x, y);
+			if(fogval) { // known terrain
+				if(fogval == 1 || m.free_spot(u.civ_id, x, y)) { // terrain visible and no enemy on it
+					s.insert(coord(x, y));
+				}
+			}
 		}
 	}
 }

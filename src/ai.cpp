@@ -26,6 +26,16 @@ bool primitive_orders::finished()
 	return finished_flag;
 }
 
+bool primitive_orders::replan()
+{
+	return false;
+}
+
+void primitive_orders::clear()
+{
+	finished_flag = true;
+}
+
 action orders_composite::get_action()
 {
 	if(finished())
@@ -58,6 +68,18 @@ void orders_composite::add_orders(orders* o)
 	ord.push_back(o);
 }
 
+bool orders_composite::replan()
+{
+	if(ord.empty())
+		return false;
+	return ord.front()->replan();
+}
+
+void orders_composite::clear()
+{
+	ord.clear();
+}
+
 goto_orders::goto_orders(const map& m_, const fog_of_war& fog_, unit* u_, int x_, int y_)
 	: tgtx(x_),
 	tgty(y_),
@@ -65,9 +87,14 @@ goto_orders::goto_orders(const map& m_, const fog_of_war& fog_, unit* u_, int x_
 	fog(fog_),
 	u(u_)
 {
-	path = map_astar(m, fog, *u, coord(u->xpos, u->ypos), coord(tgtx, tgty));
+	get_new_path();
 	if(!path.empty())
 		path.pop_front();
+}
+
+void goto_orders::get_new_path()
+{
+	path = map_astar(m, fog, *u, coord(u->xpos, u->ypos), coord(tgtx, tgty));
 }
 
 action goto_orders::get_action()
@@ -93,6 +120,17 @@ bool goto_orders::finished()
 int goto_orders::path_length()
 {
 	return path.size();
+}
+
+bool goto_orders::replan()
+{
+	get_new_path();
+	return !path.empty();
+}
+
+void goto_orders::clear()
+{
+	path.clear();
 }
 
 explore_orders::explore_orders(const map& m_, const fog_of_war& fog_, unit* u_,
@@ -150,9 +188,21 @@ void explore_orders::drop_action()
 		get_new_path();
 }
 
+bool explore_orders::replan()
+{
+	get_new_path();
+	return !path.empty();
+}
+
+void explore_orders::clear()
+{
+	path.clear();
+}
+
 wait_orders::wait_orders(unit* u_, unsigned int rounds)
 	: u(u_),
-	rounds_to_go(rounds)
+	rounds_to_go(rounds),
+	total_rounds(rounds)
 {
 }
 
@@ -172,6 +222,17 @@ void wait_orders::drop_action()
 bool wait_orders::finished()
 {
 	return rounds_to_go == 0;
+}
+
+bool wait_orders::replan()
+{
+	rounds_to_go = total_rounds;
+	return true;
+}
+
+void wait_orders::clear()
+{
+	rounds_to_go = 0;
 }
 
 attack_orders::attack_orders(const map& m_, const fog_of_war& fog_, unit* u_, int x_, int y_)
@@ -232,6 +293,16 @@ bool attack_orders::finished()
 		return goto_orders::finished();
 	else
 		return false;
+}
+
+bool attack_orders::replan()
+{
+	return goto_orders::replan();
+}
+
+void attack_orders::clear()
+{
+	goto_orders::clear();
 }
 
 ai_tunable_parameters::ai_tunable_parameters()
@@ -347,6 +418,13 @@ bool ai::play()
 		int success = r.perform_action(myciv->civ_id, a, &m);
 		if(!success) {
 			printf("AI error: could not perform action.\n");
+			oit->second->replan();
+			action a = oit->second->get_action();
+			success = r.perform_action(myciv->civ_id, a, &m);
+			if(!success) {
+				printf("AI error: still could not perform action.\n");
+				oit->second->clear();
+			}
 		}
 		else {
 			oit->second->drop_action();
@@ -494,24 +572,32 @@ void ai::find_best_city_pos(const unit* u, int* tgtx, int* tgty) const
 
 class city_picker {
 	private:
-		unsigned int civ_id;
+		const civilization* myciv;
 		const map& m;
 		bool my_city;
 	public:
-		city_picker(const map& m_, unsigned int civ_id_, bool my_city_) : 
-			civ_id(civ_id_), m(m_), my_city(my_city_) { }
+		city_picker(const map& m_, const civilization* myciv_, bool my_city_) : 
+			myciv(myciv_), m(m_), my_city(my_city_) { }
 		bool operator()(const coord& co) {
 			city* c = m.city_on_spot(co.x, co.y);
-			if(!c)
+			if(!c) {
 				return false;
-			else
-				return (c->civ_id != civ_id) ^ my_city;
+			}
+			else {
+				if(my_city) {
+					return c->civ_id == myciv->civ_id;
+				}
+				else {
+					return c->civ_id != myciv->civ_id && 
+						myciv->get_relationship_to_civ(c->civ_id) == relationship_war;
+				}
+			}
 		}
 };
 
 city* ai::find_nearest_city(const unit* u, bool own) const
 {
-	city_picker picker(m, myciv->civ_id, own);
+	city_picker picker(m, myciv, own);
 	std::list<coord> path_to_city = map_path_to_nearest(m, 
 			myciv->fog, 
 			*u, 

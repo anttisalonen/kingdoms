@@ -15,4 +15,6 @@ typedef boost::function<bool(const coord& a)> goaltestfunc;
 std::list<coord> astar(graphfunc g, costfunc c, heurfunc h, 
 		goaltestfunc gtfunc, const coord& start);
 
+void print_path(FILE* fp, const std::list<coord>& path);
+
 #endif

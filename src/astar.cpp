@@ -89,14 +89,20 @@ std::list<coord> astar(graphfunc g, costfunc c, heurfunc h,
 	}
 	path.reverse();
 #ifdef DEBUG_ASTAR
-	printf("Found path: ");
-	for(std::list<coord>::const_iterator it = path.begin();
-			it != path.end();
-			++it) {
-		printf("(%d, %d) ", it->x, it->y);
-	}
-	printf("\n");
+	print_path(stderr, path);
 #endif
 	return path;
 }
+
+void print_path(FILE* fp, const std::list<coord>& path)
+{
+	fprintf(fp, "Found path: ");
+	for(std::list<coord>::const_iterator it = path.begin();
+			it != path.end();
+			++it) {
+		fprintf(fp, "(%d, %d) ", it->x, it->y);
+	}
+	fprintf(fp, "\n");
+}
+
 

@@ -335,6 +335,14 @@ bool map::has_city_of(const coord& co, unsigned int civ_id) const
 		return false;
 }
 
+int map::city_owner_on_spot(int x, int y) const
+{
+	city* c = city_on_spot(x, y);
+	if(!c)
+		return -1;
+	return c->civ_id;
+}
+
 city::city(std::string name, int x, int y, unsigned int civid)
 	: cityname(name),
 	xpos(x),
@@ -398,9 +406,9 @@ civilization::civilization(std::string name, unsigned int civid,
 	alloc_science(5),
 	research_goal_id(0),
 	ai(ai_),
-	relationships(civid + 1, 0)
+	relationships(civid + 1, relationship_unknown)
 {
-	relationships[civid] = 1;
+	relationships[civid] = relationship_peace;
 	if(m)
 		fog = fog_of_war(m->size_x(), m->size_y());
 }
@@ -614,29 +622,29 @@ void civilization::remove_city(city* c)
 	delete c;
 }
 
-int civilization::get_relationship_to_civ(unsigned int civid) const
+relationship civilization::get_relationship_to_civ(unsigned int civid) const
 {
 	if(civid == civ_id)
-		return 1;
+		return relationship_peace;
 	if(relationships.size() <= civid)
-		return 0;
+		return relationship_unknown;
 	return relationships[civid];
 }
 
-void civilization::set_relationship_to_civ(unsigned int civid, int val)
+void civilization::set_relationship_to_civ(unsigned int civid, relationship val)
 {
 	if(civid == civ_id)
 		return;
 	if(relationships.size() <= civid) {
-		relationships.resize(civid + 1, 0);
+		relationships.resize(civid + 1, relationship_unknown);
 	}
 	relationships[civid] = val;
 }
 
 bool civilization::discover(unsigned int civid)
 {
-	if(civid != civ_id && get_relationship_to_civ(civid) == 0) {
-		set_relationship_to_civ(civid, 1);
+	if(civid != civ_id && get_relationship_to_civ(civid) == relationship_unknown) {
+		set_relationship_to_civ(civid, relationship_peace);
 		add_message(discovered_civ(civid));
 		return 1;
 	}
@@ -646,21 +654,21 @@ bool civilization::discover(unsigned int civid)
 void civilization::undiscover(unsigned int civid)
 {
 	if(civid != civ_id) {
-		set_relationship_to_civ(civid, 0);
+		set_relationship_to_civ(civid, relationship_unknown);
 	}
 }
 
 void civilization::set_war(unsigned int civid)
 {
 	if(civid != civ_id) {
-		set_relationship_to_civ(civid, 2);
+		set_relationship_to_civ(civid, relationship_war);
 	}
 }
 
 void civilization::set_peace(unsigned int civid)
 {
 	if(civid != civ_id) {
-		set_relationship_to_civ(civid, 1);
+		set_relationship_to_civ(civid, relationship_peace);
 	}
 }
 
@@ -854,27 +862,32 @@ bool round::try_move_unit(unit* u, int chx, int chy, map* m)
 	// attack square?
 	int def_id = m->get_spot_owner(tgtxpos, tgtypos);
 	if(def_id >= 0 && def_id != u->civ_id) {
-		const std::list<unit*>& units = m->units_on_spot(tgtxpos, tgtypos);
-		if(units.size() != 0) {
-			unit* defender = units.front();
-			if(!can_attack(*u, *defender)) {
-				return false;
+		if(in_war(u->civ_id, def_id)) {
+			const std::list<unit*>& units = m->units_on_spot(tgtxpos, tgtypos);
+			if(units.size() != 0) {
+				unit* defender = units.front();
+				if(!can_attack(*u, *defender)) {
+					return false;
+				}
+				combat(u, defender);
+				if(u->strength == 0) {
+					// lost combat
+					(*current_civ)->remove_unit(u);
+					return true;
+				}
+				else if(defender->strength == 0) {
+					// won combat
+					(*civs[def_id]).remove_unit(defender);
+				}
 			}
-			combat(u, defender);
-			if(u->strength == 0) {
-				// lost combat
-				(*current_civ)->remove_unit(u);
-				return true;
-			}
-			else if(defender->strength == 0) {
-				// won combat
-				(*civs[def_id]).remove_unit(defender);
+			if(m->units_on_spot(tgtxpos, tgtypos).size() == 0) {
+				// check if a city was conquered
+				check_city_conquer(m, tgtxpos, tgtypos);
+				check_civ_elimination(def_id);
 			}
 		}
-		if(m->units_on_spot(tgtxpos, tgtypos).size() == 0) {
-			// check if a city was conquered
-			check_city_conquer(m, tgtxpos, tgtypos);
-			check_civ_elimination(def_id);
+		else {
+			return false;
 		}
 	}
 
@@ -888,9 +901,10 @@ bool round::try_move_unit(unit* u, int chx, int chy, map* m)
 					++it) {
 				civs[*it]->discover((*current_civ)->civ_id);
 			}
-			if(def_id >= 0 && def_id != u->civ_id) {
+			int city_owner = m->city_owner_on_spot(tgtxpos, tgtypos);
+			if(city_owner >= 0 && city_owner != u->civ_id) {
 				check_city_conquer(m, tgtxpos, tgtypos);
-				check_civ_elimination(def_id);
+				check_civ_elimination(city_owner);
 			}
 			return true;
 		}
@@ -920,5 +934,10 @@ void round::peace_between(unsigned int civ1, unsigned int civ2)
 {
 	civs[civ1]->set_peace(civ2);
 	civs[civ2]->set_peace(civ1);
+}
+
+bool round::in_war(unsigned int civ1, unsigned int civ2) const
+{
+	return civs[civ1]->get_relationship_to_civ(civ2) == relationship_war;
 }
 

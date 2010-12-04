@@ -134,6 +134,7 @@ class map {
 		int get_spot_owner(int x, int y) const;
 		const std::list<unit*>& units_on_spot(int x, int y) const;
 		city* city_on_spot(int x, int y) const;
+		int city_owner_on_spot(int x, int y) const;
 		bool has_city_of(const coord& co, unsigned int civ_id) const;
 		void add_city(city* c, int x, int y);
 		void remove_city(const city* c);
@@ -166,6 +167,12 @@ struct msg {
 	} msg_data;
 };
 
+enum relationship {
+	relationship_unknown,
+	relationship_peace,
+	relationship_war,
+};
+
 class civilization {
 	public:
 		civilization(std::string name, unsigned int civid, const color& c_, map* m_, bool ai_);
@@ -181,8 +188,8 @@ class civilization {
 		city* add_city(std::string name, int x, int y);
 		void remove_city(city* c);
 		void add_message(const msg& m);
-		int get_relationship_to_civ(unsigned int civid) const;
-		void set_relationship_to_civ(unsigned int civid, int val);
+		relationship get_relationship_to_civ(unsigned int civid) const;
+		void set_relationship_to_civ(unsigned int civid, relationship val);
 		bool discover(unsigned int civid);
 		void undiscover(unsigned int civid);
 		void set_war(unsigned int civid);
@@ -208,7 +215,7 @@ class civilization {
 		std::set<unsigned int> researched_advances;
 		bool ai;
 	private:
-		std::vector<int> relationships;
+		std::vector<relationship> relationships;
 };
 
 enum action_type {
@@ -262,6 +269,7 @@ class round
 		const unit_configuration_map uconfmap;
 		const advance_map amap;
 		const city_improv_map cimap;
+		bool in_war(unsigned int civ1, unsigned int civ2) const;
 	private:
 		bool next_civ();
 		void refill_moves();

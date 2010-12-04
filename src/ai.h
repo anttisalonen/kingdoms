@@ -11,6 +11,8 @@ class orders {
 		virtual action get_action() = 0;
 		virtual void drop_action() = 0;
 		virtual bool finished() = 0;
+		virtual bool replan() = 0;
+		virtual void clear() = 0;
 };
 
 class primitive_orders : public orders {
@@ -19,6 +21,8 @@ class primitive_orders : public orders {
 		action get_action();
 		void drop_action();
 		bool finished();
+		bool replan();
+		void clear();
 	private:
 		action a;
 		bool finished_flag;
@@ -30,6 +34,8 @@ class orders_composite : public orders {
 		void drop_action();
 		bool finished();
 		void add_orders(orders* o);
+		bool replan();
+		void clear();
 	private:
 		std::list<orders*> ord;
 };
@@ -41,6 +47,8 @@ class goto_orders : public orders {
 		virtual action get_action();
 		virtual void drop_action();
 		virtual bool finished();
+		virtual bool replan();
+		void clear();
 		int path_length();
 	protected:
 		int tgtx;
@@ -49,6 +57,8 @@ class goto_orders : public orders {
 		const fog_of_war& fog;
 		unit* u;
 		std::list<coord> path;
+	private:
+		void get_new_path();
 };
 
 class explore_orders : public goto_orders {
@@ -56,6 +66,8 @@ class explore_orders : public goto_orders {
 		explore_orders(const map& m_, const fog_of_war& fog_, unit* u_, 
 				bool autocontinue_);
 		void drop_action();
+		bool replan();
+		void clear();
 	private:
 		void get_new_path();
 		bool autocontinue;
@@ -67,9 +79,12 @@ class wait_orders : public orders {
 		action get_action();
 		void drop_action();
 		bool finished();
+		bool replan();
+		void clear();
 	private:
 		unit* u;
 		unsigned int rounds_to_go;
+		unsigned int total_rounds;
 };
 
 class attack_orders : public goto_orders {
@@ -78,6 +93,8 @@ class attack_orders : public goto_orders {
 		action get_action();
 		void drop_action();
 		bool finished();
+		bool replan();
+		void clear();
 	private:
 		void check_for_enemies();
 		int att_x;
