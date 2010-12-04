@@ -5,13 +5,15 @@
 #include "map-astar.h"
 
 #include <stdio.h>
-void check_insert(std::set<coord>& s, const map& m, const fog_of_war& fog, const unit& u, int x, int y)
+void check_insert(std::set<coord>& s, const civilization& civ,
+		const unit& u, bool ignore_enemy, int x, int y)
 {
-	if(x >= 0 && y >= 0 && x < m.size_x() && y < m.size_y()) {
-		if(terrain_allowed(m, u, x, y)) {
-			int fogval = fog.get_value(x, y);
+	if(x >= 0 && y >= 0 && x < civ.m->size_x() && y < civ.m->size_y()) {
+		if(terrain_allowed(*civ.m, u, x, y)) {
+			int fogval = civ.fog.get_value(x, y);
 			if(fogval) { // known terrain
-				if(fogval == 1 || m.free_spot(u.civ_id, x, y)) { // terrain visible and no enemy on it
+				if(fogval == 1 || civ.free_spot(x, y) || ignore_enemy) { 
+					// terrain visible and no enemy on it
 					s.insert(coord(x, y));
 				}
 			}
@@ -19,13 +21,15 @@ void check_insert(std::set<coord>& s, const map& m, const fog_of_war& fog, const
 	}
 }
 
-std::set<coord> map_graph(const map& m, const fog_of_war& fog, const unit& u, const coord& a)
+std::set<coord> map_graph(const civilization& civ, const unit& u, 
+		bool ignore_enemy, const coord& a)
 {
 	std::set<coord> ret;
 	for(int i = -1; i <= 1; i++) {
 		for(int j = -1; j <= 1; j++) {
 			if(i || j) {
-				check_insert(ret, m, fog, u, a.x + i, a.y + j);
+				check_insert(ret, civ, u, ignore_enemy,
+						a.x + i, a.y + j);
 			}
 		}
 	}
@@ -47,25 +51,30 @@ bool map_goaltest(const coord& b, const coord& a)
 	return b == a;
 }
 
-std::list<coord> map_astar(const map& m, const fog_of_war& fog, const unit& u, const coord& start, const coord& goal)
+std::list<coord> map_astar(const civilization& civ,
+		const unit& u, bool ignore_enemy,
+		const coord& start, const coord& goal)
 {
 	using boost::bind;
 	using boost::lambda::_1;
 	using boost::lambda::_2;
 	using boost::ref;
-	return astar(bind(map_graph, ref(m), ref(fog), ref(u), _1),
-			bind(map_cost, ref(m), ref(u), _1, _2),
+	return astar(bind(map_graph, ref(civ), ref(u), ignore_enemy, _1),
+			bind(map_cost, ref(*civ.m), ref(u), _1, _2),
 			bind(map_heur, ref(goal), _1),
 			bind(map_goaltest, ref(goal), _1), start);
 }
 
-std::list<coord> map_path_to_nearest(const map& m, const fog_of_war& fog, const unit& u, const coord& start, boost::function<bool(const coord& a)> goaltestfunc)
+std::list<coord> map_path_to_nearest(const civilization& civ,
+		const unit& u, bool ignore_enemy,
+		const coord& start, 
+		boost::function<bool(const coord& a)> goaltestfunc)
 {
 	using boost::bind;
 	using boost::lambda::_1;
 	using boost::lambda::_2;
 	using boost::ref;
-	return astar(bind(map_graph, ref(m), ref(fog), ref(u), _1),
+	return astar(bind(map_graph, ref(civ), ref(u), ignore_enemy, _1),
 			boost::lambda::constant(1),
 			boost::lambda::constant(0),
 			goaltestfunc, start);

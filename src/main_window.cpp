@@ -425,7 +425,8 @@ int main_window::check_line_drawing(int x, int y)
 		if(curr_sqx != mouse_down_sqx || curr_sqy != mouse_down_sqy) {
 			if(path_to_draw.empty() || 
 					path_to_draw.back() != curr) {
-				path_to_draw = map_astar(data.m, myciv->fog, **current_unit, 
+				path_to_draw = map_astar(*myciv, **current_unit, 
+						false,
 						coord((*current_unit)->xpos,
 							(*current_unit)->ypos),
 						curr);

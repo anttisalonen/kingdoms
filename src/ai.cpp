@@ -80,12 +80,13 @@ void orders_composite::clear()
 	ord.clear();
 }
 
-goto_orders::goto_orders(const map& m_, const fog_of_war& fog_, unit* u_, int x_, int y_)
+goto_orders::goto_orders(const civilization* civ_, unit* u_, 
+		bool ignore_enemy_, int x_, int y_)
 	: tgtx(x_),
 	tgty(y_),
-	m(m_),
-	fog(fog_),
-	u(u_)
+	civ(civ_),
+	u(u_),
+	ignore_enemy(ignore_enemy_)
 {
 	get_new_path();
 	if(!path.empty())
@@ -94,7 +95,7 @@ goto_orders::goto_orders(const map& m_, const fog_of_war& fog_, unit* u_, int x_
 
 void goto_orders::get_new_path()
 {
-	path = map_astar(m, fog, *u, coord(u->xpos, u->ypos), coord(tgtx, tgty));
+	path = map_astar(*civ, *u, ignore_enemy, coord(u->xpos, u->ypos), coord(tgtx, tgty));
 }
 
 action goto_orders::get_action()
@@ -133,9 +134,9 @@ void goto_orders::clear()
 	path.clear();
 }
 
-explore_orders::explore_orders(const map& m_, const fog_of_war& fog_, unit* u_,
+explore_orders::explore_orders(const civilization* civ_, unit* u_,
 		bool autocontinue_)
-	: goto_orders(m_, fog_, u_, u_->xpos, u_->ypos),
+	: goto_orders(civ_, u_, false, u_->xpos, u_->ypos),
 	autocontinue(autocontinue_)
 {
 	get_new_path();
@@ -143,20 +144,19 @@ explore_orders::explore_orders(const map& m_, const fog_of_war& fog_, unit* u_,
 
 class explore_picker {
 	private:
-		const fog_of_war& fog;
-		const map& m;
+		const civilization* civ;
 	public:
-		explore_picker(const map& m_, const fog_of_war& fog_) : fog(fog_), m(m_) { };
+		explore_picker(const civilization* civ_) : civ(civ_) { }
 		bool operator()(const coord& c) {
 			for(int i = -1; i <= 1; i++) {
 				for(int j = -1; j <= 1; j++) {
 					if(i == 0 && j == 0)
 						continue;
-					if(c.x + i < 0 || c.x + i >= m.size_x())
+					if(c.x + i < 0 || c.x + i >= civ->m->size_x())
 						continue;
-					if(c.y + j < 0 || c.y + j >= m.size_y())
+					if(c.y + j < 0 || c.y + j >= civ->m->size_y())
 						continue;
-					if(fog.get_value(c.x + i, c.y + j) == 0) {
+					if(civ->fog.get_value(c.x + i, c.y + j) == 0) {
 						return true;
 					}
 				}
@@ -168,14 +168,14 @@ class explore_picker {
 void explore_orders::get_new_path()
 {
 	path.clear();
-	explore_picker picker(m, fog);
-	std::list<coord> fog_path = map_path_to_nearest(m, 
-			fog, 
+	explore_picker picker(civ);
+	std::list<coord> fog_path = map_path_to_nearest(*civ, 
 			*u, 
+			false,
 			coord(u->xpos, u->ypos), 
 			picker);
 	if(!fog_path.empty()) {
-		path = map_astar(m, fog, *u, coord(u->xpos, u->ypos), coord(fog_path.back().x, fog_path.back().y));
+		path = map_astar(*civ, *u, false, coord(u->xpos, u->ypos), coord(fog_path.back().x, fog_path.back().y));
 		if(!path.empty())
 			path.pop_front();
 	}
@@ -235,8 +235,8 @@ void wait_orders::clear()
 	rounds_to_go = 0;
 }
 
-attack_orders::attack_orders(const map& m_, const fog_of_war& fog_, unit* u_, int x_, int y_)
-	: goto_orders(m_, fog_, u_, x_, y_),
+attack_orders::attack_orders(const civilization* civ_, unit* u_, int x_, int y_)
+	: goto_orders(civ_, u_, true, x_, y_),
 	att_x(-1),
 	att_y(-1)
 {
@@ -252,11 +252,13 @@ void attack_orders::check_for_enemies()
 				continue;
 			int xp = u->xpos + i;
 			int yp = u->ypos + j;
-			if(xp < 0 || xp >= m.size_x())
+			if(xp < 0 || xp >= civ->m->size_x())
 				continue;
-			if(yp < 0 || yp >= m.size_y())
+			if(yp < 0 || yp >= civ->m->size_y())
 				continue;
-			if(m.get_spot_owner(xp, yp) != u->civ_id && terrain_allowed(m, *u, xp, yp)) {
+			int owner = civ->m->get_spot_owner(xp, yp);
+			if(owner >= 0 && owner != (int)civ->civ_id &&
+					civ->get_relationship_to_civ(owner) == relationship_war) {
 				att_x = xp;
 				att_y = yp;
 				return;
@@ -488,7 +490,7 @@ ai::orderprio_t ai::military_unit_orders(unit* u)
 void ai::get_exploration_prio(ordersqueue_t& pq, unit* u)
 {
 	orders_composite* o = new orders_composite();
-	explore_orders* e = new explore_orders(m, myciv->fog, u, false);
+	explore_orders* e = new explore_orders(myciv, u, false);
 	o->add_orders(e);
 	int len = e->path_length();
 	int prio;
@@ -521,7 +523,7 @@ void ai::get_defense_prio(ordersqueue_t& pq, unit* u)
 		}
 	}
 	orders_composite* o = new orders_composite();
-	o->add_orders(new goto_orders(m, myciv->fog, u, tgtx, tgty));
+	o->add_orders(new goto_orders(myciv, u, false, tgtx, tgty));
 	o->add_orders(new primitive_orders(unit_action(action_fortify, u)));
 	o->add_orders(new wait_orders(u, 10)); // time not updating orders
 	printf("defense: %d; ", prio);
@@ -534,15 +536,12 @@ void ai::get_offense_prio(ordersqueue_t& pq, unit* u)
 	int prio = -1;
 	tgtx = u->xpos;
 	tgty = u->ypos;
-	city* c = find_nearest_city(u, false);
-	if(c) {
-		tgtx = c->xpos;
-		tgty = c->ypos;
+	if(find_nearest_enemy(u, &tgtx, &tgty)) {
 		prio = std::max<int>(0, param.max_offense_prio - 
 				param.offense_dist_prio_coeff * abs(tgtx - u->xpos) + abs(tgty - u->ypos));
 	}
 	orders_composite* o = new orders_composite();
-	o->add_orders(new attack_orders(m, myciv->fog, u, tgtx, tgty));
+	o->add_orders(new attack_orders(myciv, u, tgtx, tgty));
 	printf("offense: %d; ", prio);
 	pq.push(std::make_pair(prio, o));
 }
@@ -559,7 +558,7 @@ ai::orderprio_t ai::found_new_city(unit* u)
 		find_best_city_pos(u, &tgtx, &tgty);
 	}
 	orders_composite* o = new orders_composite();
-	o->add_orders(new goto_orders(m, myciv->fog, u, tgtx, tgty));
+	o->add_orders(new goto_orders(myciv, u, false, tgtx, tgty));
 	o->add_orders(new primitive_orders(unit_action(action_found_city, u)));
 	return std::make_pair(prio, o);
 }
@@ -574,13 +573,12 @@ void ai::find_best_city_pos(const unit* u, int* tgtx, int* tgty) const
 class city_picker {
 	private:
 		const civilization* myciv;
-		const map& m;
 		bool my_city;
 	public:
-		city_picker(const map& m_, const civilization* myciv_, bool my_city_) : 
-			myciv(myciv_), m(m_), my_city(my_city_) { }
+		city_picker(const civilization* myciv_, bool my_city_) : 
+			myciv(myciv_), my_city(my_city_) { }
 		bool operator()(const coord& co) {
-			city* c = m.city_on_spot(co.x, co.y);
+			const city* c = myciv->m->city_on_spot(co.x, co.y);
 			if(!c) {
 				return false;
 			}
@@ -596,12 +594,49 @@ class city_picker {
 		}
 };
 
+class enemy_picker {
+	private:
+		const civilization* myciv;
+	public:
+		enemy_picker(const civilization* myciv_) : 
+			myciv(myciv_) { }
+		bool operator()(const coord& co) {
+			const city* c = myciv->m->city_on_spot(co.x, co.y);
+			const std::list<unit*>& units = myciv->m->units_on_spot(co.x, co.y);
+			int civid = -1;
+			if(c)
+				civid = c->civ_id;
+			else if(!units.empty())
+				civid = units.front()->civ_id;
+			return civid != -1 && civid != (int)myciv->civ_id &&
+				 myciv->get_relationship_to_civ(civid) == relationship_war;
+		}
+};
+
+bool ai::find_nearest_enemy(const unit* u, int* tgtx, int* tgty) const
+{
+	enemy_picker picker(myciv);
+	std::list<coord> found_path = map_path_to_nearest(*myciv, 
+			*u, 
+			true,
+			coord(u->xpos, u->ypos), 
+			picker);
+	if(found_path.empty()) {
+		return false;
+	}
+	else {
+		*tgtx = found_path.back().x;
+		*tgty = found_path.back().y;
+		return true;
+	}
+}
+
 city* ai::find_nearest_city(const unit* u, bool own) const
 {
-	city_picker picker(m, myciv, own);
-	std::list<coord> path_to_city = map_path_to_nearest(m, 
-			myciv->fog, 
+	city_picker picker(myciv, own);
+	std::list<coord> path_to_city = map_path_to_nearest(*myciv, 
 			*u, 
+			false,
 			coord(u->xpos, u->ypos), 
 			picker);
 	if(path_to_city.empty()) {

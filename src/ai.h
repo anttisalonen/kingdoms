@@ -42,7 +42,8 @@ class orders_composite : public orders {
 
 class goto_orders : public orders {
 	public:
-		goto_orders(const map& m_, const fog_of_war& fog_, unit* u_, int x_, int y_);
+		goto_orders(const civilization* civ_, unit* u_, 
+				bool ignore_enemy_, int x_, int y_);
 		virtual ~goto_orders() { }
 		virtual action get_action();
 		virtual void drop_action();
@@ -53,17 +54,17 @@ class goto_orders : public orders {
 	protected:
 		int tgtx;
 		int tgty;
-		const map& m;
-		const fog_of_war& fog;
+		const civilization* civ;
 		unit* u;
 		std::list<coord> path;
+		bool ignore_enemy;
 	private:
 		void get_new_path();
 };
 
 class explore_orders : public goto_orders {
 	public:
-		explore_orders(const map& m_, const fog_of_war& fog_, unit* u_, 
+		explore_orders(const civilization* civ_, unit* u_, 
 				bool autocontinue_);
 		void drop_action();
 		bool replan();
@@ -89,7 +90,7 @@ class wait_orders : public orders {
 
 class attack_orders : public goto_orders {
 	public:
-		attack_orders(const map& m_, const fog_of_war& fog_, unit* u_, int x_, int y_);
+		attack_orders(const civilization* civ_, unit* u_, int x_, int y_);
 		action get_action();
 		void drop_action();
 		bool finished();
@@ -129,6 +130,7 @@ class ai {
 		orderprio_t military_unit_orders(unit* u);
 		void find_best_city_pos(const unit* u, int* tgtx, int* tgty) const;
 		city* find_nearest_city(const unit* u, bool own) const;
+		bool find_nearest_enemy(const unit* u, int* tgtx, int* tgty) const;
 		void get_defense_prio(ordersqueue_t& pq, unit* u);
 		void get_offense_prio(ordersqueue_t& pq, unit* u);
 		void get_exploration_prio(ordersqueue_t& pq, unit* u);

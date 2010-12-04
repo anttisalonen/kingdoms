@@ -42,11 +42,6 @@ bool terrain_allowed(const map& m, const unit& u, int x, int y)
 	return m.get_move_cost(u, x, y) >= 0;
 }
 
-bool can_move_to(const unit& u, int chx, int chy)
-{
-	return (chx || chy) && u.moves;
-}
-
 bool can_attack(const unit& u1, const unit& u2)
 {
 	if(!in_bounds(u1.xpos - 1, u2.xpos, u1.xpos + 1))
@@ -251,8 +246,6 @@ void map::get_resources_by_terrain(int terr, bool city, int* food, int* prod, in
 
 void map::add_unit(unit* u)
 {
-	if(!free_spot(u->civ_id, u->xpos, u->ypos))
-		return;
 	std::list<unit*>* old = unit_map.get_mod(u->xpos, u->ypos);
 	if(!old)
 		return;
@@ -261,18 +254,10 @@ void map::add_unit(unit* u)
 
 void map::remove_unit(unit* u)
 {
-	if(!free_spot(u->civ_id, u->xpos, u->ypos))
-		return;
 	std::list<unit*>* old = unit_map.get_mod(u->xpos, u->ypos);
 	if(!old || old->size() == 0)
 		return;
 	old->remove(u);
-}
-
-bool map::free_spot(unsigned int civ_id, int x, int y) const
-{
-	int owner = get_spot_owner(x, y);
-	return owner == -1 || owner == (int)civ_id;
 }
 
 int map::get_spot_owner(int x, int y) const
@@ -385,6 +370,17 @@ int map::get_land_owner(int x, int y) const
 	return *v;
 }
 
+void map::remove_civ_land(unsigned int civ_id)
+{
+	for(int i = 0; i < land_map.size_x; i++) {
+		for(int j = 0; j < land_map.size_y; j++) {
+			if(get_land_owner(i, j) == (int)civ_id) {
+				set_land_owner(-1, i, j);
+			}
+		}
+	}
+}
+
 city::city(std::string name, int x, int y, unsigned int civid)
 	: cityname(name),
 	xpos(x),
@@ -493,6 +489,7 @@ void civilization::eliminate()
 	while(!cities.empty()) {
 		remove_city(cities.back());
 	}
+	m->remove_civ_land(civ_id);
 }
 
 void civilization::refill_moves(const unit_configuration_map& uconfmap)
@@ -621,11 +618,11 @@ void civilization::increment_resources(const unit_configuration_map& uconfmap,
 
 int civilization::try_move_unit(unit* u, int chx, int chy)
 {
-	if(!can_move_to(*u, chx, chy))
+	if(!u->moves || !(chx || chy))
 		return 0;
 	int newx = u->xpos + chx;
 	int newy = u->ypos + chy;
-	if(m->get_data(newx, newy) > 0 && m->free_spot(civ_id, newx, newy)) {
+	if(m->get_data(newx, newy) > 0 && can_move_to(newx, newy)) {
 		m->remove_unit(u);
 		fog.shade(u->xpos, u->ypos, 1);
 		u->xpos += chx;
@@ -721,9 +718,14 @@ std::vector<unsigned int> civilization::check_discoveries(int x, int y, int radi
 	for(int i = x - radius; i <= x + radius; i++) {
 		for(int j = y - radius; j <= y + radius; j++) {
 			int owner = m->get_spot_owner(i, j);
+			int land_owner = m->get_land_owner(i, j);
 			if(owner != -1 && owner != (int)civ_id) {
 				discover(owner);
 				discs.push_back(owner);
+			}
+			else if(land_owner != -1 && land_owner != (int)civ_id) {
+				discover(land_owner);
+				discs.push_back(land_owner);
 			}
 		}
 	}
@@ -748,6 +750,31 @@ void civilization::set_map(map* m_)
 		m = m_;
 		fog = fog_of_war(m->size_x(), m->size_y());
 	}
+}
+
+bool civilization::can_move_to(int x, int y) const
+{
+	const std::list<unit*>& units = m->units_on_spot(x, y);
+	int land_owner = m->get_land_owner(x, y);
+	int unit_owner = -1;
+	if(!units.empty())
+		unit_owner = units.front()->civ_id;
+	bool acceptable_unit_owner = unit_owner == -1 ||
+		unit_owner == (int)civ_id ||
+		get_relationship_to_civ(unit_owner) != relationship_peace;
+	bool acceptable_land_owner = land_owner == -1 ||
+		land_owner == (int)civ_id ||
+		get_relationship_to_civ(land_owner) != relationship_peace;
+	return acceptable_unit_owner && acceptable_land_owner;
+}
+
+bool civilization::free_spot(int x, int y) const
+{
+	int owner = m->get_spot_owner(x, y);
+	int land_owner = m->get_land_owner(x, y);
+	return (owner == -1 || owner == (int)civ_id) && 
+		(land_owner == -1 || land_owner == (int)civ_id || 
+		   get_relationship_to_civ(land_owner) != relationship_peace);
 }
 
 action::action(action_type t)
@@ -848,7 +875,9 @@ bool round::perform_action(int civid, const action& a, map* m)
 					{
 						const unit_configuration* uconf = get_unit_configuration(a.data.unit_data.u->unit_id);
 						bool can_build = uconf == NULL ? false : uconf->settler;
-						if(can_build) {
+						if(can_build && 
+							m->city_on_spot(a.data.unit_data.u->xpos, 
+								a.data.unit_data.u->ypos) == NULL) {
 							city* c = (*current_civ)->add_city("city name", a.data.unit_data.u->xpos,
 									a.data.unit_data.u->ypos);
 							set_default_city_production(c, uconfmap);
@@ -935,7 +964,7 @@ bool round::try_move_unit(unit* u, int chx, int chy, map* m)
 	}
 
 	// move to square
-	if(m->free_spot((*current_civ)->civ_id, tgtxpos, tgtypos)) {
+	if((*current_civ)->can_move_to(tgtxpos, tgtypos)) {
 		if((*current_civ)->try_move_unit(u, chx, chy)) {
 			std::vector<unsigned int> discs = (*current_civ)->check_discoveries(u->xpos,
 					u->ypos, 1);
@@ -944,10 +973,9 @@ bool round::try_move_unit(unit* u, int chx, int chy, map* m)
 					++it) {
 				civs[*it]->discover((*current_civ)->civ_id);
 			}
-			int city_owner = m->city_owner_on_spot(tgtxpos, tgtypos);
-			if(city_owner >= 0 && city_owner != u->civ_id) {
+			if(def_id >= 0 && def_id != u->civ_id) {
 				check_city_conquer(m, tgtxpos, tgtypos);
-				check_civ_elimination(city_owner);
+				check_civ_elimination(def_id);
 			}
 			return true;
 		}

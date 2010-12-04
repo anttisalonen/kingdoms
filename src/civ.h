@@ -131,7 +131,6 @@ class map {
 		void get_resources_by_terrain(int terr, bool city, int* food, int* prod, int* comm) const;
 		void add_unit(unit* u);
 		void remove_unit(unit* u);
-		bool free_spot(unsigned int civ_id, int x, int y) const;
 		int get_spot_owner(int x, int y) const;
 		const std::list<unit*>& units_on_spot(int x, int y) const;
 		city* city_on_spot(int x, int y) const;
@@ -142,6 +141,7 @@ class map {
 		int get_move_cost(const unit& u, int x, int y) const;
 		void set_land_owner(int civ_id, int x, int y);
 		int get_land_owner(int x, int y) const;
+		void remove_civ_land(unsigned int civ_id);
 	private:
 		int get_index(int x, int y) const;
 		buf2d<int> data;
@@ -201,6 +201,8 @@ class civilization {
 		std::vector<unsigned int> check_discoveries(int x, int y, int radius);
 		bool unit_discovered(const unit_configuration& uconf) const;
 		bool improv_discovered(const city_improvement& uconf) const;
+		bool free_spot(int x, int y) const;
+		bool can_move_to(int x, int y) const;
 		void eliminate();
 		void set_map(map* m_);
 		std::string civname;
