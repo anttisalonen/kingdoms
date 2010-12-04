@@ -8,19 +8,15 @@ city_window::city_window(SDL_Surface* screen_, int x, int y, gui_data& data_, gu
 	c(c_),
 	myciv(myciv_)
 {
-	rect name_rect = rect(screen_w * 0.30, screen_h * 0.1, screen_w * 0.40, screen_h * 0.08);
-	rect exit_rect = rect(screen_w * 0.75, screen_h * 0.8, screen_w * 0.15, screen_h * 0.08);
-	rect change_prod_rect = rect(screen_w * 0.75, screen_h * 0.6, screen_w * 0.15, screen_h * 0.08);
-	label_surf = make_label(c->cityname.c_str(), &res.font, name_rect.w, name_rect.h, color(200, 200, 200), color(0, 0, 0));
-	button_surf = make_label("Exit", &res.font, exit_rect.w, exit_rect.h, color(128, 60, 60), color(0, 0, 0));
-	change_prod_surf = make_label("Change production", &res.font, change_prod_rect.w, 
-			change_prod_rect.h, color(128, 60, 60), color(0, 0, 0));
-	buttons.push_back(new button(name_rect,
-				label_surf, NULL));
-	buttons.push_back(new button(exit_rect,
-				button_surf, boost::bind(&city_window::on_exit, this)));
-	buttons.push_back(new button(change_prod_rect,
-				change_prod_surf, boost::bind(&city_window::change_production, this)));
+	buttons.push_back(new plain_button(rect(screen_w * 0.30, screen_h * 0.1, screen_w * 0.40, screen_h * 0.08),
+				c->cityname.c_str(), &res.font, color(200, 200, 200), color(0, 0, 0),
+				NULL));
+	buttons.push_back(new plain_button(rect(screen_w * 0.75, screen_h * 0.8, screen_w * 0.15, screen_h * 0.08),
+				"Exit", &res.font, color(128, 60, 60), color(0, 0, 0),
+			       	boost::bind(&city_window::on_exit, this)));
+	buttons.push_back(new plain_button(rect(screen_w * 0.75, screen_h * 0.6, screen_w * 0.15, screen_h * 0.08),
+				"Change production", &res.font, color(128, 60, 60), color(0, 0, 0),
+				boost::bind(&city_window::change_production, this)));
 
 	// create "buttons" for unit icons
 	rect unit_box = rect(screen_w * 0.8, screen_h * 0.1, screen_w * 0.4, screen_h * 0.4);
@@ -33,9 +29,8 @@ city_window::city_window(SDL_Surface* screen_, int x, int y, gui_data& data_, gu
 		if((*uit)->xpos == c->xpos && (*uit)->ypos == c->ypos) {
 			SDL_Surface* unit_tile = res.get_unit_tile(**uit,
 					data.r.civs[(*uit)->civ_id]->col);
-			unit_tiles.push_back(unit_tile);
 
-			buttons.push_back(new button(unit_coord, 
+			buttons.push_back(new texture_button(unit_coord, 
 						unit_tile,
 						boost::bind(&city_window::on_unit, this, *uit)));
 			unit_coord.x += unit_coord.w;
@@ -55,9 +50,6 @@ city_window::~city_window()
 		delete buttons.back();
 		buttons.pop_back();
 	}
-	SDL_FreeSurface(change_prod_surf);
-	SDL_FreeSurface(button_surf);
-	SDL_FreeSurface(label_surf);
 }
 
 int city_window::change_production()
@@ -68,11 +60,9 @@ int city_window::change_production()
 			++it) {
 		if(!myciv->unit_discovered(it->second))
 			continue;
-		SDL_Surface* button_surf = make_label(it->second.unit_name.c_str(), 
-				&res.font, option_rect.w, option_rect.h, color(128, 128, 128), color(0, 0, 0));
-		change_prod_labels.push_back(button_surf);
-		change_prod_buttons.push_back(new button(option_rect,
-				button_surf, boost::bind(&city_window::choose_unit_production, this, *it)));
+		change_prod_buttons.push_back(new plain_button(option_rect,
+				it->second.unit_name.c_str(), &res.font, color(128, 128, 128), color(0, 0, 0),
+				boost::bind(&city_window::choose_unit_production, this, *it)));
 		option_rect.y += screen_h * 0.09;
 	}
 	for(city_improv_map::const_iterator it = data.r.cimap.begin();
@@ -82,11 +72,9 @@ int city_window::change_production()
 			continue;
 		if(c->built_improvements.find(it->first) != c->built_improvements.end())
 			continue;
-		SDL_Surface* button_surf = make_label(it->second.improv_name.c_str(), 
-				&res.font, option_rect.w, option_rect.h, color(160, 160, 160), color(0, 0, 0));
-		change_prod_labels.push_back(button_surf);
-		change_prod_buttons.push_back(new button(option_rect,
-				button_surf, boost::bind(&city_window::choose_improv_production, this, *it)));
+		change_prod_buttons.push_back(new plain_button(option_rect,
+				it->second.improv_name.c_str(), &res.font, color(160, 160, 160), color(0, 0, 0),
+				boost::bind(&city_window::choose_improv_production, this, *it)));
 		option_rect.y += screen_h * 0.09;
 	}
 	return 0;
@@ -172,15 +160,11 @@ int city_window::draw_city_resources_screen(int xpos, int ypos)
 
 int city_window::draw_window()
 {
-	SDL_Rect rect;
-	rect.x = screen_w * 0.05f;
-	rect.y = screen_h * 0.05f;
-	rect.w = screen_w * 0.90f;
-	rect.h = screen_h * 0.90f;
-	Uint32 bgcol = SDL_MapRGB(screen->format, 255, 255, 255);
-
 	// background
-	SDL_FillRect(screen, &rect, bgcol);
+	draw_plain_rectangle(screen, screen_w * 0.05f,
+			screen_h * 0.05f,
+			screen_w * 0.90f,
+			screen_h * 0.90f, color(255, 255, 255));
 
 	// buttons (including residing units)
 	std::for_each(buttons.begin(),
@@ -262,10 +246,6 @@ int city_window::handle_window_input(const SDL_Event& ev)
 	}
 	else {
 		if(handle_production_input(ev)) {
-			while(!change_prod_labels.empty()) {
-				SDL_FreeSurface(change_prod_labels.back());
-				change_prod_labels.pop_back();
-			}
 			while(!change_prod_buttons.empty()) {
 				delete change_prod_buttons.back();
 				change_prod_buttons.pop_back();

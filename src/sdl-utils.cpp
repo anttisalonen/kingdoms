@@ -169,3 +169,15 @@ int draw_line(SDL_Surface* screen, int x0, int y0, int x1, int y1, const color& 
 	return 0;
 }
 
+int draw_plain_rectangle(SDL_Surface* screen, int x, int y, int w, int h, const color& col)
+{
+	SDL_Rect rect;
+	rect.x = x;
+	rect.y = y;
+	rect.w = w;
+	rect.h = h;
+	Uint32 bgcol = SDL_MapRGB(screen->format, col.r, col.g, col.b);
+	SDL_FillRect(screen, &rect, bgcol);
+	return 0;
+}
+

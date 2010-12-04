@@ -1,6 +1,7 @@
 #include "main_window.h"
 #include "map-astar.h"
 #include "city_window.h"
+#include "diplomacy_window.h"
 
 main_window::main_window(SDL_Surface* screen_, int x, int y, gui_data& data_, gui_resources& res_,
 		civilization* myciv_)
@@ -602,6 +603,8 @@ int main_window::handle_civ_messages(std::list<msg>* messages)
 			case msg_civ_discovery:
 				printf("Discovered civilization '%s'.\n",
 						data.r.civs[m.msg_data.discovered_civ_id]->civname.c_str());
+				add_subwindow(new diplomacy_window(screen, screen_w, screen_h, data, res, myciv,
+							m.msg_data.discovered_civ_id));
 				break;
 			case msg_new_advance:
 				{

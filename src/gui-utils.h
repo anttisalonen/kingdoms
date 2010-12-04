@@ -47,11 +47,34 @@ class gui_data {
 
 class button {
 	public:
-		button(const rect& dim_, SDL_Surface* surf_, boost::function<int()> onclick_);
-		int draw(SDL_Surface* screen) const;
+		button(const rect& dim_, boost::function<int()> onclick_);
+		~button() { }
+		virtual int draw(SDL_Surface* screen) = 0;
 		rect dim;
-		SDL_Surface* surf;
 		boost::function<int()>onclick;
+	protected:
+		int draw_surface(SDL_Surface* screen, SDL_Surface* surf);
+};
+
+class texture_button : public button {
+	public:
+		texture_button(const rect& dim_, SDL_Surface* surf_, 
+				boost::function<int()> onclick_);
+		~texture_button();
+		int draw(SDL_Surface* screen);
+	private:
+		SDL_Surface* surf;
+};
+
+class plain_button : public button {
+	public:
+		plain_button(const rect& dim_, const char* text, const TTF_Font* font,
+				const color& bg_col, const color& text_col, 
+				boost::function<int()> onclick_);
+		~plain_button();
+		int draw(SDL_Surface* screen);
+	private:
+		SDL_Surface* surf;
 };
 
 class window {

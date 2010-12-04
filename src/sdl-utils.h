@@ -28,5 +28,6 @@ void sdl_change_pixel_color(SDL_Surface* screen, const color& src, const color& 
 SDL_Surface* sdl_load_image(const char* filename);
 int draw_text(SDL_Surface* screen, const TTF_Font* font, const char* str, int x, int y, Uint8 r, Uint8 g, Uint8 b);
 int draw_line(SDL_Surface* screen, int start_x, int start_y, int end_x, int end_y, const color& col);
+int draw_plain_rectangle(SDL_Surface* screen, int x, int y, int w, int h, const color& col);
 
 #endif

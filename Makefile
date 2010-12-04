@@ -6,7 +6,8 @@ TARGET = $(BINDIR)/main
 SRCDIR = src
 SRCS   = $(SRCDIR)/color.cpp $(SRCDIR)/sdl-utils.cpp $(SRCDIR)/utils.cpp $(SRCDIR)/rect.cpp $(SRCDIR)/coord.cpp \
 	 $(SRCDIR)/civ.cpp \
-	 $(SRCDIR)/gui-utils.cpp $(SRCDIR)/main_window.cpp $(SRCDIR)/city_window.cpp $(SRCDIR)/gui.cpp \
+	 $(SRCDIR)/gui-utils.cpp $(SRCDIR)/main_window.cpp $(SRCDIR)/city_window.cpp \
+	 $(SRCDIR)/diplomacy_window.cpp $(SRCDIR)/gui.cpp \
 	 $(SRCDIR)/astar.cpp $(SRCDIR)/map-astar.cpp $(SRCDIR)/ai.cpp \
 	 $(SRCDIR)/main.cpp
 OBJS   = $(SRCS:.cpp=.o)

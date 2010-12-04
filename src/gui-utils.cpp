@@ -1,5 +1,52 @@
 #include "gui-utils.h"
 
+int button::draw_surface(SDL_Surface* screen, SDL_Surface* surf)
+{
+	SDL_Rect dest;
+	dest.x = dim.x;
+	dest.y = dim.y;
+
+	if(SDL_BlitSurface(surf, NULL, screen, &dest)) {
+		fprintf(stderr, "Unable to blit surface: %s\n", SDL_GetError());
+		return 1;
+	}
+	return 0;
+}
+
+texture_button::texture_button(const rect& dim_, SDL_Surface* surf_, 
+		boost::function<int()> onclick_)
+	: button(dim_, onclick_),
+	surf(surf_)
+{
+}
+
+texture_button::~texture_button()
+{
+}
+
+int texture_button::draw(SDL_Surface* screen)
+{
+	return draw_surface(screen, surf);
+}
+
+plain_button::plain_button(const rect& dim_, const char* text, const TTF_Font* font,
+		const color& bg_col, const color& text_col, 
+		boost::function<int()> onclick_)
+	: button(dim_, onclick_),
+	surf(make_label(text, font, dim_.w, dim_.h, bg_col, text_col))
+{
+}
+
+plain_button::~plain_button()
+{
+	SDL_FreeSurface(surf);
+}
+
+int plain_button::draw(SDL_Surface* screen)
+{
+	return draw_surface(screen, surf);
+}
+
 SDL_Surface* make_label(const char* text, const TTF_Font* font, 
 		int w, int h, const color& bg_col, const color& text_col)
 {
@@ -163,24 +210,10 @@ SDL_Surface* gui_resources::get_unit_tile(const unit& u, const color& c)
 	return surf;
 }
 
-button::button(const rect& dim_, SDL_Surface* surf_, boost::function<int()> onclick_)
+button::button(const rect& dim_, boost::function<int()> onclick_)
 	: dim(dim_),
-	surf(surf_),
 	onclick(onclick_)
 {
-}
-
-int button::draw(SDL_Surface* screen) const
-{
-	SDL_Rect dest;
-	dest.x = dim.x;
-	dest.y = dim.y;
-
-	if(SDL_BlitSurface(surf, NULL, screen, &dest)) {
-		fprintf(stderr, "Unable to blit surface: %s\n", SDL_GetError());
-		return 1;
-	}
-	return 0;
 }
 
 int check_button_click(const std::list<button*>& buttons,

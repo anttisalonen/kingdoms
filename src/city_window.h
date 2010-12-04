@@ -34,11 +34,6 @@ class city_window : public window {
 		int choose_improv_production(const std::pair<unsigned int, city_improvement>& i);
 		city* c;
 		std::list<button*> buttons;
-		SDL_Surface* label_surf;
-		SDL_Surface* button_surf;
-		SDL_Surface* change_prod_surf;
-		std::vector<SDL_Surface*> unit_tiles;
-
 		std::list<button*> change_prod_buttons;
 		std::vector<SDL_Surface*> change_prod_labels;
 		civilization* myciv;

@@ -650,6 +650,20 @@ void civilization::undiscover(unsigned int civid)
 	}
 }
 
+void civilization::set_war(unsigned int civid)
+{
+	if(civid != civ_id) {
+		set_relationship_to_civ(civid, 2);
+	}
+}
+
+void civilization::set_peace(unsigned int civid)
+{
+	if(civid != civ_id) {
+		set_relationship_to_civ(civid, 1);
+	}
+}
+
 std::vector<unsigned int> civilization::check_discoveries(int x, int y, int radius)
 {
 	std::vector<unsigned int> discs;
@@ -894,5 +908,17 @@ int round::current_civ_id() const
 	if(current_civ == civs.end())
 		return -1;
 	return (*current_civ)->civ_id;
+}
+
+void round::declare_war_between(unsigned int civ1, unsigned int civ2)
+{
+	civs[civ1]->set_war(civ2);
+	civs[civ2]->set_war(civ1);
+}
+
+void round::peace_between(unsigned int civ1, unsigned int civ2)
+{
+	civs[civ1]->set_peace(civ2);
+	civs[civ2]->set_peace(civ1);
 }
 

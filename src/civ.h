@@ -185,6 +185,8 @@ class civilization {
 		void set_relationship_to_civ(unsigned int civid, int val);
 		bool discover(unsigned int civid);
 		void undiscover(unsigned int civid);
+		void set_war(unsigned int civid);
+		void set_peace(unsigned int civid);
 		std::vector<unsigned int> check_discoveries(int x, int y, int radius);
 		bool unit_discovered(const unit_configuration& uconf) const;
 		bool improv_discovered(const city_improvement& uconf) const;
@@ -254,6 +256,8 @@ class round
 		bool perform_action(int civid, const action& a, map* m);
 		const unit_configuration* get_unit_configuration(int uid) const;
 		int current_civ_id() const;
+		void declare_war_between(unsigned int civ1, unsigned int civ2);
+		void peace_between(unsigned int civ1, unsigned int civ2);
 		std::vector<civilization*> civs;
 		const unit_configuration_map uconfmap;
 		const advance_map amap;
