@@ -36,7 +36,8 @@ class main_window : public window {
 		int clear_main_map() const;
 		int draw_tile(const SDL_Surface* surf, int x, int y) const;
 		int draw_city(const city& c) const;
-		int show_terrain_image(int x, int y, int xpos, int ypos, bool shade) const;
+		int test_draw_border(int x, int y, int xpos, int ypos);
+		int show_terrain_image(int x, int y, int xpos, int ypos, bool shade);
 		int handle_mousemotion(int x, int y);
 		int try_move_camera(bool left, bool right, bool up, bool down);
 		void center_camera_to_unit(unit* u);

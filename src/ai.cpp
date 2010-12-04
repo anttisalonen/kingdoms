@@ -515,8 +515,9 @@ void ai::get_defense_prio(ordersqueue_t& pq, unit* u)
 			tgtx = c->xpos;
 			tgty = c->ypos;
 			const std::list<unit*>& units = m.units_on_spot(tgtx, tgty);
-			prio = std::max<int>(0, param.max_defense_prio - 
-					param.defense_units_prio_coeff * units.size());
+			prio = clamp<int>(0, param.max_defense_prio - 
+					param.defense_units_prio_coeff * (units.size() - 1),
+					param.max_defense_prio);
 		}
 	}
 	orders_composite* o = new orders_composite();

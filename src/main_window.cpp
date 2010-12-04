@@ -230,12 +230,26 @@ int main_window::draw_main_map()
 				if(show_terrain_image(j, i, x, y, fog == 1)) {
 					return 1;
 				}
+				if(test_draw_border(j, i, x, y)) {
+					return 1;
+				}
 			}
 		}
 	}
 	for(std::vector<civilization*>::iterator cit = data.r.civs.begin();
 			cit != data.r.civs.end();
 			++cit) {
+		for(std::list<unit*>::const_iterator it = (*cit)->units.begin(); 
+				it != (*cit)->units.end();
+				++it) {
+			if(it == current_unit)
+				continue;
+			if(myciv->fog_at((*it)->xpos, (*it)->ypos) == 2) {
+				if(draw_unit(**it)) {
+					return 1;
+				}
+			}
+		}
 		for(std::list<city*>::const_iterator it = (*cit)->cities.begin();
 				it != (*cit)->cities.end();
 				++it) {
@@ -245,17 +259,10 @@ int main_window::draw_main_map()
 				}
 			}
 		}
-		for(std::list<unit*>::const_iterator it = (*cit)->units.begin(); 
-				it != (*cit)->units.end();
-				++it) {
-			if(it == current_unit && blink_unit)
-				continue;
-			if(myciv->fog_at((*it)->xpos, (*it)->ypos) == 2) {
-				if(draw_unit(**it)) {
-					return 1;
-				}
-			}
-		}
+	}
+	if(current_unit != myciv->units.end() && !blink_unit) {
+		if(draw_unit(**current_unit))
+			return 1;
 	}
 	if(!path_to_draw.empty()) {
 		std::list<coord>::const_iterator cit = path_to_draw.begin();
@@ -270,10 +277,48 @@ int main_window::draw_main_map()
 	return 0;
 }
 
-int main_window::show_terrain_image(int x, int y, int xpos, int ypos, bool shade) const
+int main_window::show_terrain_image(int x, int y, int xpos, int ypos, bool shade)
 {
 	return draw_terrain_tile(x, y, xpos * tile_w, ypos * tile_h, shade,
 			data.m, res.terrains, screen);
+}
+
+int main_window::test_draw_border(int x, int y, int xpos, int ypos)
+{
+	int this_owner = data.m.get_land_owner(x, y);
+	int w_owner = data.m.get_land_owner(x - 1, y);
+	int e_owner = data.m.get_land_owner(x + 1, y);
+	int n_owner = data.m.get_land_owner(x,     y - 1);
+	int s_owner = data.m.get_land_owner(x,     y + 1);
+	for(int i = 0; i < 4; i++) {
+		int oth, sx, sy, ex, ey;
+		switch(i) {
+			case 0:
+				oth = w_owner;
+				sx = 0; sy = 0; ex = 0; ey = 1;
+				break;
+			case 1:
+				oth = e_owner;
+				sx = 1; sy = 0; ex = 1; ey = 1;
+				break;
+			case 2:
+				oth = n_owner;
+				sx = 0; sy = 0; ex = 1; ey = 0;
+				break;
+			default:
+				oth = s_owner;
+				sx = 0; sy = 1; ex = 1; ey = 1;
+				break;
+		}
+		if(this_owner != oth) {
+			const color& col = this_owner == -1 ? data.r.civs[oth]->col :
+				data.r.civs[this_owner]->col;
+			draw_line(screen, (xpos + sx) * tile_w, (ypos + sy) * tile_h, 
+					(xpos + ex) * tile_w, (ypos + ey) * tile_h,
+					col);
+		}
+	}
+	return 0;
 }
 
 color main_window::get_minimap_color(int x, int y) const

@@ -2,6 +2,7 @@
 #include <string.h>
 #include <algorithm>
 #include <stdio.h>
+#include <math.h>
 
 #include <boost/bind.hpp>
 #include <boost/lambda/lambda.hpp>
@@ -211,6 +212,7 @@ map::map(int x, int y, const resource_configuration& resconf_)
 	: data(buf2d<int>(x, y, 0)),
 	unit_map(buf2d<std::list<unit*> >(x, y, std::list<unit*>())),
 	city_map(buf2d<city*>(x, y, NULL)),
+	land_map(buf2d<int>(x, y, -1)),
 	resconf(resconf_)
 {
 	for(int i = 0; i < y; i++) {
@@ -314,11 +316,38 @@ city* map::city_on_spot(int x, int y) const
 	return *c;
 }
 
+class land_grabber {
+	int x;
+	int y;
+	int lr;
+	int civid;
+	public:
+		land_grabber(int x_, int y_, int lr_, int civid_) 
+			: x(x_), y(y_), lr(lr_), civid(civid_) { }
+		void operator()(buf2d<int>& land_map, int xp, int yp) {
+			if(xp == x && yp == y) {
+				land_map.set(xp, yp, civid);
+				return;
+			}
+			int xd = xp - x;
+			int yd = yp - y;
+			float dist = sqrt(xd * xd + yd * yd);
+			if(static_cast<int>(dist) > lr)
+				return;
+			const int* v = land_map.get(xp, yp);
+			if(v && *v == -1)
+				land_map.set(xp, yp, civid);
+		}
+};
+
 void map::add_city(city* c, int x, int y)
 {
 	if(city_on_spot(x, y))
 		return;
 	city_map.set(x, y, c);
+	int land_radius = static_cast<int>(c->culture + 1.5f);
+	land_grabber grab(x, y, land_radius, c->civ_id);
+	mod_rectangle(land_map, x, y, land_radius, grab);
 }
 
 void map::remove_city(const city* c)
@@ -343,6 +372,19 @@ int map::city_owner_on_spot(int x, int y) const
 	return c->civ_id;
 }
 
+void map::set_land_owner(int civ_id, int x, int y)
+{
+	land_map.set(x, y, civ_id);
+}
+
+int map::get_land_owner(int x, int y) const
+{
+	const int* v = land_map.get(x, y);
+	if(!v)
+		return -1;
+	return *v;
+}
+
 city::city(std::string name, int x, int y, unsigned int civid)
 	: cityname(name),
 	xpos(x),
@@ -350,7 +392,8 @@ city::city(std::string name, int x, int y, unsigned int civid)
 	civ_id(civid),
 	population(1),
 	stored_food(0),
-	stored_prod(0)
+	stored_prod(0),
+	culture(0)
 {
 	production.producing_unit = true;
 	production.current_production_id = -1;

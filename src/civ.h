@@ -104,6 +104,7 @@ class city {
 		void set_improv_production(int uid);
 		void set_production(const city_production& c);
 		bool has_barracks(const city_improv_map& cimap) const;
+		int culture;
 };
 
 class fog_of_war {
@@ -139,11 +140,14 @@ class map {
 		void add_city(city* c, int x, int y);
 		void remove_city(const city* c);
 		int get_move_cost(const unit& u, int x, int y) const;
+		void set_land_owner(int civ_id, int x, int y);
+		int get_land_owner(int x, int y) const;
 	private:
 		int get_index(int x, int y) const;
 		buf2d<int> data;
 		buf2d<std::list<unit*> > unit_map;
 		buf2d<city*> city_map;
+		buf2d<int> land_map;
 		const resource_configuration& resconf;
 		static const std::list<unit*> empty_unit_spot;
 };
