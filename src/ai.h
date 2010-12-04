@@ -102,6 +102,22 @@ class attack_orders : public goto_orders {
 		int att_y;
 };
 
+struct ai_tunables_found_city {
+	ai_tunables_found_city();
+	int min_dist_to_city;
+	int min_dist_to_friendly_city;
+	int food_coeff;
+	int prod_coeff;
+	int comm_coeff;
+	int min_food_points;
+	int min_prod_points;
+	int min_comm_points;
+	int max_search_range;
+	int range_coeff;
+	int max_found_city_prio;
+	int found_city_coeff;
+};
+
 struct ai_tunable_parameters {
 	ai_tunable_parameters();
 	int max_defense_prio;
@@ -109,10 +125,10 @@ struct ai_tunable_parameters {
 	int exploration_min_prio;
 	int exploration_max_prio;
 	int exploration_length_decr_coeff;
-	int found_city_base_prio;
 	int unit_prodcost_prio_coeff;
 	int offense_dist_prio_coeff;
 	int max_offense_prio;
+	ai_tunables_found_city found_city;
 };
 
 class ai {
@@ -128,7 +144,7 @@ class ai {
 		orderprio_t create_orders(unit* u);
 		orderprio_t found_new_city(unit* u);
 		orderprio_t military_unit_orders(unit* u);
-		void find_best_city_pos(const unit* u, int* tgtx, int* tgty) const;
+		bool find_best_city_pos(const unit* u, int* tgtx, int* tgty, int* prio) const;
 		city* find_nearest_city(const unit* u, bool own) const;
 		bool find_nearest_enemy(const unit* u, int* tgtx, int* tgty) const;
 		void get_defense_prio(ordersqueue_t& pq, unit* u);

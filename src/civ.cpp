@@ -237,6 +237,7 @@ int map::size_y() const
 
 void map::get_resources_by_terrain(int terr, bool city, int* food, int* prod, int* comm) const
 {
+	*food = *prod = *comm = 0;
 	if(terr < 0 || terr >= num_terrain_types)
 		return;
 	*food = resconf.terrain_food_values[terr] + (city ? resconf.city_food_bonus : 0);
@@ -260,7 +261,7 @@ void map::remove_unit(unit* u)
 	old->remove(u);
 }
 
-int map::get_spot_owner(int x, int y) const
+int map::get_spot_resident(int x, int y) const
 {
 	const std::list<unit*>* val = unit_map.get(x, y);
 	if(!val)
@@ -340,9 +341,9 @@ void map::remove_city(const city* c)
 	city_map.set(c->xpos, c->ypos, NULL);
 }
 
-bool map::has_city_of(const coord& co, unsigned int civ_id) const
+bool map::has_city_of(int x, int y, unsigned int civ_id) const
 {
-	city* c = city_on_spot(co.x, co.y);
+	city* c = city_on_spot(x, y);
 	if(c)
 		return c->civ_id == civ_id;
 	else
@@ -368,6 +369,16 @@ int map::get_land_owner(int x, int y) const
 	if(!v)
 		return -1;
 	return *v;
+}
+
+int map::get_spot_owner(int x, int y) const
+{
+	int res = get_spot_resident(x, y);
+	if(res >= 0)
+		return res;
+	else
+		return get_land_owner(x, y);
+
 }
 
 void map::remove_civ_land(unsigned int civ_id)
@@ -445,11 +456,15 @@ civilization::civilization(std::string name, unsigned int civid,
 	alloc_science(5),
 	research_goal_id(0),
 	ai(ai_),
-	relationships(civid + 1, relationship_unknown)
+	relationships(civid + 1, relationship_unknown),
+	known_land_map(buf2d<int>(0, 0, -1))
 {
 	relationships[civid] = relationship_peace;
-	if(m)
+	if(m) {
 		fog = fog_of_war(m->size_x(), m->size_y());
+		known_land_map = buf2d<int>(m->size_x(),
+				m->size_y(), -1);
+	}
 }
 
 civilization::~civilization()
@@ -464,12 +479,22 @@ civilization::~civilization()
 	}
 }
 
+void civilization::reveal_land(int x, int y, int r)
+{
+	for(int i = x - r; i <= x + r; i++) {
+		for(int j = y - r; j <= y + r; j++) {
+			known_land_map.set(i, j, m->get_land_owner(i, j));
+		}
+	}
+}
+
 unit* civilization::add_unit(int uid, int x, int y, const unit_configuration& uconf)
 {
 	unit* u = new unit(uid, x, y, civ_id, uconf);
 	units.push_back(u);
 	m->add_unit(u);
 	fog.reveal(x, y, 1);
+	reveal_land(x, y, 1);
 	return u;
 }
 
@@ -629,6 +654,7 @@ int civilization::try_move_unit(unit* u, int chx, int chy)
 		u->ypos += chy;
 		u->moves--;
 		fog.reveal(u->xpos, u->ypos, 1);
+		reveal_land(u->xpos, u->ypos, 1);
 		m->add_unit(u);
 		return 1;
 	}
@@ -643,7 +669,8 @@ char civilization::fog_at(int x, int y) const
 city* civilization::add_city(std::string name, int x, int y)
 {
 	city* c = new city(name, x, y, civ_id);
-	fog.reveal(c->xpos, c->ypos, 1);
+	fog.reveal(c->xpos, c->ypos, 2);
+	reveal_land(c->xpos, c->ypos, 2);
 	cities.push_back(c);
 		c->resource_coords.push_back(coord(0, 0));
 	if(y != 0)
@@ -656,7 +683,7 @@ city* civilization::add_city(std::string name, int x, int y)
 
 void civilization::remove_city(city* c)
 {
-	fog.shade(c->xpos, c->ypos, 1);
+	fog.shade(c->xpos, c->ypos, 2);
 	m->remove_city(c);
 	cities.remove(c);
 	delete c;
@@ -718,14 +745,9 @@ std::vector<unsigned int> civilization::check_discoveries(int x, int y, int radi
 	for(int i = x - radius; i <= x + radius; i++) {
 		for(int j = y - radius; j <= y + radius; j++) {
 			int owner = m->get_spot_owner(i, j);
-			int land_owner = m->get_land_owner(i, j);
 			if(owner != -1 && owner != (int)civ_id) {
 				discover(owner);
 				discs.push_back(owner);
-			}
-			else if(land_owner != -1 && land_owner != (int)civ_id) {
-				discover(land_owner);
-				discs.push_back(land_owner);
 			}
 		}
 	}
@@ -749,6 +771,8 @@ void civilization::set_map(map* m_)
 	if(m_ && !m) {
 		m = m_;
 		fog = fog_of_war(m->size_x(), m->size_y());
+		known_land_map = buf2d<int>(m->size_x(),
+				m->size_y(), -1);
 	}
 }
 
@@ -768,13 +792,23 @@ bool civilization::can_move_to(int x, int y) const
 	return acceptable_unit_owner && acceptable_land_owner;
 }
 
-bool civilization::free_spot(int x, int y) const
+int civilization::get_known_land_owner(int x, int y) const
 {
-	int owner = m->get_spot_owner(x, y);
-	int land_owner = m->get_land_owner(x, y);
-	return (owner == -1 || owner == (int)civ_id) && 
-		(land_owner == -1 || land_owner == (int)civ_id || 
-		   get_relationship_to_civ(land_owner) != relationship_peace);
+	const int* v = known_land_map.get(x, y);
+	if(!v)
+		return -1;
+	return *v;
+}
+
+bool civilization::blocked_by_land(int x, int y) const
+{
+	int land_owner = get_known_land_owner(x, y);
+	if(land_owner < 0 || land_owner == (int)civ_id) {
+		return false;
+	}
+	else {
+		return get_relationship_to_civ(land_owner) == relationship_peace;
+	}
 }
 
 action::action(action_type t)
@@ -932,7 +966,7 @@ bool round::try_move_unit(unit* u, int chx, int chy, map* m)
 	int tgtypos = u->ypos + chy;
 
 	// attack square?
-	int def_id = m->get_spot_owner(tgtxpos, tgtypos);
+	int def_id = m->get_spot_resident(tgtxpos, tgtypos);
 	if(def_id >= 0 && def_id != u->civ_id) {
 		if(in_war(u->civ_id, def_id)) {
 			const std::list<unit*>& units = m->units_on_spot(tgtxpos, tgtypos);
@@ -982,10 +1016,16 @@ bool round::try_move_unit(unit* u, int chx, int chy, map* m)
 		return false;
 	}
 	else {
-		// won combat - but no move
-		u->moves--;
+		if(def_id >= 0 && def_id != u->civ_id) {
+			// won combat - but no move
+			u->moves--;
+			return true;
+		}
+		else {
+			// could not move to a friendly neighbour's land
+			return false;
+		}
 	}
-	return true;
 }
 
 int round::current_civ_id() const

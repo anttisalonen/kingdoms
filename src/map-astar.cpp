@@ -12,7 +12,8 @@ void check_insert(std::set<coord>& s, const civilization& civ,
 		if(terrain_allowed(*civ.m, u, x, y)) {
 			int fogval = civ.fog.get_value(x, y);
 			if(fogval) { // known terrain
-				if(fogval == 1 || civ.free_spot(x, y) || ignore_enemy) { 
+				if((!civ.blocked_by_land(x, y) && 
+						(fogval == 1 || civ.can_move_to(x, y))) || ignore_enemy) { 
 					// terrain visible and no enemy on it
 					s.insert(coord(x, y));
 				}
