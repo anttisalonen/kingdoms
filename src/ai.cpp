@@ -319,7 +319,7 @@ ai_tunables_found_city::ai_tunables_found_city()
 	max_search_range(100),
 	range_coeff(1),
 	max_found_city_prio(1000),
-	found_city_coeff(100)
+	found_city_coeff(10)
 {
 }
 
@@ -628,16 +628,18 @@ bool found_city_picker::operator()(const coord& co)
 		}
 	}
 
+#if 0
 	// filter out very bad locations
 	if(food_points < found_city.min_food_points || 
 			prod_points < found_city.min_prod_points || 
 			comm_points < found_city.min_comm_points)
 		return false;
+#endif
 
-	printf("City prio: %d\n", std::max<int>(found_city.max_found_city_prio, 
+	printf("City prio: %d\n", std::min<int>(found_city.max_found_city_prio, 
 					found_city.found_city_coeff * 
 					(counter + food_points + prod_points + comm_points)));
-	pq.push(std::make_pair(std::max<int>(found_city.max_found_city_prio, 
+	pq.push(std::make_pair(std::min<int>(found_city.max_found_city_prio, 
 					found_city.found_city_coeff * 
 					(counter + food_points + prod_points + comm_points)),
 					co));
