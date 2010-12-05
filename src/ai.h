@@ -118,6 +118,21 @@ struct ai_tunables_found_city {
 	int found_city_coeff;
 };
 
+class found_city_orders : public goto_orders {
+	public:
+		found_city_orders(const civilization* civ_, unit* u_, 
+				const ai_tunables_found_city& found_city_, 
+				int x_, int y_);
+		action get_action();
+		void drop_action();
+		bool finished();
+		bool replan();
+		void clear();
+	private:
+		const ai_tunables_found_city& found_city;
+		int city_points;
+};
+
 struct ai_tunable_parameters {
 	ai_tunable_parameters();
 	int max_defense_prio;
@@ -144,12 +159,12 @@ class ai {
 		orderprio_t create_orders(unit* u);
 		orderprio_t found_new_city(unit* u);
 		orderprio_t military_unit_orders(unit* u);
-		bool find_best_city_pos(const unit* u, int* tgtx, int* tgty, int* prio) const;
 		city* find_nearest_city(const unit* u, bool own) const;
 		bool find_nearest_enemy(const unit* u, int* tgtx, int* tgty) const;
 		void get_defense_prio(ordersqueue_t& pq, unit* u);
 		void get_offense_prio(ordersqueue_t& pq, unit* u);
 		void get_exploration_prio(ordersqueue_t& pq, unit* u);
+		orderprio_t get_defense_orders(unit* u);
 		void handle_new_advance(unsigned int adv_id);
 		void handle_civ_discovery(int civ_id);
 		void handle_new_unit(const msg& m);
@@ -161,6 +176,10 @@ class ai {
 		cityordersmap_t cityordersmap;
 		ai_tunable_parameters param;
 };
+
+bool find_best_city_pos(const civilization* myciv,
+		const ai_tunables_found_city& found_city,
+		const unit* u, int* tgtx, int* tgty, int* prio);
 
 #endif
 

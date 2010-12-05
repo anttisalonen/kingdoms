@@ -4,6 +4,119 @@
 #include "map-astar.h"
 #include "ai.h"
 
+class found_city_picker {
+	private:
+		const civilization* myciv;
+		const ai_tunables_found_city& found_city;
+		// counter acts as a sort of distance-to-origin meter
+		int counter;
+	public:
+		std::priority_queue<std::pair<int, coord> > pq;
+		// only inspect 100 nearest locations
+		found_city_picker(const civilization* myciv_, 
+				const ai_tunables_found_city& found_city_) :
+			myciv(myciv_), found_city(found_city_), 
+			counter(found_city_.max_search_range) { }
+		bool operator()(const coord& co);
+};
+
+int points_for_city_founding(const civilization* civ,
+		const ai_tunables_found_city& found_city,
+		int counter, const coord& co)
+{
+	if(counter <= 0)
+		return -1;
+
+	// do not found a city nearer than 3 squares to a friendly city
+	for(int i = -found_city.min_dist_to_friendly_city; 
+			i <= found_city.min_dist_to_friendly_city; i++)
+		for(int j = -found_city.min_dist_to_friendly_city; 
+				j <= -found_city.min_dist_to_friendly_city; j++)
+			if(civ->m->has_city_of(co.x + i, co.y + j, civ->civ_id))
+				return -1;
+
+	// do not found a city nearer than 2 squares to any city
+	for(int i = -found_city.min_dist_to_city; i <= found_city.min_dist_to_city; i++)
+		for(int j = -found_city.min_dist_to_city; j <= found_city.min_dist_to_city; j++)
+			if(civ->m->city_on_spot(co.x + i, co.y + j))
+				return -1;
+
+	int food_points = 0;
+	int prod_points = 0;
+	int comm_points = 0;
+	for(int i = -2; i <= 2; i++) {
+		for(int j = -2; j <= 2; j++) {
+			if(abs(i) == 2 && abs(j) == 2)
+				continue;
+
+			int terr = civ->m->get_data(co.x + i, co.y + j);
+			int food = 0, prod = 0, comm = 0;
+			civ->m->get_resources_by_terrain(terr, false,
+					&food, &prod, &comm);
+			food_points += food * found_city.food_coeff;
+			prod_points += prod * found_city.prod_coeff;
+			comm_points += comm * found_city.comm_coeff;
+		}
+	}
+
+#if 0
+	// filter out very bad locations
+	if(food_points < found_city.min_food_points || 
+			prod_points < found_city.min_prod_points || 
+			comm_points < found_city.min_comm_points)
+		return -1;
+#endif
+
+#ifdef AI_DEBUG
+	printf("City prio: %d\n", std::min<int>(found_city.max_found_city_prio, 
+					found_city.found_city_coeff * 
+					(counter + food_points + prod_points + comm_points)));
+#endif
+	return clamp<int>(0,
+			found_city.found_city_coeff * 
+			(counter + food_points + prod_points + comm_points),
+			found_city.max_found_city_prio);
+}
+
+bool found_city_picker::operator()(const coord& co)
+{
+	counter -= found_city.range_coeff;
+	if(counter <= 0)
+		return true;
+
+	int points = points_for_city_founding(myciv,
+			found_city, counter, co);
+
+	pq.push(std::make_pair(points, co));
+	return false;
+}
+
+bool find_best_city_pos(const civilization* myciv,
+		const ai_tunables_found_city& found_city,
+		const unit* u, int* tgtx, int* tgty, int* prio)
+{
+	found_city_picker picker(myciv, found_city);
+	boost::function<bool(const coord& a)> testfunc = boost::ref(picker);
+	map_path_to_nearest(*myciv, 
+			*u, 
+			false,
+			coord(u->xpos, u->ypos), 
+			testfunc);
+	if(picker.pq.empty()) {
+		*tgtx = u->xpos;
+		*tgty = u->ypos;
+		if(prio)
+			*prio = -1;
+		return false;
+	}
+	std::pair<int, coord> val = picker.pq.top();
+	*tgtx = val.second.x;
+	*tgty = val.second.y;
+	if(prio)
+		*prio = val.first;
+	return true;
+}
+
 primitive_orders::primitive_orders(const action& a_)
 	: a(a_), finished_flag(false)
 {
@@ -307,6 +420,61 @@ void attack_orders::clear()
 	goto_orders::clear();
 }
 
+found_city_orders::found_city_orders(const civilization* civ_,
+		unit* u_, const ai_tunables_found_city& found_city_, 
+		int x_, int y_)
+	: goto_orders(civ_, u_, false, x_, y_),
+	found_city(found_city_)
+{
+	city_points = points_for_city_founding(civ, found_city,
+			1, coord(tgtx, tgty));
+}
+
+action found_city_orders::get_action()
+{
+	if(path.empty()) {
+		int new_city_points = points_for_city_founding(civ,
+				found_city, 1, coord(tgtx, tgty));
+		printf("old: %d - new: %d\n", city_points,
+				new_city_points);
+		if(new_city_points < city_points) {
+			replan();
+			return action_none;
+		}
+		else {
+			return unit_action(action_found_city, u);
+		}
+	}
+	else {
+		return goto_orders::get_action();
+	}
+}
+
+void found_city_orders::drop_action()
+{
+	goto_orders::drop_action();
+}
+
+bool found_city_orders::finished()
+{
+	return false;
+}
+
+bool found_city_orders::replan()
+{
+	bool succ = find_best_city_pos(civ, found_city,
+			u, &tgtx, &tgty, NULL);
+	if(succ)
+		city_points = points_for_city_founding(civ, found_city,
+				0, coord(tgtx, tgty));
+	return succ;
+}
+
+void found_city_orders::clear()
+{
+	goto_orders::clear();
+}
+
 ai_tunables_found_city::ai_tunables_found_city()
 	: min_dist_to_city(3),
 	min_dist_to_friendly_city(2),
@@ -316,7 +484,7 @@ ai_tunables_found_city::ai_tunables_found_city()
 	min_food_points(20),
 	min_prod_points(10),
 	min_comm_points(5),
-	max_search_range(100),
+	max_search_range(50),
 	range_coeff(1),
 	max_found_city_prio(1000),
 	found_city_coeff(10)
@@ -325,9 +493,9 @@ ai_tunables_found_city::ai_tunables_found_city()
 
 ai_tunable_parameters::ai_tunable_parameters()
 	: max_defense_prio(1000),
-	defense_units_prio_coeff(400),
+	defense_units_prio_coeff(600),
 	exploration_min_prio(100),
-	exploration_max_prio(1000),
+	exploration_max_prio(600),
 	exploration_length_decr_coeff(50),
 	unit_prodcost_prio_coeff(1),
 	offense_dist_prio_coeff(50),
@@ -434,12 +602,16 @@ bool ai::play()
 		action a = oit->second->get_action();
 		int success = r.perform_action(myciv->civ_id, a, &m);
 		if(!success) {
+#ifdef AI_DEBUG
 			printf("AI error: could not perform action.\n");
+#endif
 			oit->second->replan();
 			action a = oit->second->get_action();
 			success = r.perform_action(myciv->civ_id, a, &m);
 			if(!success) {
+#ifdef AI_DEBUG
 				printf("AI error: still could not perform action.\n");
+#endif
 				oit->second->clear();
 			}
 		}
@@ -480,7 +652,13 @@ city_production* ai::create_city_orders(city* c)
 ai::orderprio_t ai::create_orders(unit* u)
 {
 	if(u->uconf.settler) {
-		return found_new_city(u);
+		orderprio_t found = found_new_city(u);
+		if(found.first <= 0) {
+			return get_defense_orders(u);
+		}
+		else {
+			return found;
+		}
 	}
 	return military_unit_orders(u);
 }
@@ -488,11 +666,15 @@ ai::orderprio_t ai::create_orders(unit* u)
 ai::orderprio_t ai::military_unit_orders(unit* u)
 {
 	ordersqueue_t ordersq;
+#ifdef AI_DEBUG
 	printf("AI: ");
+#endif
 	get_exploration_prio(ordersq, u);
 	get_defense_prio(ordersq, u);
 	get_offense_prio(ordersq, u);
+#ifdef AI_DEBUG
 	printf("\n");
+#endif
 	orderprio_t best = ordersq.top();
 	ordersq.pop();
 	while(!ordersq.empty()) {
@@ -516,11 +698,13 @@ void ai::get_exploration_prio(ordersqueue_t& pq, unit* u)
 				param.exploration_max_prio - 
 					e->path_length() * param.exploration_length_decr_coeff, 
 				param.exploration_max_prio);
+#ifdef AI_DEBUG
 	printf("exploration: %d; ", prio);
+#endif
 	pq.push(std::make_pair(prio, o));
 }
 
-void ai::get_defense_prio(ordersqueue_t& pq, unit* u)
+ai::orderprio_t ai::get_defense_orders(unit* u)
 {
 	int tgtx, tgty;
 	int prio = 1;
@@ -532,17 +716,27 @@ void ai::get_defense_prio(ordersqueue_t& pq, unit* u)
 			tgtx = c->xpos;
 			tgty = c->ypos;
 			const std::list<unit*>& units = m.units_on_spot(tgtx, tgty);
+			int num_units = units.size();
+			if(tgtx == u->xpos && tgty == u->ypos)
+				num_units--;
 			prio = clamp<int>(0, param.max_defense_prio - 
-					param.defense_units_prio_coeff * (units.size() - 1),
+					param.defense_units_prio_coeff * num_units,
 					param.max_defense_prio);
 		}
 	}
 	orders_composite* o = new orders_composite();
 	o->add_orders(new goto_orders(myciv, u, false, tgtx, tgty));
 	o->add_orders(new primitive_orders(unit_action(action_fortify, u)));
-	o->add_orders(new wait_orders(u, 10)); // time not updating orders
+	o->add_orders(new wait_orders(u, 50)); // time not updating orders
+#ifdef AI_DEBUG
 	printf("defense: %d; ", prio);
-	pq.push(std::make_pair(prio, o));
+#endif
+	return std::make_pair(prio, o);
+}
+
+void ai::get_defense_prio(ordersqueue_t& pq, unit* u)
+{
+	pq.push(get_defense_orders(u));
 }
 
 void ai::get_offense_prio(ordersqueue_t& pq, unit* u)
@@ -557,112 +751,27 @@ void ai::get_offense_prio(ordersqueue_t& pq, unit* u)
 	}
 	orders_composite* o = new orders_composite();
 	o->add_orders(new attack_orders(myciv, u, tgtx, tgty));
+#ifdef AI_DEBUG
 	printf("offense: %d; ", prio);
+#endif
 	pq.push(std::make_pair(prio, o));
 }
 
 ai::orderprio_t ai::found_new_city(unit* u)
 {
 	int tgtx, tgty;
-	int prio = -1;
-	tgtx = u->xpos;
-	tgty = u->ypos;
-	find_best_city_pos(u, &tgtx, &tgty, &prio);
+	int prio;
+	if(myciv->cities.size() == 0) {
+		prio = 1000;
+		tgtx = u->xpos;
+		tgty = u->ypos;
+	}
+	else {
+		find_best_city_pos(myciv, param.found_city, u, &tgtx, &tgty, &prio);
+	}
 	orders_composite* o = new orders_composite();
-	o->add_orders(new goto_orders(myciv, u, false, tgtx, tgty));
-	o->add_orders(new primitive_orders(unit_action(action_found_city, u)));
+	o->add_orders(new found_city_orders(myciv, u, param.found_city, tgtx, tgty));
 	return std::make_pair(prio, o);
-}
-
-class found_city_picker {
-	private:
-		const civilization* myciv;
-		const ai_tunables_found_city& found_city;
-		// counter acts as a sort of distance-to-origin meter
-		int counter;
-	public:
-		std::priority_queue<std::pair<int, coord> > pq;
-		// only inspect 100 nearest locations
-		found_city_picker(const civilization* myciv_, 
-				const ai_tunables_found_city& found_city_) :
-			myciv(myciv_), found_city(found_city_), 
-			counter(found_city_.max_search_range) { }
-		bool operator()(const coord& co);
-};
-
-bool found_city_picker::operator()(const coord& co)
-{
-	counter -= found_city.range_coeff;
-	if(counter <= 0)
-		return true;
-
-	// do not found a city nearer than 3 squares to a friendly city
-	for(int i = -found_city.min_dist_to_friendly_city; 
-			i <= found_city.min_dist_to_friendly_city; i++)
-		for(int j = -found_city.min_dist_to_friendly_city; 
-				j <= -found_city.min_dist_to_friendly_city; j++)
-			if(myciv->m->has_city_of(co.x + i, co.y + j, myciv->civ_id))
-				return false;
-
-	// do not found a city nearer than 2 squares to any city
-	for(int i = -found_city.min_dist_to_city; i <= found_city.min_dist_to_city; i++)
-		for(int j = -found_city.min_dist_to_city; j <= found_city.min_dist_to_city; j++)
-			if(myciv->m->city_on_spot(co.x + i, co.y + j))
-				return false;
-
-	int food_points = 0;
-	int prod_points = 0;
-	int comm_points = 0;
-	for(int i = -2; i <= 2; i++) {
-		for(int j = -2; j <= 2; j++) {
-			if(abs(i) == 2 && abs(j) == 2)
-				continue;
-
-			int terr = myciv->m->get_data(co.x + i, co.y + j);
-			int food = 0, prod = 0, comm = 0;
-			myciv->m->get_resources_by_terrain(terr, false,
-					&food, &prod, &comm);
-			food_points += food * found_city.food_coeff;
-			prod_points += prod * found_city.prod_coeff;
-			comm_points += comm * found_city.comm_coeff;
-		}
-	}
-
-#if 0
-	// filter out very bad locations
-	if(food_points < found_city.min_food_points || 
-			prod_points < found_city.min_prod_points || 
-			comm_points < found_city.min_comm_points)
-		return false;
-#endif
-
-	printf("City prio: %d\n", std::min<int>(found_city.max_found_city_prio, 
-					found_city.found_city_coeff * 
-					(counter + food_points + prod_points + comm_points)));
-	pq.push(std::make_pair(std::min<int>(found_city.max_found_city_prio, 
-					found_city.found_city_coeff * 
-					(counter + food_points + prod_points + comm_points)),
-					co));
-	return false;
-}
-
-bool ai::find_best_city_pos(const unit* u, int* tgtx, int* tgty, int* prio) const
-{
-	found_city_picker picker(myciv, param.found_city);
-	map_path_to_nearest(*myciv, 
-			*u, 
-			false,
-			coord(u->xpos, u->ypos), 
-			picker);
-	if(picker.pq.empty()) {
-		*prio = -1;
-		return false;
-	}
-	std::pair<int, coord> val = picker.pq.top();
-	*tgtx = val.second.x;
-	*tgty = val.second.y;
-	*prio = val.first;
-	return true;
 }
 
 class city_picker {
