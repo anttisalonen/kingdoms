@@ -1,10 +1,10 @@
-CXXFLAGS = -Wall -g3
-LDFLAGS  = -lSDL -lSDL_image -lSDL_ttf
+CXXFLAGS += -Wall -g3
+LDFLAGS  += -lSDL -lSDL_image -lSDL_ttf
 
 BINDIR = bin
 TARGET = $(BINDIR)/main
 SRCDIR = src
-SRCS   = $(SRCDIR)/color.cpp $(SRCDIR)/sdl-utils.cpp $(SRCDIR)/utils.cpp $(SRCDIR)/rect.cpp $(SRCDIR)/coord.cpp \
+SRCS   = $(SRCDIR)/color.cpp $(SRCDIR)/sdl-utils.cpp $(SRCDIR)/utils.cpp $(SRCDIR)/rect.cpp \
 	 $(SRCDIR)/civ.cpp \
 	 $(SRCDIR)/gui-utils.cpp $(SRCDIR)/main_window.cpp $(SRCDIR)/city_window.cpp \
 	 $(SRCDIR)/diplomacy_window.cpp $(SRCDIR)/gui.cpp \

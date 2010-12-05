@@ -63,7 +63,7 @@ buf2d<N>& buf2d<N>::operator=(const buf2d& buf)
 }
 
 template<typename N>
-int buf2d<N>::get_index(int x, int y) const
+inline int buf2d<N>::get_index(int x, int y) const
 {
 	return y * size_x + x;
 }
