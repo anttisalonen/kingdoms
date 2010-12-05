@@ -11,7 +11,7 @@
 #include "color.h"
 #include "sdl-utils.h"
 #include "rect.h"
-#include "civ.h"
+#include "round.h"
 
 struct tileset {
 	tileset(int w, int h);
