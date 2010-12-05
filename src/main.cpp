@@ -107,7 +107,7 @@ round* parse_configs(const std::string& confpath, const std::string& terrainfile
 	       std::vector<civilization*>* civs)
 {
 	typedef std::vector<std::vector<std::string> > parse_result;
-	parse_result terrains = parser(confpath + terrainfile, 5);
+	parse_result terrains = parser(confpath + terrainfile, 8);
 	parse_result units = parser(confpath + unitfile, 6);
 	parse_result pcivs = parser(confpath + civfile, 4);
 	parse_result discoveries = parser(confpath + discoveryfile, 6);
@@ -123,6 +123,9 @@ round* parse_configs(const std::string& confpath, const std::string& terrainfile
 		resconf->terrain_prod_values[i] = stoi(terrains[i][2]);
 		resconf->terrain_comm_values[i] = stoi(terrains[i][3]);
 		resconf->terrain_type[i] = stoi(terrains[i][4]);
+		resconf->temperature[i] = stoi(terrains[i][5]);
+		resconf->humidity[i] = stoi(terrains[i][6]);
+		resconf->found_city[i] = get_flag(terrains[i][7], 0);
 	}
 
 	for(unsigned int i = 0; i < pcivs.size(); i++) {
@@ -212,10 +215,11 @@ int run(bool observer)
 		civs[i]->set_map(&m);
 	}
 
-	civs[0]->add_unit(0, 1, 1, (*(r->uconfmap.find(0))).second);
-	civs[0]->add_unit(1, 2, 2, (*(r->uconfmap.find(1))).second);
-	civs[1]->add_unit(0, 7, 6, (*(r->uconfmap.find(0))).second);
-	civs[1]->add_unit(1, 7, 7, (*(r->uconfmap.find(1))).second);
+	std::vector<coord> starting_places = m.get_starting_places(2);
+	civs[0]->add_unit(0, starting_places[0].x, starting_places[0].y, (*(r->uconfmap.find(0))).second);
+	civs[0]->add_unit(1, starting_places[0].x, starting_places[0].y, (*(r->uconfmap.find(1))).second);
+	civs[1]->add_unit(0, starting_places[1].x, starting_places[1].y, (*(r->uconfmap.find(0))).second);
+	civs[1]->add_unit(1, starting_places[1].x, starting_places[1].y, (*(r->uconfmap.find(1))).second);
 
 	r->add_civilization(civs[0]);
 	r->add_civilization(civs[1]);
@@ -287,6 +291,7 @@ int run(bool observer)
 int main(int argc, char **argv)
 {
 	bool observer = false;
+	srand(21);
 	if(argc > 1 && !strcmp(argv[1], "-o")) {
 		observer = true;
 	}

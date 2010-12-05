@@ -189,18 +189,23 @@ int main_window::draw_city(const city& c) const
 
 int main_window::tile_ycoord_to_pixel(int y) const
 {
-	return (y - cam.cam_y) * tile_h;
+	return data.m.wrap_y(y - cam.cam_y) * tile_h;
 }
 
 int main_window::tile_xcoord_to_pixel(int x) const
 {
-	return (x + sidebar_size - cam.cam_x) * tile_w;
+	return data.m.wrap_x(x + sidebar_size - cam.cam_x) * tile_w;
 }
 
 int main_window::tile_visible(int x, int y) const
 {
-	return (in_bounds(cam.cam_x, x, cam.cam_x + cam_total_tiles_x) &&
-		in_bounds(cam.cam_y, y, cam.cam_y + cam_total_tiles_y));
+	bool vis_no_wrap = (in_bounds(cam.cam_x, x, cam.cam_x + cam_total_tiles_x) &&
+			in_bounds(cam.cam_y, y, cam.cam_y + cam_total_tiles_y));
+	if(vis_no_wrap)
+		return vis_no_wrap;
+	else // handle X wrapping
+		return (in_bounds(cam.cam_x, x + data.m.size_x(), cam.cam_x + cam_total_tiles_x) &&
+			in_bounds(cam.cam_y, y, cam.cam_y + cam_total_tiles_y));
 }
 
 int main_window::draw_line_by_sq(const coord& c1, const coord& c2, int r, int g, int b)
@@ -224,16 +229,18 @@ int main_window::draw_unit(const unit& u)
 
 int main_window::draw_main_map()
 {
-	int imax = std::min(cam.cam_y + cam_total_tiles_y, data.m.size_y());
-	int jmax = std::min(cam.cam_x + cam_total_tiles_x, data.m.size_x());
+	int imax = cam.cam_y + cam_total_tiles_y;
+	int jmax = cam.cam_x + cam_total_tiles_x;
 	for(int i = cam.cam_y, y = 0; i < imax; i++, y++) {
 		for(int j = cam.cam_x, x = sidebar_size; j < jmax; j++, x++) {
-			char fog = myciv->fog_at(j, i);
+			int dj = data.m.wrap_x(j);
+			int di = data.m.wrap_y(i);
+			char fog = myciv->fog_at(dj, di);
 			if(fog > 0 || internal_ai) {
-				if(show_terrain_image(j, i, x, y, !internal_ai && fog == 1)) {
+				if(show_terrain_image(dj, i, x, y, !internal_ai && fog == 1)) {
 					return 1;
 				}
-				if(test_draw_border(j, i, x, y)) {
+				if(test_draw_border(dj, i, x, y)) {
 					return 1;
 				}
 			}
@@ -326,11 +333,21 @@ int main_window::test_draw_border(int x, int y, int xpos, int ypos)
 
 color main_window::get_minimap_color(int x, int y) const
 {
+	// minimap rectangle - no wrapping
 	if((x >= cam.cam_x && x <= cam.cam_x + cam_total_tiles_x - 1) &&
 	   (y >= cam.cam_y && y <= cam.cam_y + cam_total_tiles_y - 1) &&
 	   (x == cam.cam_x || x == cam.cam_x + cam_total_tiles_x - 1 ||
 	    y == cam.cam_y || y == cam.cam_y + cam_total_tiles_y - 1))
 		return color(255, 255, 255);
+
+	// minimap rectangle - wrapped in X
+	if((cam.cam_x > data.m.wrap_x(cam.cam_x + cam_total_tiles_x - 1) && 
+	    data.m.wrap_x(x) <= data.m.wrap_x(cam.cam_x + cam_total_tiles_x - 1)) &&
+	   (y >= cam.cam_y && y <= cam.cam_y + cam_total_tiles_y - 1) &&
+	   (x == cam.cam_x || data.m.wrap_x(x) == data.m.wrap_x(cam.cam_x + cam_total_tiles_x - 1) ||
+	    y == cam.cam_y || y == cam.cam_y + cam_total_tiles_y - 1))
+		return color(255, 255, 255);
+
 	int val = data.m.get_data(x, y);
 	if(val < 0 || val >= (int)res.terrains.textures.size()) {
 		fprintf(stderr, "Terrain at %d not loaded at (%d, %d)\n", val,
@@ -344,20 +361,28 @@ int main_window::try_move_camera(bool left, bool right, bool up, bool down)
 {
 	bool redraw = false;
 	if(left) {
-		if(cam.cam_x > 0)
-			cam.cam_x--, redraw = true;
+		if(cam.cam_x > 0 || data.m.x_wrapped()) {
+			cam.cam_x = data.m.wrap_x(cam.cam_x - 1);
+			redraw = true;
+		}
 	}
 	else if(right) {
-		if(cam.cam_x < data.m.size_x() - cam_total_tiles_x)
-			cam.cam_x++, redraw = true;
+		if(cam.cam_x < data.m.size_x() - cam_total_tiles_x || data.m.x_wrapped()) {
+			cam.cam_x = data.m.wrap_x(cam.cam_x + 1);
+			redraw = true;
+		}
 	}
 	if(up) {
-		if(cam.cam_y > 0)
-			cam.cam_y--, redraw = true;
+		if(cam.cam_y > 0 || data.m.y_wrapped()) {
+			cam.cam_y = data.m.wrap_y(cam.cam_y - 1);
+			redraw = true;
+		}
 	}
 	else if(down) {
-		if(cam.cam_y < data.m.size_y() - cam_total_tiles_y)
-			cam.cam_y++, redraw = true;
+		if(cam.cam_y < data.m.size_y() - cam_total_tiles_y || data.m.y_wrapped()) {
+			cam.cam_y = data.m.wrap_y(cam.cam_y + 1);
+			redraw = true;
+		}
 	}
 	if(redraw) {
 		draw();
@@ -367,8 +392,8 @@ int main_window::try_move_camera(bool left, bool right, bool up, bool down)
 
 void main_window::center_camera_to_unit(unit* u)
 {
-	cam.cam_x = clamp(0, u->xpos - (-sidebar_size + cam_total_tiles_x) / 2, data.m.size_x() - cam_total_tiles_x);
-	cam.cam_y = clamp(0, u->ypos - cam_total_tiles_y / 2, data.m.size_y() - cam_total_tiles_y);
+	cam.cam_x = clamp(0, data.m.wrap_x(u->xpos - (-sidebar_size + cam_total_tiles_x) / 2), data.m.size_x());
+	cam.cam_y = clamp(0, data.m.wrap_y(u->ypos - cam_total_tiles_y / 2), data.m.size_y());
 }
 
 int main_window::try_center_camera_to_unit(unit* u)
@@ -717,8 +742,8 @@ void main_window::mouse_coord_to_tiles(int mx, int my, int* sqx, int* sqy)
 	*sqx = (mx - sidebar_size * tile_w) / tile_w;
 	*sqy = my / tile_h;
 	if(*sqx >= 0) {
-		*sqx += cam.cam_x;
-		*sqy += cam.cam_y;
+		*sqx = data.m.wrap_x(*sqx + cam.cam_x);
+		*sqy = data.m.wrap_y(*sqy + cam.cam_y);
 	}
 	else {
 		*sqx = -1;
@@ -773,6 +798,7 @@ int main_window::try_choose_with_mouse(city** c)
 
 void main_window::init_turn()
 {
+	draw_window();
 	if(internal_ai)
 		return;
 	get_next_free_unit();

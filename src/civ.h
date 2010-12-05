@@ -27,17 +27,33 @@ typedef std::map<int, unit_configuration> unit_configuration_map;
 
 const int num_terrain_types = 16;
 
+enum land_type {
+	land_type_sea,
+	land_type_land,
+	land_type_hill,
+	land_type_mountain,
+};
+
 class resource_configuration {
 	public:
 		resource_configuration();
+		int get_sea_tile() const;
+		int get_grass_tile() const;
+		bool can_found_city(int t) const;
 		std::string resource_name[num_terrain_types];
 		int terrain_food_values[num_terrain_types];
 		int terrain_prod_values[num_terrain_types];
 		int terrain_comm_values[num_terrain_types];
 		int terrain_type[num_terrain_types];
+		int temperature[num_terrain_types];
+		int humidity[num_terrain_types];
+		bool found_city[num_terrain_types];
 		int city_food_bonus;
 		int city_prod_bonus;
 		int city_comm_bonus;
+	private:
+		mutable int sea_tile;
+		mutable int grass_tile;
 };
 
 class advance {
@@ -107,21 +123,6 @@ class city {
 		int culture;
 };
 
-class fog_of_war {
-	public:
-		fog_of_war(int x, int y);
-		void reveal(int x, int y, int radius);
-		void shade(int x, int y, int radius);
-		char get_value(int x, int y) const;
-	private:
-		int get_refcount(int x, int y) const;
-		int get_raw(int x, int y) const;
-		void set_value(int x, int y, int val);
-		void up_refcount(int x, int y);
-		void down_refcount(int x, int y);
-		buf2d<int> fog;
-};
-
 class map {
 	public:
 		map(int x, int y, const resource_configuration& resconf_);
@@ -143,6 +144,11 @@ class map {
 		void set_land_owner(int civ_id, int x, int y);
 		int get_land_owner(int x, int y) const;
 		void remove_civ_land(unsigned int civ_id);
+		int wrap_x(int x) const;
+		int wrap_y(int y) const;
+		std::vector<coord> get_starting_places(int num) const;
+		bool x_wrapped() const;
+		bool y_wrapped() const;
 	private:
 		int get_index(int x, int y) const;
 		buf2d<int> data;
@@ -150,7 +156,25 @@ class map {
 		buf2d<city*> city_map;
 		buf2d<int> land_map;
 		const resource_configuration& resconf;
+		bool x_wrap;
+		bool y_wrap;
 		static const std::list<unit*> empty_unit_spot;
+};
+
+class fog_of_war {
+	public:
+		fog_of_war(const map* m_);
+		void reveal(int x, int y, int radius);
+		void shade(int x, int y, int radius);
+		char get_value(int x, int y) const;
+	private:
+		int get_refcount(int x, int y) const;
+		int get_raw(int x, int y) const;
+		void set_value(int x, int y, int val);
+		void up_refcount(int x, int y);
+		void down_refcount(int x, int y);
+		buf2d<int> fog;
+		const map* m;
 };
 
 enum msg_type {

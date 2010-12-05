@@ -95,6 +95,45 @@ resource_configuration::resource_configuration()
 	memset(terrain_food_values, 0, sizeof(terrain_food_values));
 	memset(terrain_prod_values, 0, sizeof(terrain_prod_values));
 	memset(terrain_comm_values, 0, sizeof(terrain_comm_values));
+	memset(terrain_type, 0, sizeof(terrain_comm_values));
+	memset(temperature, 0, sizeof(terrain_comm_values));
+	memset(humidity, 0, sizeof(terrain_comm_values));
+	memset(found_city, 0, sizeof(terrain_comm_values));
+	sea_tile = -1;
+	grass_tile = -1;
+}
+
+int resource_configuration::get_sea_tile() const
+{
+	if(sea_tile != -1)
+		return sea_tile;
+	for(int i = 0; i < num_terrain_types; i++) {
+		if(terrain_type[i] == land_type_sea) {
+			sea_tile = i;
+			return i;
+		}
+	}
+	return 0;
+}
+
+int resource_configuration::get_grass_tile() const
+{
+	if(grass_tile != -1)
+		return grass_tile;
+	for(int i = 0; i < num_terrain_types; i++) {
+		if(terrain_type[i] == land_type_land) {
+			grass_tile = i;
+			return i;
+		}
+	}
+	return 0;
+}
+
+bool resource_configuration::can_found_city(int t) const
+{
+	if(t < 0 || t >= num_terrain_types)
+		return false;
+	return found_city[t];
 }
 
 advance::advance()
@@ -134,8 +173,8 @@ bool unit::is_settler() const
 	return uconf.settler;
 }
 
-fog_of_war::fog_of_war(int x, int y)
-	: fog(buf2d<int>(x, y, 0))
+fog_of_war::fog_of_war(const map* m_)
+	: fog(buf2d<int>(m_ ? m_->size_x() : 0, m_ ? m_->size_y() : 0, 0)), m(m_)
 {
 }
 
@@ -143,8 +182,10 @@ void fog_of_war::reveal(int x, int y, int radius)
 {
 	for(int i = x - radius; i <= x + radius; i++) {
 		for(int j = y - radius; j <= y + radius; j++) {
-			up_refcount(i, j);
-			set_value(i, j, 2);
+			int di = m->wrap_x(i);
+			int dj = m->wrap_y(j);
+			up_refcount(di, dj);
+			set_value(di, dj, 2);
 		}
 	}
 }
@@ -153,9 +194,11 @@ void fog_of_war::shade(int x, int y, int radius)
 {
 	for(int i = x - radius; i <= x + radius; i++) {
 		for(int j = y - radius; j <= y + radius; j++) {
-			down_refcount(i, j);
-			if(get_refcount(i, j) == 0)
-				set_value(i, j, 1);
+			int di = m->wrap_x(i);
+			int dj = m->wrap_y(j);
+			down_refcount(di, dj);
+			if(get_refcount(di, dj) == 0)
+				set_value(di, dj, 1);
 		}
 	}
 }
@@ -210,11 +253,77 @@ map::map(int x, int y, const resource_configuration& resconf_)
 	land_map(buf2d<int>(x, y, -1)),
 	resconf(resconf_)
 {
+	x_wrap = true;
+	y_wrap = false;
+	int sea_tile = resconf.get_sea_tile();
+	int grass_tile = resconf.get_grass_tile();
+
+	// init to water
 	for(int i = 0; i < y; i++) {
 		for(int j = 0; j < x; j++) {
-			data.set(j, i, rand() % 2);
+			data.set(j, i, sea_tile);
 		}
 	}
+
+	// create continents
+	int max_continent_size = 150; // in tiles
+	int num_continents = x * y / max_continent_size;
+	for(int i = 0; i < num_continents; i++) {
+		int cont_x = rand() % x;
+		int cont_y = rand() % y;
+		data.set(cont_x, cont_y, grass_tile);
+		std::vector<coord> candidates;
+		candidates.push_back(coord(cont_x, cont_y));
+		int cont_size = rand() % max_continent_size + 1;
+		for(int j = 0; j < cont_size && !candidates.empty(); j++) {
+			int cand = rand() % candidates.size();
+			coord c = candidates[cand];
+			candidates.erase(candidates.begin() + cand);
+			data.set(c.x, c.y, grass_tile);
+			int dx1 = wrap_x(c.x - 1);
+			int dx2 = wrap_x(c.x + 1);
+			if(get_data(dx1, c.y) == sea_tile)
+				candidates.push_back(coord(dx1, c.y));
+			if(get_data(dx2, c.y) == sea_tile)
+				candidates.push_back(coord(dx2, c.y));
+			if(c.y > 0 && get_data(c.x, c.y - 1) == sea_tile)
+				candidates.push_back(coord(c.x, c.y - 1));
+			if(c.y < y - 1 && get_data(c.x, c.y + 1) == sea_tile)
+				candidates.push_back(coord(c.x, c.y + 1));
+		}
+	}
+}
+
+int map::wrap_x(int x) const
+{
+	if(x_wrap) {
+		while(x < 0)
+			x += size_x();
+		while(x > size_x() - 1)
+			x -= size_x();
+	}
+	return x;
+}
+
+int map::wrap_y(int y) const
+{
+	if(y_wrap) {
+		while(y < 0)
+			y += size_y();
+		while(y > size_y() - 1)
+			y -= size_y();
+	}
+	return y;
+}
+
+bool map::x_wrapped() const
+{
+	return x_wrap;
+}
+
+bool map::y_wrapped() const
+{
+	return y_wrap;
 }
 
 int map::get_data(int x, int y) const
@@ -263,6 +372,8 @@ void map::remove_unit(unit* u)
 
 int map::get_spot_resident(int x, int y) const
 {
+	x = wrap_x(x);
+	y = wrap_y(y);
 	const std::list<unit*>* val = unit_map.get(x, y);
 	if(!val)
 		return -1;
@@ -277,7 +388,7 @@ int map::get_spot_resident(int x, int y) const
 
 int map::get_move_cost(const unit& u, int x, int y) const
 {
-	int t = get_data(x, y);
+	int t = get_data(wrap_x(x), wrap_y(y));
 	if(t == -1)
 		return -1;
 	if(t == 0)
@@ -287,7 +398,7 @@ int map::get_move_cost(const unit& u, int x, int y) const
 
 const std::list<unit*>& map::units_on_spot(int x, int y) const
 {
-	const std::list<unit*>* us = unit_map.get(x, y);
+	const std::list<unit*>* us = unit_map.get(wrap_x(x), wrap_y(y));
 	if(us == NULL)
 		return map::empty_unit_spot;
 	else
@@ -296,7 +407,7 @@ const std::list<unit*>& map::units_on_spot(int x, int y) const
 
 city* map::city_on_spot(int x, int y) const
 {
-	city* const* c = city_map.get(x, y);
+	city* const* c = city_map.get(wrap_x(x), wrap_y(y));
 	if(!c)
 		return NULL;
 	return *c;
@@ -307,9 +418,10 @@ class land_grabber {
 	int y;
 	int lr;
 	int civid;
+	const map* m;
 	public:
-		land_grabber(int x_, int y_, int lr_, int civid_) 
-			: x(x_), y(y_), lr(lr_), civid(civid_) { }
+		land_grabber(int x_, int y_, int lr_, int civid_, const map* m_) 
+			: x(x_), y(y_), lr(lr_), civid(civid_), m(m_) { }
 		void operator()(buf2d<int>& land_map, int xp, int yp) {
 			if(xp == x && yp == y) {
 				land_map.set(xp, yp, civid);
@@ -320,20 +432,22 @@ class land_grabber {
 			float dist = sqrt(xd * xd + yd * yd);
 			if(static_cast<int>(dist) > lr)
 				return;
-			const int* v = land_map.get(xp, yp);
+			const int* v = land_map.get(m->wrap_x(xp), m->wrap_y(yp));
 			if(v && *v == -1)
-				land_map.set(xp, yp, civid);
+				land_map.set(m->wrap_x(xp), m->wrap_y(yp), civid);
 		}
 };
 
 void map::add_city(city* c, int x, int y)
 {
+	x = wrap_x(x);
+	y = wrap_y(y);
 	if(city_on_spot(x, y))
 		return;
 	city_map.set(x, y, c);
 	int land_radius = static_cast<int>(c->culture + 1.5f);
-	land_grabber grab(x, y, land_radius, c->civ_id);
-	mod_rectangle(land_map, x, y, land_radius, grab);
+	land_grabber grab(x, y, land_radius, c->civ_id, this);
+	mod_rectangle(land_map, x, y, land_radius, x_wrap, y_wrap, grab);
 }
 
 void map::remove_city(const city* c)
@@ -343,7 +457,7 @@ void map::remove_city(const city* c)
 
 bool map::has_city_of(int x, int y, unsigned int civ_id) const
 {
-	city* c = city_on_spot(x, y);
+	city* c = city_on_spot(wrap_x(x), wrap_y(y));
 	if(c)
 		return c->civ_id == civ_id;
 	else
@@ -352,7 +466,7 @@ bool map::has_city_of(int x, int y, unsigned int civ_id) const
 
 int map::city_owner_on_spot(int x, int y) const
 {
-	city* c = city_on_spot(x, y);
+	city* c = city_on_spot(wrap_x(x), wrap_y(y));
 	if(!c)
 		return -1;
 	return c->civ_id;
@@ -360,12 +474,12 @@ int map::city_owner_on_spot(int x, int y) const
 
 void map::set_land_owner(int civ_id, int x, int y)
 {
-	land_map.set(x, y, civ_id);
+	land_map.set(wrap_x(x), wrap_y(y), civ_id);
 }
 
 int map::get_land_owner(int x, int y) const
 {
-	const int* v = land_map.get(x, y);
+	const int* v = land_map.get(wrap_x(x), wrap_y(y));
 	if(!v)
 		return -1;
 	return *v;
@@ -373,6 +487,8 @@ int map::get_land_owner(int x, int y) const
 
 int map::get_spot_owner(int x, int y) const
 {
+	x = wrap_x(x);
+	y = wrap_y(y);
 	int res = get_spot_resident(x, y);
 	if(res >= 0)
 		return res;
@@ -390,6 +506,21 @@ void map::remove_civ_land(unsigned int civ_id)
 			}
 		}
 	}
+}
+
+std::vector<coord> map::get_starting_places(int num) const
+{
+	std::vector<coord> retval;
+	while((int)retval.size() < num) {
+		int xp = rand() % size_x();
+		int yp = rand() % size_y();
+		if(resconf.can_found_city(get_data(xp, yp))) {
+			coord v(xp, yp);
+			if(find(retval.begin(), retval.end(), v) == retval.end())
+				retval.push_back(v);
+		}
+	}
+	return retval;
 }
 
 city::city(std::string name, int x, int y, unsigned int civid)
@@ -449,7 +580,7 @@ civilization::civilization(std::string name, unsigned int civid,
 	civ_id(civid),
 	col(c_),
 	m(m_),
-	fog(fog_of_war(0, 0)),
+	fog(fog_of_war(m_)),
 	gold(0),
 	science(0),
 	alloc_gold(5),
@@ -461,7 +592,7 @@ civilization::civilization(std::string name, unsigned int civid,
 {
 	relationships[civid] = relationship_peace;
 	if(m) {
-		fog = fog_of_war(m->size_x(), m->size_y());
+		fog = fog_of_war(m);
 		known_land_map = buf2d<int>(m->size_x(),
 				m->size_y(), -1);
 	}
@@ -483,7 +614,9 @@ void civilization::reveal_land(int x, int y, int r)
 {
 	for(int i = x - r; i <= x + r; i++) {
 		for(int j = y - r; j <= y + r; j++) {
-			known_land_map.set(i, j, m->get_land_owner(i, j));
+			int di = m->wrap_x(i);
+			int dj = m->wrap_y(j);
+			known_land_map.set(di, dj, m->get_land_owner(di, dj));
 		}
 	}
 }
@@ -645,13 +778,13 @@ int civilization::try_move_unit(unit* u, int chx, int chy)
 {
 	if(!u->moves || !(chx || chy))
 		return 0;
-	int newx = u->xpos + chx;
-	int newy = u->ypos + chy;
+	int newx = m->wrap_x(u->xpos + chx);
+	int newy = m->wrap_y(u->ypos + chy);
 	if(m->get_data(newx, newy) > 0 && can_move_to(newx, newy)) {
 		m->remove_unit(u);
 		fog.shade(u->xpos, u->ypos, 1);
-		u->xpos += chx;
-		u->ypos += chy;
+		u->xpos = newx;
+		u->ypos = newy;
 		u->moves--;
 		fog.reveal(u->xpos, u->ypos, 1);
 		reveal_land(u->xpos, u->ypos, 1);
@@ -663,7 +796,7 @@ int civilization::try_move_unit(unit* u, int chx, int chy)
 
 char civilization::fog_at(int x, int y) const
 {
-	return fog.get_value(x, y);
+	return fog.get_value(m->wrap_x(x), m->wrap_y(y));
 }
 
 city* civilization::add_city(std::string name, int x, int y)
@@ -770,7 +903,7 @@ void civilization::set_map(map* m_)
 {
 	if(m_ && !m) {
 		m = m_;
-		fog = fog_of_war(m->size_x(), m->size_y());
+		fog = fog_of_war(m);
 		known_land_map = buf2d<int>(m->size_x(),
 				m->size_y(), -1);
 	}
@@ -794,7 +927,7 @@ bool civilization::can_move_to(int x, int y) const
 
 int civilization::get_known_land_owner(int x, int y) const
 {
-	const int* v = known_land_map.get(x, y);
+	const int* v = known_land_map.get(m->wrap_x(x), m->wrap_y(y));
 	if(!v)
 		return -1;
 	return *v;

@@ -8,6 +8,8 @@
 void check_insert(std::set<coord>& s, const civilization& civ,
 		const unit& u, bool ignore_enemy, int x, int y)
 {
+	x = civ.m->wrap_x(x);
+	y = civ.m->wrap_y(y);
 	if(x >= 0 && y >= 0 && x < civ.m->size_x() && y < civ.m->size_y()) {
 		if(terrain_allowed(*civ.m, u, x, y)) {
 			int fogval = civ.fog.get_value(x, y);

@@ -93,14 +93,19 @@ N* buf2d<N>::get_mod(int x, int y)
 }
 
 template<typename N, typename F>
-void mod_rectangle(buf2d<N>& buf, int center_x, int center_y, int radius, F& funcobj)
+void mod_rectangle(buf2d<N>& buf, int center_x, int center_y, int radius, 
+		bool wrap_x, bool wrap_y, F& funcobj)
 {
 	for(int i = center_x - radius; i <= center_x + radius; i++) {
 		for(int j = center_y - radius; j <= center_y + radius; j++) {
-			if(i < 0 || i >= buf.size_x)
-				continue;
-			if(j < 0 || j >= buf.size_y)
-				continue;
+			if(i < 0 || i >= buf.size_x) {
+				if(!wrap_x)
+					continue;
+			}
+			if(j < 0 || j >= buf.size_y) {
+				if(!wrap_y)
+					continue;
+			}
 			funcobj(buf, i, j);
 		}
 	}

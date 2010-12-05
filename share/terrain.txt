@@ -1,4 +1,21 @@
-# Terrain name - food - production - commerce - type
-Sea		1 0 2 0
-Grassland	2 0 1 1
-
+# Terrain name - food - production - commerce - height - type - temperature - humidity - flags
+# types: 0: sea
+#        1: land
+#        2: hill
+#        3: mountain
+#
+# temperatures: 1 => cold, 9 => hot, 0 => any
+# humidities:   1 => dry,  9 => humid, 0 => any
+#
+# flags:
+#	can found city
+Sea		1 0 2 0 0 0 0
+Grassland	2 0 1 1 5 5 1
+Forest		1 2 0 1 5 6 1
+Plains		1 0 1 1 6 4 1
+Hills		1 2 0 2 0 0 1
+Mountains	0 2 0 3 0 0 0
+Tundra		1 0 1 1 2 5 1
+Glacier		0 0 0 1 0 0 0
+Desert		0 0 0 1 9 0 0
+Jungle		1 1 0 1 7 9 1

@@ -115,11 +115,11 @@ int city_window::draw_city_resources_screen(int xpos, int ypos)
 		for(int j = -2; j <= 2; j++) {
 			int y = ypos + (j + 2) * res.terrains.tile_h;
 			if(abs(i) != 2 || abs(j) != 2) {
-				int xp = c->xpos + i;
-				int yp = c->ypos + j;
+				int xp = data.m.wrap_x(c->xpos + i);
+				int yp = data.m.wrap_y(c->ypos + j);
 				if(in_bounds(0, xp, data.m.size_x() - 1) &&
 				   in_bounds(0, yp, data.m.size_y() - 1) && myciv->fog_at(xp, yp)) {
-					draw_terrain_tile(c->xpos + i, c->ypos + j, x, y, false,
+					draw_terrain_tile(xp, yp, x, y, false,
 							data.m, res.terrains, screen);
 				}
 			}
@@ -142,8 +142,8 @@ int city_window::draw_city_resources_screen(int xpos, int ypos)
 			  res.terrains.tile_w, res.terrains.tile_h, color(255, 255, 255),
 			  1, screen);
 
-		int tile_xcoord = c->xpos + it->x;
-		int tile_ycoord = c->ypos + it->y;
+		int tile_xcoord = data.m.wrap_x(c->xpos + it->x);
+		int tile_ycoord = data.m.wrap_y(c->ypos + it->y);
 		int food, prod, comm;
 		data.m.get_resources_by_terrain(data.m.get_data(tile_xcoord,
 				tile_ycoord), it->x == 0 && it->y == 0, &food,
