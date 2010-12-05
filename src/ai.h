@@ -151,6 +151,7 @@ class ai {
 	typedef std::map<city*, city_production*> cityordersmap_t;
 	typedef std::pair<int, orders*> orderprio_t;
 	typedef std::priority_queue<orderprio_t> ordersqueue_t;
+	typedef std::priority_queue<std::pair<int, coord> > city_points_t;
 	public:
 		ai(map& m_, round& r_, civilization* c);
 		bool play();
@@ -175,6 +176,7 @@ class ai {
 		ordersmap_t ordersmap;
 		cityordersmap_t cityordersmap;
 		ai_tunable_parameters param;
+		city_points_t cityq;
 };
 
 bool find_best_city_pos(const civilization* myciv,

@@ -4,6 +4,8 @@
 #include "map-astar.h"
 #include "ai.h"
 
+// #define AI_DEBUG
+
 class found_city_picker {
 	private:
 		const civilization* myciv;
@@ -27,7 +29,7 @@ int points_for_city_founding(const civilization* civ,
 	if(counter <= 0)
 		return -1;
 
-	// do not found a city nearer than 3 squares to a friendly city
+	// do not found a city nearer than N squares to a friendly city
 	for(int i = -found_city.min_dist_to_friendly_city; 
 			i <= found_city.min_dist_to_friendly_city; i++)
 		for(int j = -found_city.min_dist_to_friendly_city; 
@@ -35,7 +37,7 @@ int points_for_city_founding(const civilization* civ,
 			if(civ->m->has_city_of(co.x + i, co.y + j, civ->civ_id))
 				return -1;
 
-	// do not found a city nearer than 2 squares to any city
+	// do not found a city nearer than N squares to any city
 	for(int i = -found_city.min_dist_to_city; i <= found_city.min_dist_to_city; i++)
 		for(int j = -found_city.min_dist_to_city; j <= found_city.min_dist_to_city; j++)
 			if(civ->m->city_on_spot(co.x + i, co.y + j))
@@ -68,9 +70,8 @@ int points_for_city_founding(const civilization* civ,
 #endif
 
 #ifdef AI_DEBUG
-	printf("City prio: %d\n", std::min<int>(found_city.max_found_city_prio, 
-					found_city.found_city_coeff * 
-					(counter + food_points + prod_points + comm_points)));
+	printf("City prio: %d\n", found_city.found_city_coeff * 
+			(counter + food_points + prod_points + comm_points));
 #endif
 	return clamp<int>(0,
 			found_city.found_city_coeff * 
@@ -437,7 +438,7 @@ action found_city_orders::get_action()
 				found_city, 1, coord(tgtx, tgty));
 		printf("old: %d - new: %d\n", city_points,
 				new_city_points);
-		if(new_city_points < city_points) {
+		if(new_city_points < 1 || new_city_points < city_points) {
 			replan();
 			return action_none;
 		}
@@ -467,7 +468,7 @@ bool found_city_orders::replan()
 	if(succ)
 		city_points = points_for_city_founding(civ, found_city,
 				0, coord(tgtx, tgty));
-	return succ;
+	return succ && city_points > 0;
 }
 
 void found_city_orders::clear()
@@ -477,10 +478,10 @@ void found_city_orders::clear()
 
 ai_tunables_found_city::ai_tunables_found_city()
 	: min_dist_to_city(3),
-	min_dist_to_friendly_city(2),
-	food_coeff(5),
-	prod_coeff(4),
-	comm_coeff(1),
+	min_dist_to_friendly_city(4),
+	food_coeff(1),
+	prod_coeff(1),
+	comm_coeff(0),
 	min_food_points(20),
 	min_prod_points(10),
 	min_comm_points(5),
@@ -719,7 +720,7 @@ ai::orderprio_t ai::get_defense_orders(unit* u)
 			int num_units = units.size();
 			if(tgtx == u->xpos && tgty == u->ypos)
 				num_units--;
-			prio = clamp<int>(0, param.max_defense_prio - 
+			prio = clamp<int>(1, param.max_defense_prio - 
 					param.defense_units_prio_coeff * num_units,
 					param.max_defense_prio);
 		}
