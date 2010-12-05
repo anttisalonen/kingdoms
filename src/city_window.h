@@ -13,12 +13,13 @@
 #include "gui-utils.h"
 #include "civ.h"
 #include "rect.h"
+#include "ai.h"
 
 class city_window : public window {
 	typedef int(city_window::*city_window_fun)();
 	public:
 		city_window(SDL_Surface* screen_, int x, int y, gui_data& data_, gui_resources& res_, city* c_,
-				civilization* myciv_);
+				ai* ai_, civilization* myciv_);
 		~city_window();
 		int handle_window_input(const SDL_Event& ev);
 		int draw_window();
@@ -37,6 +38,7 @@ class city_window : public window {
 		std::list<button*> change_prod_buttons;
 		std::vector<SDL_Surface*> change_prod_labels;
 		civilization* myciv;
+		ai* internal_ai;
 };
 
 

@@ -7,6 +7,7 @@
 #include "gui-utils.h"
 #include "civ.h"
 #include "rect.h"
+#include "ai.h"
 
 struct camera {
 	int cam_x;
@@ -16,7 +17,7 @@ struct camera {
 class main_window : public window {
 	public:
 		main_window(SDL_Surface* screen_, int x, int y, gui_data& data_, gui_resources& res_,
-				civilization* myciv_);
+				ai* ai_, civilization* myciv_);
 		~main_window();
 		int draw_window();
 		int process(int ms);
@@ -46,6 +47,7 @@ class main_window : public window {
 		int handle_civ_messages(std::list<msg>* messages);
 		bool try_move_unit(unit* u, int chx, int chy);
 		action input_to_action(const SDL_Event& ev);
+		action observer_action(const SDL_Event& ev);
 		void handle_input_gui_mod(const SDL_Event& ev, city** c);
 		void handle_successful_action(const action& a, city** c);
 		void update_view();
@@ -71,6 +73,7 @@ class main_window : public window {
 		int mouse_down_sqx;
 		int mouse_down_sqy;
 		std::list<coord> path_to_draw;
+		ai* internal_ai;
 };
 
 

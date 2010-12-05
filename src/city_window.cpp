@@ -3,10 +3,11 @@
 #include <boost/bind.hpp>
 
 city_window::city_window(SDL_Surface* screen_, int x, int y, gui_data& data_, gui_resources& res_, city* c_,
-		civilization* myciv_)
+		ai* ai_, civilization* myciv_)
 	: window(screen_, x, y, data_, res_),
 	c(c_),
-	myciv(myciv_)
+	myciv(myciv_),
+	internal_ai(ai_)
 {
 	buttons.push_back(new plain_button(rect(screen_w * 0.30, screen_h * 0.1, screen_w * 0.40, screen_h * 0.08),
 				c->cityname.c_str(), &res.font, color(200, 200, 200), color(0, 0, 0),
@@ -54,6 +55,8 @@ city_window::~city_window()
 
 int city_window::change_production()
 {
+	if(internal_ai)
+		return 0;
 	rect option_rect = rect(screen_w * 0.30, screen_h * 0.1, screen_w * 0.40, screen_h * 0.08);
 	for(unit_configuration_map::const_iterator it = data.r.uconfmap.begin();
 			it != data.r.uconfmap.end();
@@ -99,7 +102,8 @@ int city_window::on_exit()
 
 int city_window::on_unit(unit* u)
 {
-	u->fortified = false;
+	if(!internal_ai)
+		u->fortified = false;
 	return 0;
 }
 

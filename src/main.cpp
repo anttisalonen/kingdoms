@@ -189,7 +189,7 @@ std::vector<std::string> get_file_list(const std::string& prefix, const std::str
 	return results;
 }
 
-int run()
+int run(bool observer)
 {
 	const int map_x = 64;
 	const int map_y = 32;
@@ -231,13 +231,16 @@ int run()
 		fprintf(stderr, "Could not open font: %s\n", TTF_GetError());
 	}
 
-	ai egyptians(m, *r, r->civs[1]);
+	std::map<unsigned int, ai> ais;
+	if(observer)
+		ais.insert(std::make_pair(0, ai(m, *r, r->civs[0])));
+	ais.insert(std::make_pair(1, ai(m, *r, r->civs[1])));
 	gui g(1024, 768, m, *r, terrain_files, unit_files, "share/empty.png", 
 			"share/city.png", *font,
 			"share/food_icon.png",
 			"share/prod_icon.png",
 			"share/comm_icon.png",
-			civs[0]);
+			observer ? &ais.find(0)->second : NULL, civs[0]);
 	g.display();
 	g.init_turn();
 	while(running) {
@@ -261,10 +264,16 @@ int run()
 			g.process(50);
 		}
 		else {
-			if(egyptians.play())
+			std::map<unsigned int, ai>::iterator ait = ais.find(r->current_civ_id());
+			if(ait != ais.end()) {
+				if(ait->second.play())
+					running = false;
+				else
+					g.init_turn();
+			}
+			else {
 				running = false;
-			else
-				g.init_turn();
+			}
 		}
 	}
 	TTF_CloseFont(font);
@@ -277,6 +286,10 @@ int run()
 
 int main(int argc, char **argv)
 {
+	bool observer = false;
+	if(argc > 1 && !strcmp(argv[1], "-o")) {
+		observer = true;
+	}
 	if (SDL_Init(SDL_INIT_EVERYTHING) < 0) {
 		fprintf(stderr, "Unable to init SDL: %s\n", SDL_GetError());
 		exit(1);
@@ -289,7 +302,7 @@ int main(int argc, char **argv)
 	}
 	SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
 	try {
-		run();
+		run(observer);
 	}
 	catch (std::exception& e) {
 		printf("std::exception: %s\n", e.what());

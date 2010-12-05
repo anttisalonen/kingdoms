@@ -9,6 +9,7 @@ gui::gui(int x, int y, map& mm, round& rr,
 		const char* food_icon_name,
 		const char* prod_icon_name,
 		const char* curr_icon_name,
+		ai* ai_,
 		civilization* myciv_)
 	: screen_w(x),
 	screen_h(y),
@@ -17,8 +18,7 @@ gui::gui(int x, int y, map& mm, round& rr,
 	res(font_, 32, 32, sdl_load_image(food_icon_name), 
 			sdl_load_image(prod_icon_name), 
 			sdl_load_image(curr_icon_name)),
-	mw(screen, x, y, data, res, myciv_),
-	myciv(myciv_)
+	mw(screen, x, y, data, res, ai_, myciv_)
 {
 	if (!screen) {
 		fprintf(stderr, "Unable to set %dx%d video: %s\n", x, y, SDL_GetError());

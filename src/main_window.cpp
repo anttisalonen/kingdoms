@@ -4,7 +4,7 @@
 #include "diplomacy_window.h"
 
 main_window::main_window(SDL_Surface* screen_, int x, int y, gui_data& data_, gui_resources& res_,
-		civilization* myciv_)
+		ai* ai_, civilization* myciv_)
 	: window(screen_, x, y, data_, res_),
 	tile_w(32),
 	tile_h(32),
@@ -16,7 +16,8 @@ main_window::main_window(SDL_Surface* screen_, int x, int y, gui_data& data_, gu
 	timer(0),
 	myciv(myciv_),
 	mouse_down_sqx(-1),
-	mouse_down_sqy(-1)
+	mouse_down_sqy(-1),
+	internal_ai(ai_)
 {
 	cam.cam_x = cam.cam_y = 0;
 }
@@ -94,7 +95,7 @@ int main_window::draw_sidebar() const
 	clear_sidebar();
 	draw_minimap();
 	draw_civ_info();
-	if(current_unit != myciv->units.end())
+	if(!internal_ai && current_unit != myciv->units.end())
 		draw_unit_info();
 	else
 		draw_eot();
@@ -110,7 +111,9 @@ int main_window::draw_minimap() const
 		for(int j = 0; j < minimap_w; j++) {
 			int x = j * data.m.size_x() / minimap_w;
 			color c = get_minimap_color(x, y);
-			if((c.r == 255 && c.g == 255 && c.b == 255) || myciv->fog_at(x, y) > 0) {
+			if((c.r == 255 && c.g == 255 && c.b == 255) || 
+					internal_ai || 
+					myciv->fog_at(x, y) > 0) {
 				sdl_put_pixel(screen, j, i, c);
 			}
 		}
@@ -226,8 +229,8 @@ int main_window::draw_main_map()
 	for(int i = cam.cam_y, y = 0; i < imax; i++, y++) {
 		for(int j = cam.cam_x, x = sidebar_size; j < jmax; j++, x++) {
 			char fog = myciv->fog_at(j, i);
-			if(fog > 0) {
-				if(show_terrain_image(j, i, x, y, fog == 1)) {
+			if(fog > 0 || internal_ai) {
+				if(show_terrain_image(j, i, x, y, !internal_ai && fog == 1)) {
 					return 1;
 				}
 				if(test_draw_border(j, i, x, y)) {
@@ -244,7 +247,7 @@ int main_window::draw_main_map()
 				++it) {
 			if(it == current_unit)
 				continue;
-			if(myciv->fog_at((*it)->xpos, (*it)->ypos) == 2) {
+			if(internal_ai || myciv->fog_at((*it)->xpos, (*it)->ypos) == 2) {
 				if(draw_unit(**it)) {
 					return 1;
 				}
@@ -253,14 +256,14 @@ int main_window::draw_main_map()
 		for(std::list<city*>::const_iterator it = (*cit)->cities.begin();
 				it != (*cit)->cities.end();
 				++it) {
-			if(myciv->fog_at((*it)->xpos, (*it)->ypos) > 0) {
+			if(internal_ai || myciv->fog_at((*it)->xpos, (*it)->ypos) > 0) {
 				if(draw_city(**it)) {
 					return 1;
 				}
 			}
 		}
 	}
-	if(current_unit != myciv->units.end() && !blink_unit) {
+	if(!internal_ai && current_unit != myciv->units.end() && !blink_unit) {
 		if(draw_unit(**current_unit))
 			return 1;
 	}
@@ -381,6 +384,8 @@ int main_window::try_center_camera_to_unit(unit* u)
 
 int main_window::process(int ms)
 {
+	if(internal_ai)
+		return 0;
 	int old_timer = timer;
 	timer += ms;
 	bool old_blink_unit = blink_unit;
@@ -515,6 +520,26 @@ action main_window::input_to_action(const SDL_Event& ev)
 	return action_none;
 }
 
+action main_window::observer_action(const SDL_Event& ev)
+{
+	switch(ev.type) {
+		case SDL_QUIT:
+			return action(action_give_up);
+		case SDL_KEYDOWN:
+			{
+				SDLKey k = ev.key.keysym.sym;
+				if(k == SDLK_ESCAPE || k == SDLK_q)
+					return action(action_give_up);
+				else if(k == SDLK_RETURN || k == SDLK_KP_ENTER) {
+					internal_ai->play();
+				}
+			}
+		default:
+			break;
+	}
+	return action_none;
+}
+
 void main_window::handle_successful_action(const action& a, city** c)
 {
 	switch(a.type) {
@@ -554,7 +579,7 @@ void main_window::handle_input_gui_mod(const SDL_Event& ev, city** c)
 				if(k == SDLK_LEFT || k == SDLK_RIGHT || k == SDLK_UP || k == SDLK_DOWN) {
 					try_move_camera(k == SDLK_LEFT, k == SDLK_RIGHT, k == SDLK_UP, k == SDLK_DOWN);
 				}
-				if(current_unit != myciv->units.end()) {
+				if(!internal_ai && current_unit != myciv->units.end()) {
 					if(k == SDLK_c) {
 						center_camera_to_unit(*current_unit);
 					}
@@ -587,7 +612,7 @@ void main_window::update_view()
 int main_window::handle_window_input(const SDL_Event& ev)
 {
 	city* c = NULL;
-	action a = input_to_action(ev);
+	action a = internal_ai ? observer_action(ev) : input_to_action(ev);
 	if(a.type != action_none) {
 		// save the iterator - performing an action may destroy
 		// the current unit
@@ -612,12 +637,12 @@ int main_window::handle_window_input(const SDL_Event& ev)
 	else {
 		handle_input_gui_mod(ev, &c);
 	}
-	if(current_unit == myciv->units.end())
+	if(!internal_ai && current_unit == myciv->units.end())
 		get_next_free_unit();
 	update_view();
 	if(c) {
 		add_subwindow(new city_window(screen, screen_w, screen_h, data, res, c,
-					myciv));
+					internal_ai, myciv));
 	}
 	return a.type == action_give_up;
 }
@@ -730,7 +755,7 @@ int main_window::try_choose_with_mouse(city** c)
 	}
 
 	// if no city chosen, choose unit
-	if(!*c) {
+	if(!*c && !internal_ai) {
 		for(std::list<unit*>::iterator it = myciv->units.begin();
 				it != myciv->units.end();
 				++it) {
@@ -748,6 +773,8 @@ int main_window::try_choose_with_mouse(city** c)
 
 void main_window::init_turn()
 {
+	if(internal_ai)
+		return;
 	get_next_free_unit();
 	if(current_unit != myciv->units.end())
 		try_center_camera_to_unit(*current_unit);

@@ -17,6 +17,7 @@
 #include "rect.h"
 #include "main_window.h"
 #include "city_window.h"
+#include "ai.h"
 
 class gui
 {
@@ -30,6 +31,7 @@ class gui
 				const char* food_icon_name,
 				const char* prod_icon_name,
 				const char* curr_icon_name,
+				ai* ai_,
 				civilization* myciv_);
 		~gui();
 		int display();
@@ -43,9 +45,8 @@ class gui
 		SDL_Surface* screen;
 		gui_data data;
 		gui_resources res;
-		main_window mw;;
+		main_window mw;
 		city_window* cw;
-		civilization* myciv;
 };
 
 #endif
