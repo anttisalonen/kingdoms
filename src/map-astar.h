@@ -14,4 +14,7 @@ std::list<coord> map_path_to_nearest(const civilization& civ,
 		const unit& u, bool ignore_enemy, const coord& start, 
 		boost::function<bool(const coord& a)> goaltestfunc);
 
+// BFS, as the crow flies
+std::list<coord> map_birds_path_to_nearest(const coord& start,
+		boost::function<bool(const coord& a)> goaltestfunc);
 #endif

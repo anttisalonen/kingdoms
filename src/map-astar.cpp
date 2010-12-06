@@ -45,6 +45,19 @@ std::set<coord> map_graph(const civilization& civ, const unit& u,
 	return ret;
 }
 
+std::set<coord> map_bird_graph(const coord& a)
+{
+	std::set<coord> ret;
+	for(int i = -1; i <= 1; i++) {
+		for(int j = -1; j <= 1; j++) {
+			if(i || j) {
+				ret.insert(coord(a.x + i, a.y + j));
+			}
+		}
+	}
+	return ret;
+}
+
 int map_cost(const map& m, const unit& u, const coord& a, const coord& b)
 {
 	return m.get_move_cost(u, b.x, b.y);
@@ -84,6 +97,19 @@ std::list<coord> map_path_to_nearest(const civilization& civ,
 	using boost::lambda::_2;
 	using boost::ref;
 	return astar(bind(map_graph, ref(civ), ref(u), ignore_enemy, _1),
+			boost::lambda::constant(1),
+			boost::lambda::constant(0),
+			goaltestfunc, start);
+}
+
+std::list<coord> map_birds_path_to_nearest(const coord& start,
+		boost::function<bool(const coord& a)> goaltestfunc)
+{
+	using boost::bind;
+	using boost::lambda::_1;
+	using boost::lambda::_2;
+	using boost::ref;
+	return astar(bind(map_bird_graph, _1),
 			boost::lambda::constant(1),
 			boost::lambda::constant(0),
 			goaltestfunc, start);

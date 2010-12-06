@@ -17,7 +17,12 @@ class resource_configuration {
 		resource_configuration();
 		int get_sea_tile() const;
 		int get_grass_tile() const;
+		int get_hill_tile() const;
+		int get_mountain_tile() const;
 		bool can_found_city(int t) const;
+		bool is_water_tile(int t) const;
+		bool is_hill_tile(int t) const;
+		bool is_mountain_tile(int t) const;
 		std::string resource_name[num_terrain_types];
 		int terrain_food_values[num_terrain_types];
 		int terrain_prod_values[num_terrain_types];
@@ -32,6 +37,8 @@ class resource_configuration {
 	private:
 		mutable int sea_tile;
 		mutable int grass_tile;
+		mutable int hill_tile;
+		mutable int mountain_tile;
 };
 
 

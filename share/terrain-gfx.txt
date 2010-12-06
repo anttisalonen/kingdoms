@@ -1,3 +1,11 @@
-terrain1.png
-terrain2.png
+sea.png
+grassland.png
+forest.png
+plains.png
+hills.png
+mountains.png
+tundra.png
+glacier.png
+desert.png
+jungle.png
 

@@ -38,11 +38,20 @@ class map {
 		bool y_wrapped() const;
 	private:
 		int get_index(int x, int y) const;
+		void create_mountains(int x, int y, int width);
+		int get_temperature(int n) const;
+		std::vector<int> get_types_by_temperature(int temp) const;
+		int get_humidity_at(int x, int y) const;
+		std::vector<int> get_terrain_candidates(const std::vector<int>& types, 
+				int humidity) const;
+		float get_latitude(int y) const;
 		buf2d<int> data;
 		buf2d<std::list<unit*> > unit_map;
 		buf2d<city*> city_map;
 		buf2d<int> land_map;
+	public:
 		const resource_configuration& resconf;
+	private:
 		bool x_wrap;
 		bool y_wrap;
 		static const std::list<unit*> empty_unit_spot;

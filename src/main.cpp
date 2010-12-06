@@ -194,8 +194,8 @@ std::vector<std::string> get_file_list(const std::string& prefix, const std::str
 
 int run(bool observer)
 {
-	const int map_x = 64;
-	const int map_y = 32;
+	const int map_x = 80;
+	const int map_y = 60;
 
 	resource_configuration resconf;
 	resconf.city_food_bonus = 1;
@@ -291,7 +291,7 @@ int run(bool observer)
 int main(int argc, char **argv)
 {
 	bool observer = false;
-	srand(21);
+	srand(time(NULL));
 	if(argc > 1 && !strcmp(argv[1], "-o")) {
 		observer = true;
 	}

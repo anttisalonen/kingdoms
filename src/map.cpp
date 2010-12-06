@@ -2,6 +2,8 @@
 #include <math.h>
 #include <algorithm>
 #include "map.h"
+#include "map-astar.h"
+#include <stdio.h>
 
 const std::list<unit*> map::empty_unit_spot = std::list<unit*>();
 
@@ -25,30 +27,184 @@ map::map(int x, int y, const resource_configuration& resconf_)
 	}
 
 	// create continents
-	int max_continent_size = 150; // in tiles
-	int num_continents = x * y / max_continent_size;
+	int num_continents = 10;
+	int max_continent_size = x * y / num_continents; // in tiles
 	for(int i = 0; i < num_continents; i++) {
 		int cont_x = rand() % x;
-		int cont_y = rand() % y;
+		int cont_y = 10 + rand() % (y - 20);
 		data.set(cont_x, cont_y, grass_tile);
 		std::vector<coord> candidates;
 		candidates.push_back(coord(cont_x, cont_y));
 		int cont_size = rand() % max_continent_size + 1;
+		std::set<coord> already_taken;
 		for(int j = 0; j < cont_size && !candidates.empty(); j++) {
 			int cand = rand() % candidates.size();
 			coord c = candidates[cand];
+			if(already_taken.find(c) != already_taken.end())
+				continue;
+			already_taken.insert(c);
 			candidates.erase(candidates.begin() + cand);
 			data.set(c.x, c.y, grass_tile);
 			int dx1 = wrap_x(c.x - 1);
 			int dx2 = wrap_x(c.x + 1);
-			if(get_data(dx1, c.y) == sea_tile)
+			if(already_taken.find(coord(dx1, c.y)) == already_taken.end())
 				candidates.push_back(coord(dx1, c.y));
-			if(get_data(dx2, c.y) == sea_tile)
+			if(already_taken.find(coord(dx2, c.y)) == already_taken.end())
 				candidates.push_back(coord(dx2, c.y));
-			if(c.y > 0 && get_data(c.x, c.y - 1) == sea_tile)
+			if(c.y > 0 && already_taken.find(coord(c.x, c.y - 1)) == already_taken.end())
 				candidates.push_back(coord(c.x, c.y - 1));
-			if(c.y < y - 1 && get_data(c.x, c.y + 1) == sea_tile)
+			if(c.y < y - 1 && already_taken.find(coord(c.x, c.y + 1)) == already_taken.end())
 				candidates.push_back(coord(c.x, c.y + 1));
+		}
+	}
+
+	// create ridges
+	int max_ridge_length = 20;
+	int num_ridges = x * y / (max_ridge_length * 2);
+	for(int i = 0; i < num_ridges; i++) {
+		int xpos = rand() % x;
+		int ypos = rand() % y;
+		int dir = rand() % 8;
+		int ridge_width = 2;
+		int ridge_size = rand() % max_ridge_length + 4;
+		for(int j = 0; j < ridge_size; j++) {
+			int realdir = dir % 8;
+			if(get_data(xpos, ypos) != sea_tile) {
+				create_mountains(xpos, ypos, ridge_width);
+			}
+			ridge_width += rand() % 3 - 1;
+			ridge_width = clamp(2, ridge_width, 4);
+			int dx = realdir > 4 ? 1 : realdir < 3 ? -1 : 0;
+			int dy = realdir == 0 || realdir == 3 || realdir == 5 ? -1 :
+				realdir == 1 || realdir == 6 ? 0 : -1;
+			xpos = clamp(0, wrap_x(xpos + dx), x - 1);
+			ypos = clamp(0, wrap_y(ypos + dy), y - 1);
+			dir += rand() % 3 - 1;
+		}
+	}
+
+	// create terrain types
+	for(int j = 0; j < y; j++) {
+		int temp = get_temperature(j);
+		std::vector<int> types = get_types_by_temperature(temp);
+		for(int i = 0; i < x; i++) {
+			int this_data = get_data(i, j);
+			if(resconf.is_water_tile(this_data) ||
+			   resconf.is_mountain_tile(this_data))
+				continue;
+			if(resconf.is_hill_tile(this_data) &&
+			   temp > 3 && temp < 7)
+				continue;
+			int humidity = get_humidity_at(i, j);
+			std::vector<int> candidates = get_terrain_candidates(types, humidity);
+			int chosen_type_index = rand() % candidates.size();
+			data.set(i, j, candidates[chosen_type_index]);
+		}
+	}
+}
+
+int map::get_temperature(int n) const
+{
+	float dist_to_eq = fabsf(get_latitude(n));
+	return 10 - clamp(1, (int)(dist_to_eq * 10.0f), 9);
+}
+
+std::vector<int> map::get_types_by_temperature(int temp) const
+{
+	std::vector<int> res;
+	for(int i = 0; i < num_terrain_types; i++) {
+		if(resconf.terrain_type[i] == land_type_land && 
+			(resconf.temperature[i] == temp || 
+			 resconf.temperature[i] == 0))
+			res.push_back(i);
+	}
+	if(res.size() >= 3)
+		return res;
+	for(int i = 0; i < num_terrain_types; i++) {
+		if(resconf.terrain_type[i] == land_type_land && 
+			((temp > 1 && resconf.temperature[i] == temp - 1) ||
+			(temp < 9 && resconf.temperature[i] == temp + 1)))
+			res.push_back(i);
+	}
+	return res;
+}
+
+std::vector<int> map::get_terrain_candidates(const std::vector<int>& types, 
+		int humidity) const
+{
+	std::vector<int> res;
+	for(unsigned int i = 0; i < types.size(); i++) {
+		if((resconf.humidity[types[i]] == humidity) ||
+		   (resconf.humidity[types[i]] == 0 && resconf.terrain_type[types[i]] == land_type_land))
+			res.push_back(types[i]);
+	}
+	if(res.size() >= 1)
+		return res;
+	for(int j = 1; j <= 9; j++) {
+		for(unsigned int i = 0; i < types.size(); i++) {
+			if(resconf.humidity[types[i]] == 0)
+				continue;
+			if(abs(resconf.humidity[types[i]] - humidity) == j)
+				res.push_back(types[i]);
+		}
+		if(res.size() >= 1)
+			return res;
+	}
+	return res;
+}
+
+// between -1.0 and 1.0; 0.0 = equator
+float map::get_latitude(int y) const
+{
+	float max_dist = size_y() / 2.0f;
+	return 2.0f * (0.5f * y / max_dist) - 1.0f;
+}
+
+class sea_picker {
+	private:
+		const map& m;
+	public:
+		sea_picker(const map& m_) : m(m_) { }
+		bool operator()(const coord& a) {
+			return m.resconf.is_water_tile(m.get_data(a.x, a.y));
+		}
+};
+
+int map::get_humidity_at(int x, int y) const
+{
+	float lat = fabsf(get_latitude(y));
+	if(lat > 0.4f)
+		return 5;
+
+	// tropical
+	if(lat < 0.25f)
+		return 9;
+
+	std::list<coord> path_to_sea = map_birds_path_to_nearest(coord(x, y),
+			sea_picker(*this));
+	int dist_to_sea = path_to_sea.size();
+	for(std::list<coord>::const_iterator it = path_to_sea.begin();
+			it != path_to_sea.end();
+			++it) {
+		if(resconf.is_mountain_tile(get_data(it->x, it->y)))
+			dist_to_sea += 2;
+	}
+	return clamp(1, dist_to_sea * 2, 9);
+}
+
+void map::create_mountains(int x, int y, int width)
+{
+	int rad = width / 2;
+	int skip = width % 2;
+	for(int i = -rad; i < rad + skip; i++) {
+		for(int j = -rad; j < rad + skip; j++) {
+			int manh = abs(i) + abs(j);
+			if(resconf.is_water_tile(get_data(x + i, y + j)))
+				continue;
+			if(manh == rad || manh == rad + 1)
+				data.set(x + i, y + j, resconf.get_hill_tile());
+			else if(manh < rad)
+				data.set(x + i, y + j, resconf.get_mountain_tile());
 		}
 	}
 }
