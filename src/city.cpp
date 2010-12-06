@@ -8,7 +8,9 @@ city::city(std::string name, int x, int y, unsigned int civid)
 	population(1),
 	stored_food(0),
 	stored_prod(0),
-	culture(0)
+	accum_culture(0),
+	culture_level(1),
+	city_size(1)
 {
 	production.producing_unit = true;
 	production.current_production_id = -1;
@@ -51,4 +53,17 @@ bool city::has_barracks(const city_improv_map& cimap) const
 	return false;
 }
 
+bool city::has_granary(const city_improv_map& cimap) const
+{
+	for(std::set<unsigned int>::const_iterator it = built_improvements.begin();
+			it != built_improvements.end();
+			++it) {
+		city_improv_map::const_iterator cit = cimap.find(*it);
+		if(cit != cimap.end()) {
+			if(cit->second.granary)
+				return true;
+		}
+	}
+	return false;
+}
 

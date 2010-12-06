@@ -49,9 +49,10 @@ class round
 	public:
 		round(const unit_configuration_map& uconfmap_, 
 				const advance_map& amap_, 
-				const city_improv_map& cimap_);
+				const city_improv_map& cimap_,
+				map& m_);
 		void add_civilization(civilization* civ);
-		bool perform_action(int civid, const action& a, map* m);
+		bool perform_action(int civid, const action& a);
 		const unit_configuration* get_unit_configuration(int uid) const;
 		int current_civ_id() const;
 		void declare_war_between(unsigned int civ1, unsigned int civ2);
@@ -65,10 +66,15 @@ class round
 		bool next_civ();
 		void refill_moves();
 		void increment_resources();
-		bool try_move_unit(unit* u, int chx, int chy, map* m);
-		void check_city_conquer(map* m, int tgtxpos, int tgtypos);
+		bool try_move_unit(unit* u, int chx, int chy);
+		void check_city_conquer(int tgtxpos, int tgtypos);
 		void check_civ_elimination(int civ_id);
+		int needed_food_for_growth(int city_size) const;
+		int needed_culture_for_growth(int city_culture) const;
+		void check_for_city_updates();
+		void update_land_owners();
 		std::vector<civilization*>::iterator current_civ;
+		map& m;
 };
 
 #endif

@@ -1,3 +1,6 @@
 # name - cost - needed discoveries (4x)
 "Warrior Code"		10	0 0 0 0
 "Bronze Working"	15	1 0 0 0
+"Pottery"		10	0 0 0 0
+"Currency"		20	2 0 0 0
+"Ceremonial Burial"	20	2 0 0 0

@@ -177,7 +177,7 @@ int map::get_humidity_at(int x, int y) const
 		return 5;
 
 	// tropical
-	if(lat < 0.25f)
+	if(lat < 0.15f)
 		return 9;
 
 	std::list<coord> path_to_sea = map_birds_path_to_nearest(coord(x, y),
@@ -331,11 +331,11 @@ city* map::city_on_spot(int x, int y) const
 class land_grabber {
 	int x;
 	int y;
-	int lr;
+	float lr;
 	int civid;
 	const map* m;
 	public:
-		land_grabber(int x_, int y_, int lr_, int civid_, const map* m_) 
+		land_grabber(int x_, int y_, float lr_, int civid_, const map* m_) 
 			: x(x_), y(y_), lr(lr_), civid(civid_), m(m_) { }
 		void operator()(buf2d<int>& land_map, int xp, int yp) {
 			if(xp == x && yp == y) {
@@ -345,7 +345,7 @@ class land_grabber {
 			int xd = xp - x;
 			int yd = yp - y;
 			float dist = sqrt(xd * xd + yd * yd);
-			if(static_cast<int>(dist) > lr)
+			if(dist > lr)
 				return;
 			const int* v = land_map.get(m->wrap_x(xp), m->wrap_y(yp));
 			if(v && *v == -1)
@@ -360,9 +360,14 @@ void map::add_city(city* c, int x, int y)
 	if(city_on_spot(x, y))
 		return;
 	city_map.set(x, y, c);
-	int land_radius = static_cast<int>(c->culture + 1.5f);
-	land_grabber grab(x, y, land_radius, c->civ_id, this);
-	mod_rectangle(land_map, x, y, land_radius, x_wrap, y_wrap, grab);
+	grab_land(c);
+}
+
+void map::grab_land(city* c)
+{
+	float land_radius = c->culture_level + 0.5f;
+	land_grabber grab(c->xpos, c->ypos, land_radius, c->civ_id, this);
+	mod_rectangle(land_map, c->xpos, c->ypos, land_radius, x_wrap, y_wrap, grab);
 }
 
 void map::remove_city(const city* c)
@@ -431,11 +436,40 @@ std::vector<coord> map::get_starting_places(int num) const
 		int yp = rand() % size_y();
 		if(resconf.can_found_city(get_data(xp, yp))) {
 			coord v(xp, yp);
-			if(std::find(retval.begin(), retval.end(), v) == retval.end())
-				retval.push_back(v);
+			int f, p, c;
+			get_total_city_resources(xp, yp, &f, &p, &c);
+			if(f < 10 || p < 4 || c < 3)
+				continue;
+			for(std::vector<coord>::const_iterator it = retval.begin();
+					it != retval.end();
+					++it) {
+				int manh = abs(it->x - xp) + abs(it->y - yp);
+				if(manh < 4)
+					continue;
+			}
+			retval.push_back(v);
 		}
 	}
 	return retval;
 }
 
+void map::get_total_city_resources(int x, int y, int* food_points, 
+		int* prod_points, int* comm_points) const
+{
+	*food_points = *prod_points = *comm_points = 0;
+	for(int i = -2; i <= 2; i++) {
+		for(int j = -2; j <= 2; j++) {
+			if(abs(i) == 2 && abs(j) == 2)
+				continue;
+
+			int terr = get_data(x + i, y + j);
+			int food = 0, prod = 0, comm = 0;
+			get_resources_by_terrain(terr, false,
+					&food, &prod, &comm);
+			*food_points += food;
+			*prod_points += prod;
+			*comm_points += comm;
+		}
+	}
+}
 

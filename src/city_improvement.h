@@ -11,6 +11,10 @@ class city_improvement {
 		std::string improv_name;
 		int cost;
 		bool barracks;
+		bool granary;
+		int comm_bonus;
+		int culture;
+		int happiness;
 		unsigned int needed_advance;
 };
 

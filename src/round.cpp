@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <algorithm>
+#include <cmath>
 #include <boost/bind.hpp>
 #include <boost/lambda/lambda.hpp>
 
@@ -77,10 +78,12 @@ action move_unit_action(unit* u, int chx, int chy)
 
 round::round(const unit_configuration_map& uconfmap_,
 		const advance_map& amap_,
-		const city_improv_map& cimap_)
+		const city_improv_map& cimap_,
+		map& m_)
 	: uconfmap(uconfmap_),
 	amap(amap_),
-	cimap(cimap_)
+	cimap(cimap_),
+	m(m_)
 {
 	current_civ = civs.begin();
 }
@@ -118,10 +121,59 @@ bool round::next_civ()
 	if(current_civ == civs.end()) {
 		current_civ = civs.begin();
 		increment_resources();
+		check_for_city_updates();
 		refill_moves();
 		return true;
 	}
 	return false;
+}
+
+int round::needed_food_for_growth(int city_size) const
+{
+	return city_size * 10;
+}
+
+int round::needed_culture_for_growth(int culture_level) const
+{
+	return std::pow(10, culture_level);
+}
+
+void round::check_for_city_updates()
+{
+	bool update_land = false;
+	for(std::vector<civilization*>::iterator it = civs.begin();
+	    it != civs.end();
+	    ++it) {
+		for(std::list<city*>::iterator cit = (*it)->cities.begin();
+				cit != (*it)->cities.end();
+				++cit) {
+			if((*cit)->stored_food < 0) {
+				if((*cit)->city_size <= 1) {
+					std::list<city*>::iterator cit2(cit);
+					cit2--;
+					(*it)->remove_city(*cit);
+					update_land = true;
+					cit = cit2;
+					continue;
+				}
+			}
+			if((*cit)->stored_food >= needed_food_for_growth((*cit)->city_size)) {
+				(*cit)->city_size++;
+				if((*cit)->has_granary(cimap)) {
+					(*cit)->stored_food = needed_food_for_growth((*cit)->city_size) / 2;
+				}
+				else {
+					(*cit)->stored_food = 0;
+				}
+			}
+			if((*cit)->accum_culture >= needed_culture_for_growth((*cit)->culture_level)) {
+				(*cit)->culture_level++;
+				update_land = true;
+			}
+		}
+	}
+	if(update_land)
+		update_land_owners();
 }
 
 const unit_configuration* round::get_unit_configuration(int uid) const
@@ -132,7 +184,7 @@ const unit_configuration* round::get_unit_configuration(int uid) const
 	return &it->second;
 }
 
-bool round::perform_action(int civid, const action& a, map* m)
+bool round::perform_action(int civid, const action& a)
 {
 	if(civid < 0 || civid != current_civ_id()) {
 		return false;
@@ -147,13 +199,13 @@ bool round::perform_action(int civid, const action& a, map* m)
 			switch(a.data.unit_data.uatype) {
 				case action_move_unit:
 					return try_move_unit(a.data.unit_data.u, a.data.unit_data.unit_action_data.move_pos.chx,
-							a.data.unit_data.unit_action_data.move_pos.chy, m);
+							a.data.unit_data.unit_action_data.move_pos.chy);
 				case action_found_city:
 					{
 						const unit_configuration* uconf = get_unit_configuration(a.data.unit_data.u->unit_id);
 						bool can_build = uconf == NULL ? false : uconf->settler;
 						if(can_build && 
-							m->city_on_spot(a.data.unit_data.u->xpos, 
+							m.city_on_spot(a.data.unit_data.u->xpos, 
 								a.data.unit_data.u->ypos) == NULL) {
 							city* c = (*current_civ)->add_city("city name", a.data.unit_data.u->xpos,
 									a.data.unit_data.u->ypos);
@@ -181,12 +233,30 @@ bool round::perform_action(int civid, const action& a, map* m)
 	return true;
 }
 
-void round::check_city_conquer(map* m, int tgtxpos, int tgtypos)
+void round::check_city_conquer(int tgtxpos, int tgtypos)
 {
-	city* c = m->city_on_spot(tgtxpos, tgtypos);
+	city* c = m.city_on_spot(tgtxpos, tgtypos);
 	if(c) {
 		civilization* civ = civs[c->civ_id];
 		civ->remove_city(c);
+		update_land_owners();
+	}
+}
+
+void round::update_land_owners()
+{
+	for(int i = 0; i < m.size_x(); i++)
+		for(int j = 0; j < m.size_y(); j++)
+			m.set_land_owner(-1, i, j);
+
+	for(std::vector<civilization*>::iterator it = civs.begin();
+	    it != civs.end();
+	    ++it) {
+		for(std::list<city*>::iterator cit = (*it)->cities.begin();
+				cit != (*it)->cities.end();
+				++cit) {
+			m.grab_land(*cit);
+		}
 	}
 }
 
@@ -203,16 +273,16 @@ void round::check_civ_elimination(int civ_id)
 	}
 }
 
-bool round::try_move_unit(unit* u, int chx, int chy, map* m)
+bool round::try_move_unit(unit* u, int chx, int chy)
 {
 	int tgtxpos = u->xpos + chx;
 	int tgtypos = u->ypos + chy;
 
 	// attack square?
-	int def_id = m->get_spot_resident(tgtxpos, tgtypos);
+	int def_id = m.get_spot_resident(tgtxpos, tgtypos);
 	if(def_id >= 0 && def_id != u->civ_id) {
 		if(in_war(u->civ_id, def_id)) {
-			const std::list<unit*>& units = m->units_on_spot(tgtxpos, tgtypos);
+			const std::list<unit*>& units = m.units_on_spot(tgtxpos, tgtypos);
 			if(units.size() != 0) {
 				unit* defender = units.front();
 				if(!can_attack(*u, *defender)) {
@@ -229,9 +299,9 @@ bool round::try_move_unit(unit* u, int chx, int chy, map* m)
 					(*civs[def_id]).remove_unit(defender);
 				}
 			}
-			if(m->units_on_spot(tgtxpos, tgtypos).size() == 0) {
+			if(m.units_on_spot(tgtxpos, tgtypos).size() == 0) {
 				// check if a city was conquered
-				check_city_conquer(m, tgtxpos, tgtypos);
+				check_city_conquer(tgtxpos, tgtypos);
 				check_civ_elimination(def_id);
 			}
 		}
@@ -251,7 +321,7 @@ bool round::try_move_unit(unit* u, int chx, int chy, map* m)
 				civs[*it]->discover((*current_civ)->civ_id);
 			}
 			if(def_id >= 0 && def_id != u->civ_id) {
-				check_city_conquer(m, tgtxpos, tgtypos);
+				check_city_conquer(tgtxpos, tgtypos);
 				check_civ_elimination(def_id);
 			}
 			return true;

@@ -211,10 +211,15 @@ int city_window::draw_window()
 					c->stored_prod, 
 					prod_cost);
 		}
-		draw_text(screen, &res.font, buf, screen_w * 0.3, screen_h * 0.70, 0, 0, 0);
+		draw_text(screen, &res.font, buf, screen_w * 0.3, screen_h * 0.66, 0, 0, 0);
 	}
 	snprintf(buf, 63, "Commerce: %d/turn", comm);
-	draw_text(screen, &res.font, buf, screen_w * 0.3, screen_h * 0.80, 0, 0, 0);
+	draw_text(screen, &res.font, buf, screen_w * 0.3, screen_h * 0.72, 0, 0, 0);
+	snprintf(buf, 63, "City Size: %d", c->city_size);
+	draw_text(screen, &res.font, buf, screen_w * 0.3, screen_h * 0.78, 0, 0, 0);
+	snprintf(buf, 63, "Culture: %d (Level %d)", c->accum_culture, 
+			c->culture_level);
+	draw_text(screen, &res.font, buf, screen_w * 0.3, screen_h * 0.84, 0, 0, 0);
 
 	// production choice buttons if any
 	std::for_each(change_prod_buttons.begin(),

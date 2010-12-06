@@ -17,6 +17,8 @@ class map {
 		int size_x() const;
 		int size_y() const;
 		void get_resources_by_terrain(int terr, bool city, int* food, int* prod, int* comm) const;
+		void get_total_city_resources(int x, int y, int* food_points,
+				int* prod_points, int* comm_points) const;
 		void add_unit(unit* u);
 		void remove_unit(unit* u);
 		int get_spot_owner(int x, int y) const; // land, unit or city
@@ -26,6 +28,7 @@ class map {
 		int city_owner_on_spot(int x, int y) const;
 		bool has_city_of(int x, int y, unsigned int civ_id) const;
 		void add_city(city* c, int x, int y);
+		void grab_land(city* c);
 		void remove_city(const city* c);
 		int get_move_cost(const unit& u, int x, int y) const;
 		void set_land_owner(int civ_id, int x, int y);

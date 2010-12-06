@@ -201,6 +201,14 @@ void civilization::increment_resources(const unit_configuration_map& uconfmap,
 				}
 			}
 		}
+
+		for(std::set<unsigned int>::const_iterator ciit = (*cit)->built_improvements.begin();
+				ciit != (*cit)->built_improvements.end();
+				++ciit) {
+			city_improv_map::const_iterator cnit = cimap.find(*ciit);
+			if(cnit != cimap.end())
+				(*cit)->accum_culture += cnit->second.culture;
+		}
 	}
 	int gold_add = total_commerce * alloc_gold / 10;
 	int science_add = alloc_gold != 10 ? 

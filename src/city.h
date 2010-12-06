@@ -30,7 +30,10 @@ class city {
 		void set_improv_production(int uid);
 		void set_production(const city_production& c);
 		bool has_barracks(const city_improv_map& cimap) const;
-		int culture;
+		bool has_granary(const city_improv_map& cimap) const;
+		int accum_culture;
+		int culture_level;
+		int city_size;
 };
 
 

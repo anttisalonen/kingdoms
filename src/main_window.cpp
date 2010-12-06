@@ -645,7 +645,7 @@ int main_window::handle_window_input(const SDL_Event& ev)
 		if(!already_begin) {
 			current_unit--;
 		}
-		bool success = data.r.perform_action(myciv->civ_id, a, &data.m);
+		bool success = data.r.perform_action(myciv->civ_id, a);
 		if(!already_begin) {
 			current_unit++;
 		}

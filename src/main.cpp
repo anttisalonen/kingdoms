@@ -100,79 +100,7 @@ bool get_flag(const std::string& s, unsigned int i)
 		return s[i] != '0';
 }
 
-round* parse_configs(const std::string& confpath, const std::string& terrainfile,
-	       const std::string& unitfile, const std::string& civfile,
-	       const std::string& discoveryfile, const std::string& improvfile,
-	       resource_configuration* resconf,
-	       std::vector<civilization*>* civs)
-{
-	typedef std::vector<std::vector<std::string> > parse_result;
-	parse_result terrains = parser(confpath + terrainfile, 8);
-	parse_result units = parser(confpath + unitfile, 6);
-	parse_result pcivs = parser(confpath + civfile, 4);
-	parse_result discoveries = parser(confpath + discoveryfile, 6);
-	parse_result improvs = parser(confpath + improvfile, 4);
-
-	if(terrains.size() >= (int)num_terrain_types) {
-		fprintf(stderr, "Warning: more than %d parsed terrains will be ignored in %s.\n",
-				num_terrain_types, std::string(confpath + terrainfile).c_str());
-	}
-	for(unsigned int i = 0; i < std::min<unsigned int>(num_terrain_types, terrains.size()); i++) {
-		resconf->resource_name[i] = terrains[i][0];
-		resconf->terrain_food_values[i] = stoi(terrains[i][1]);
-		resconf->terrain_prod_values[i] = stoi(terrains[i][2]);
-		resconf->terrain_comm_values[i] = stoi(terrains[i][3]);
-		resconf->terrain_type[i] = stoi(terrains[i][4]);
-		resconf->temperature[i] = stoi(terrains[i][5]);
-		resconf->humidity[i] = stoi(terrains[i][6]);
-		resconf->found_city[i] = get_flag(terrains[i][7], 0);
-	}
-
-	for(unsigned int i = 0; i < pcivs.size(); i++) {
-		civs->push_back(new civilization(pcivs[i][0], i, 
-					color(stoi(pcivs[i][1]),
-						stoi(pcivs[i][2]),
-						stoi(pcivs[i][3])),
-					NULL, false));
-	}
-
-	advance_map amap;
-	for(unsigned int i = 0; i < discoveries.size(); i++) {
-		advance a;
-		a.advance_id = i + 1;
-		a.advance_name = discoveries[i][0];
-		a.cost = stoi(discoveries[i][1]);
-		for(int j = 0; j < 4; j++) {
-			a.needed_advances[j] = stoi(discoveries[i][j + 2]);
-		}
-		amap.insert(std::make_pair(a.advance_id, a));
-	}
-	
-	city_improv_map cimap;
-	for(unsigned int i = 0; i < improvs.size(); i++) {
-		city_improvement a;
-		a.improv_id = i + 1;
-		a.improv_name = improvs[i][0];
-		a.cost = stoi(improvs[i][1]);
-		a.needed_advance = stoi(discoveries[i][2]);
-		a.barracks = get_flag(discoveries[i][3], 0);
-		cimap.insert(std::make_pair(a.improv_id, a));
-	}
-
-	unit_configuration_map uconfmap;
-	for(unsigned int i = 0; i < units.size(); i++) {
-		unit_configuration u;
-		u.unit_name = units[i][0];
-		u.max_moves = stoi(units[i][1]);
-		u.max_strength = stoi(units[i][2]);
-		u.production_cost = stoi(units[i][3]);
-		u.needed_advance = stoi(units[i][4]);
-		u.settler = get_flag(units[i][5], 0);
-		uconfmap.insert(std::make_pair(i, u));
-	}
-	round* r = new round(uconfmap, amap, cimap);
-	return r;
-}
+typedef std::vector<std::vector<std::string> > parse_result;
 
 std::vector<std::string> get_file_list(const std::string& prefix, const std::string& filepath)
 {
@@ -192,37 +120,123 @@ std::vector<std::string> get_file_list(const std::string& prefix, const std::str
 	return results;
 }
 
+std::vector<civilization*> parse_civs_config(const std::string& fp)
+{
+	std::vector<civilization*> civs;
+	parse_result pcivs = parser(fp, 4);
+	for(unsigned int i = 0; i < pcivs.size(); i++) {
+		civs.push_back(new civilization(pcivs[i][0], i, 
+					color(stoi(pcivs[i][1]),
+						stoi(pcivs[i][2]),
+						stoi(pcivs[i][3])),
+					NULL, false));
+	}
+	return civs;
+}
+
+unit_configuration_map parse_unit_config(const std::string& fp)
+{
+	parse_result units = parser(fp, 6);
+	unit_configuration_map uconfmap;
+	for(unsigned int i = 0; i < units.size(); i++) {
+		unit_configuration u;
+		u.unit_name = units[i][0];
+		u.max_moves = stoi(units[i][1]);
+		u.max_strength = stoi(units[i][2]);
+		u.production_cost = stoi(units[i][3]);
+		u.needed_advance = stoi(units[i][4]);
+		u.settler = get_flag(units[i][5], 0);
+		uconfmap.insert(std::make_pair(i, u));
+	}
+	return uconfmap;
+}
+
+advance_map parse_advance_config(const std::string& fp)
+{
+	advance_map amap;
+	parse_result discoveries = parser(fp, 6);
+	for(unsigned int i = 0; i < discoveries.size(); i++) {
+		advance a;
+		a.advance_id = i + 1;
+		a.advance_name = discoveries[i][0];
+		a.cost = stoi(discoveries[i][1]);
+		for(int j = 0; j < 4; j++) {
+			a.needed_advances[j] = stoi(discoveries[i][j + 2]);
+		}
+		amap.insert(std::make_pair(a.advance_id, a));
+	}
+	return amap;
+}
+
+city_improv_map parse_city_improv_config(const std::string& fp)
+{
+	parse_result improvs = parser(fp, 7);
+	city_improv_map cimap;
+	for(unsigned int i = 0; i < improvs.size(); i++) {
+		city_improvement a;
+		a.improv_id = i + 1;
+		a.improv_name = improvs[i][0];
+		a.cost = stoi(improvs[i][1]);
+		a.needed_advance = stoi(improvs[i][2]);
+		a.comm_bonus = stoi(improvs[i][3]);
+		a.culture = stoi(improvs[i][4]);
+		a.happiness = stoi(improvs[i][5]);
+		a.barracks = get_flag(improvs[i][6], 0);
+		a.granary = get_flag(improvs[i][6], 1);
+		cimap.insert(std::make_pair(a.improv_id, a));
+	}
+	return cimap;
+}
+
+resource_configuration parse_resource_config(const std::string& fp)
+{
+	resource_configuration resconf;
+	resconf.city_food_bonus = 1;
+	resconf.city_prod_bonus = 1;
+	resconf.city_comm_bonus = 1;
+	parse_result terrains = parser(fp, 8);
+
+	if(terrains.size() >= (int)num_terrain_types) {
+		fprintf(stderr, "Warning: more than %d parsed terrains will be ignored in %s.\n",
+				num_terrain_types, std::string(fp).c_str());
+	}
+	for(unsigned int i = 0; i < std::min<unsigned int>(num_terrain_types, terrains.size()); i++) {
+		resconf.resource_name[i] = terrains[i][0];
+		resconf.terrain_food_values[i] = stoi(terrains[i][1]);
+		resconf.terrain_prod_values[i] = stoi(terrains[i][2]);
+		resconf.terrain_comm_values[i] = stoi(terrains[i][3]);
+		resconf.terrain_type[i] = stoi(terrains[i][4]);
+		resconf.temperature[i] = stoi(terrains[i][5]);
+		resconf.humidity[i] = stoi(terrains[i][6]);
+		resconf.found_city[i] = get_flag(terrains[i][7], 0);
+	}
+	return resconf;
+}
+
 int run(bool observer)
 {
 	const int map_x = 80;
 	const int map_y = 60;
 
-	resource_configuration resconf;
-	resconf.city_food_bonus = 1;
-	resconf.city_prod_bonus = 1;
-	resconf.city_comm_bonus = 1;
-
-	std::vector<civilization*> civs;
-	round* r = parse_configs("share/", "terrain.txt", "units.txt", "civs.txt",
-			"discoveries.txt", "improvs.txt", &resconf,
-			&civs);
-	if(!r) {
-		fprintf(stderr, "Could not parse the configuration.\n");
-		return 1;
-	}
+	std::vector<civilization*> civs = parse_civs_config("share/civs.txt");
+	unit_configuration_map uconfmap = parse_unit_config("share/units.txt");
+	advance_map amap = parse_advance_config("share/discoveries.txt");
+	city_improv_map cimap = parse_city_improv_config("share/improvs.txt");
+	resource_configuration resconf = parse_resource_config("share/terrain.txt");
 	map m(map_x, map_y, resconf);
 	for(unsigned int i = 0; i < civs.size(); i++) {
 		civs[i]->set_map(&m);
 	}
+	round r(uconfmap, amap, cimap, m);
 
 	std::vector<coord> starting_places = m.get_starting_places(2);
-	civs[0]->add_unit(0, starting_places[0].x, starting_places[0].y, (*(r->uconfmap.find(0))).second);
-	civs[0]->add_unit(1, starting_places[0].x, starting_places[0].y, (*(r->uconfmap.find(1))).second);
-	civs[1]->add_unit(0, starting_places[1].x, starting_places[1].y, (*(r->uconfmap.find(0))).second);
-	civs[1]->add_unit(1, starting_places[1].x, starting_places[1].y, (*(r->uconfmap.find(1))).second);
+	civs[0]->add_unit(0, starting_places[0].x, starting_places[0].y, (*(r.uconfmap.find(0))).second);
+	civs[0]->add_unit(1, starting_places[0].x, starting_places[0].y, (*(r.uconfmap.find(1))).second);
+	civs[1]->add_unit(0, starting_places[1].x, starting_places[1].y, (*(r.uconfmap.find(0))).second);
+	civs[1]->add_unit(1, starting_places[1].x, starting_places[1].y, (*(r.uconfmap.find(1))).second);
 
-	r->add_civilization(civs[0]);
-	r->add_civilization(civs[1]);
+	r.add_civilization(civs[0]);
+	r.add_civilization(civs[1]);
 
 	std::vector<std::string> terrain_files = get_file_list("share/", "share/terrain-gfx.txt");
 	std::vector<std::string> unit_files = get_file_list("share/", "share/units-gfx.txt");
@@ -237,9 +251,9 @@ int run(bool observer)
 
 	std::map<unsigned int, ai> ais;
 	if(observer)
-		ais.insert(std::make_pair(0, ai(m, *r, r->civs[0])));
-	ais.insert(std::make_pair(1, ai(m, *r, r->civs[1])));
-	gui g(1024, 768, m, *r, terrain_files, unit_files, "share/empty.png", 
+		ais.insert(std::make_pair(0, ai(m, r, r.civs[0])));
+	ais.insert(std::make_pair(1, ai(m, r, r.civs[1])));
+	gui g(1024, 768, m, r, terrain_files, unit_files, "share/empty.png", 
 			"share/city.png", *font,
 			"share/food_icon.png",
 			"share/prod_icon.png",
@@ -248,7 +262,7 @@ int run(bool observer)
 	g.display();
 	g.init_turn();
 	while(running) {
-		if(r->current_civ_id() == (int)civs[0]->civ_id) {
+		if(r.current_civ_id() == (int)civs[0]->civ_id) {
 			SDL_Event event;
 			while(SDL_PollEvent(&event)) {
 				switch(event.type) {
@@ -268,7 +282,7 @@ int run(bool observer)
 			g.process(50);
 		}
 		else {
-			std::map<unsigned int, ai>::iterator ait = ais.find(r->current_civ_id());
+			std::map<unsigned int, ai>::iterator ait = ais.find(r.current_civ_id());
 			if(ait != ais.end()) {
 				if(ait->second.play())
 					running = false;
@@ -281,7 +295,6 @@ int run(bool observer)
 		}
 	}
 	TTF_CloseFont(font);
-	delete r;
 	for(unsigned int i = 0; i < civs.size(); i++) {
 		delete civs[i];
 	}

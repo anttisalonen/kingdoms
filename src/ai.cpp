@@ -46,28 +46,18 @@ int points_for_city_founding(const civilization* civ,
 	int food_points = 0;
 	int prod_points = 0;
 	int comm_points = 0;
-	for(int i = -2; i <= 2; i++) {
-		for(int j = -2; j <= 2; j++) {
-			if(abs(i) == 2 && abs(j) == 2)
-				continue;
+	civ->m->get_total_city_resources(co.x, co.y, &food_points,
+			&prod_points, &comm_points);
 
-			int terr = civ->m->get_data(co.x + i, co.y + j);
-			int food = 0, prod = 0, comm = 0;
-			civ->m->get_resources_by_terrain(terr, false,
-					&food, &prod, &comm);
-			food_points += food * found_city.food_coeff;
-			prod_points += prod * found_city.prod_coeff;
-			comm_points += comm * found_city.comm_coeff;
-		}
-	}
+	food_points *= found_city.food_coeff;
+	prod_points *= found_city.prod_coeff;
+	comm_points *= found_city.comm_coeff;
 
-#if 0
 	// filter out very bad locations
 	if(food_points < found_city.min_food_points || 
 			prod_points < found_city.min_prod_points || 
 			comm_points < found_city.min_comm_points)
 		return -1;
-#endif
 
 #ifdef AI_DEBUG
 	printf("City prio: %d\n", found_city.found_city_coeff * 
@@ -482,9 +472,9 @@ ai_tunables_found_city::ai_tunables_found_city()
 	food_coeff(1),
 	prod_coeff(1),
 	comm_coeff(0),
-	min_food_points(20),
-	min_prod_points(10),
-	min_comm_points(5),
+	min_food_points(2),
+	min_prod_points(2),
+	min_comm_points(0),
 	max_search_range(50),
 	range_coeff(1),
 	max_found_city_prio(1000),
@@ -601,14 +591,14 @@ bool ai::play()
 			oit != ordersmap.end();
 			++oit) {
 		action a = oit->second->get_action();
-		int success = r.perform_action(myciv->civ_id, a, &m);
+		int success = r.perform_action(myciv->civ_id, a);
 		if(!success) {
 #ifdef AI_DEBUG
 			printf("AI error: could not perform action.\n");
 #endif
 			oit->second->replan();
 			action a = oit->second->get_action();
-			success = r.perform_action(myciv->civ_id, a, &m);
+			success = r.perform_action(myciv->civ_id, a);
 			if(!success) {
 #ifdef AI_DEBUG
 				printf("AI error: still could not perform action.\n");
@@ -622,7 +612,7 @@ bool ai::play()
 	}
 
 	// send end of turn
-	int success = r.perform_action(myciv->civ_id, action(action_eot), &m);
+	int success = r.perform_action(myciv->civ_id, action(action_eot));
 	return !success;
 }
 
