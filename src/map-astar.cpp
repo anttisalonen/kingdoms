@@ -5,6 +5,12 @@
 #include "map-astar.h"
 
 #include <stdio.h>
+
+bool terrain_allowed(const map& m, const unit& u, int x, int y)
+{
+	return m.get_move_cost(u, x, y) >= 0;
+}
+
 void check_insert(std::set<coord>& s, const civilization& civ,
 		const unit& u, bool ignore_enemy, int x, int y)
 {

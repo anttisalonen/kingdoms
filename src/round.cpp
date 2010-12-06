@@ -1,8 +1,58 @@
+#include <stdio.h>
 #include <algorithm>
 #include <boost/bind.hpp>
 #include <boost/lambda/lambda.hpp>
 
 #include "round.h"
+
+void set_default_city_production(city* c, const unit_configuration_map& uconfmap)
+{
+	c->production.producing_unit = true;
+	for(unit_configuration_map::const_iterator it = uconfmap.begin();
+			it != uconfmap.end();
+			++it) {
+		if(!it->second.settler) {
+			c->production.current_production_id = it->first;
+			return;
+		}
+	}
+}
+
+void combat(unit* u1, unit* u2)
+{
+	if(!can_attack(*u1, *u2))
+		return;
+	if(u1->strength == 0 || u2->strength == 0)
+		return;
+	if(u2->uconf.max_strength == 0) {
+		u2->strength = 0;
+		return;
+	}
+	unsigned int s1 = u1->strength;
+	unsigned int s2 = u2->strength;
+	if(u1->veteran)
+		s1 *= 1.5f;
+	if(u2->veteran)
+		s2 *= 1.5f;
+	if(u2->fortified)
+		s2 *= 2;
+	unsigned int u1chance = s1 * s1;
+	unsigned int u2chance = s2 * s2;
+	unsigned int val = rand() % (u1chance + u2chance);
+	printf("Combat on (%d, %d) - chances: (%d vs %d - %3.2f) - ",
+			u2->xpos, u2->ypos, u1chance, u2chance,
+			u1chance / ((float)u1chance + u2chance));
+	if(val < u1chance) {
+		u1->strength = u1->strength * (val + 1) / u1chance;
+		u2->strength = 0;
+		printf("attacker won\n");
+	}
+	else {
+		u1->strength = 0;
+		u2->strength = u2->strength * (val + 1 - u1chance) / u2chance;
+		printf("defender won\n");
+	}
+}
 
 action::action(action_type t)
 	: type(t)

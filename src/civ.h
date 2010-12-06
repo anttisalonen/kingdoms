@@ -7,7 +7,6 @@
 #include <string>
 #include <list>
 #include <set>
-#include <map>
 
 #include "coord.h"
 #include "color.h"
@@ -99,11 +98,7 @@ class civilization {
 
 void total_resources(const city& c, const map& m,
 		int* food, int* prod, int* comm);
-void set_default_city_production(city* c, 
-		const unit_configuration_map& uconfmap);
-void combat(unit* u1, unit* u2);
 bool can_attack(const unit& u1, const unit& u2);
-bool terrain_allowed(const map& m, const unit& u, int x, int y);
 
 #endif
 

@@ -1,11 +1,7 @@
 #include "civ.h"
 #include <string.h>
 #include <algorithm>
-#include <stdio.h>
 #include <math.h>
-
-#include <boost/bind.hpp>
-#include <boost/lambda/lambda.hpp>
 
 void total_resources(const city& c, const map& m, 
 		int* food, int* prod, int* comm)
@@ -24,24 +20,6 @@ void total_resources(const city& c, const map& m,
 	}
 }
 
-void set_default_city_production(city* c, const unit_configuration_map& uconfmap)
-{
-	c->production.producing_unit = true;
-	for(unit_configuration_map::const_iterator it = uconfmap.begin();
-			it != uconfmap.end();
-			++it) {
-		if(!it->second.settler) {
-			c->production.current_production_id = it->first;
-			return;
-		}
-	}
-}
-
-bool terrain_allowed(const map& m, const unit& u, int x, int y)
-{
-	return m.get_move_cost(u, x, y) >= 0;
-}
-
 bool can_attack(const unit& u1, const unit& u2)
 {
 	if(!in_bounds(u1.xpos - 1, u2.xpos, u1.xpos + 1))
@@ -49,42 +27,6 @@ bool can_attack(const unit& u1, const unit& u2)
 	if(!in_bounds(u1.ypos - 1, u2.ypos, u1.ypos + 1))
 		return false;
 	return u1.uconf.max_strength > 0;
-}
-
-void combat(unit* u1, unit* u2)
-{
-	if(!can_attack(*u1, *u2))
-		return;
-	if(u1->strength == 0 || u2->strength == 0)
-		return;
-	if(u2->uconf.max_strength == 0) {
-		u2->strength = 0;
-		return;
-	}
-	unsigned int s1 = u1->strength;
-	unsigned int s2 = u2->strength;
-	if(u1->veteran)
-		s1 *= 1.5f;
-	if(u2->veteran)
-		s2 *= 1.5f;
-	if(u2->fortified)
-		s2 *= 2;
-	unsigned int u1chance = s1 * s1;
-	unsigned int u2chance = s2 * s2;
-	unsigned int val = rand() % (u1chance + u2chance);
-	printf("Combat on (%d, %d) - chances: (%d vs %d - %3.2f) - ",
-			u2->xpos, u2->ypos, u1chance, u2chance,
-			u1chance / ((float)u1chance + u2chance));
-	if(val < u1chance) {
-		u1->strength = u1->strength * (val + 1) / u1chance;
-		u2->strength = 0;
-		printf("attacker won\n");
-	}
-	else {
-		u1->strength = 0;
-		u2->strength = u2->strength * (val + 1 - u1chance) / u2chance;
-		printf("defender won\n");
-	}
 }
 
 civilization::civilization(std::string name, unsigned int civid, 
