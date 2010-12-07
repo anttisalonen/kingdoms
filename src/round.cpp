@@ -148,7 +148,7 @@ void round::check_for_city_updates()
 				cit != (*it)->cities.end();
 				++cit) {
 			if((*cit)->stored_food < 0) {
-				if((*cit)->city_size <= 1) {
+				if((*cit)->get_city_size() <= 1) {
 					std::list<city*>::iterator cit2(cit);
 					cit2--;
 					(*it)->remove_city(*cit);
@@ -156,11 +156,16 @@ void round::check_for_city_updates()
 					cit = cit2;
 					continue;
 				}
+				else {
+					(*cit)->decrement_city_size();
+				}
 			}
-			if((*cit)->stored_food >= needed_food_for_growth((*cit)->city_size)) {
-				(*cit)->city_size++;
+			if((*cit)->stored_food >= needed_food_for_growth((*cit)->get_city_size())) {
+				(*cit)->increment_city_size();
+				coord rescoord = next_good_resource_spot(*cit, &m);
+				(*cit)->add_resource_worker(rescoord);
 				if((*cit)->has_granary(cimap)) {
-					(*cit)->stored_food = needed_food_for_growth((*cit)->city_size) / 2;
+					(*cit)->stored_food = needed_food_for_growth((*cit)->get_city_size()) / 2;
 				}
 				else {
 					(*cit)->stored_food = 0;

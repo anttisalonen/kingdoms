@@ -132,8 +132,9 @@ int city_window::draw_city_resources_screen(int xpos, int ypos)
 		   res.city_images[c->civ_id], screen);
 
 	// draw resources and boxes on resource coords
-	for(std::list<coord>::const_iterator it = c->resource_coords.begin();
-			it != c->resource_coords.end();
+	const std::list<coord>& resource_coords = c->get_resource_coords();
+	for(std::list<coord>::const_iterator it = resource_coords.begin();
+			it != resource_coords.end();
 			++it) {
 		int tile_x = xpos + res.terrains.tile_w * (it->x + 2);
 		int tile_y = ypos + res.terrains.tile_h * (it->y + 2);
@@ -215,7 +216,7 @@ int city_window::draw_window()
 	}
 	snprintf(buf, 63, "Commerce: %d/turn", comm);
 	draw_text(screen, &res.font, buf, screen_w * 0.3, screen_h * 0.72, 0, 0, 0);
-	snprintf(buf, 63, "City Size: %d", c->city_size);
+	snprintf(buf, 63, "City Size: %d", c->get_city_size());
 	draw_text(screen, &res.font, buf, screen_w * 0.3, screen_h * 0.78, 0, 0, 0);
 	snprintf(buf, 63, "Culture: %d (Level %d)", c->accum_culture, 
 			c->culture_level);

@@ -2,13 +2,15 @@
 #include <string.h>
 #include <algorithm>
 #include <math.h>
+#include <stdio.h>
 
 void total_resources(const city& c, const map& m, 
 		int* food, int* prod, int* comm)
 {
 	*food = 0; *prod = 0; *comm = 0;
-	for(std::list<coord>::const_iterator it = c.resource_coords.begin();
-			it != c.resource_coords.end();
+	const std::list<coord>& resource_coords = c.get_resource_coords();
+	for(std::list<coord>::const_iterator it = resource_coords.begin();
+			it != resource_coords.end();
 			++it) {
 		int f, p, cm;
 		m.get_resources_by_terrain(m.get_data(c.xpos + it->x,
@@ -27,6 +29,46 @@ bool can_attack(const unit& u1, const unit& u2)
 	if(!in_bounds(u1.ypos - 1, u2.ypos, u1.ypos + 1))
 		return false;
 	return u1.uconf.max_strength > 0;
+}
+
+coord next_good_resource_spot(const city* c, const map* m)
+{
+	int curr_food, curr_prod, curr_comm;
+	total_resources(*c, *m, &curr_food, &curr_prod, &curr_comm);
+	int req_food = c->get_city_size() * 2 + 2 - curr_food;
+	coord ret(0, 0);
+	int opt_food = -1;
+	int opt_prod = -1;
+	int opt_comm = -1;
+	for(int i = -2; i <= 2; i++) {
+		for(int j = -2; j <= 2; j++) {
+			if(abs(i) == 2 && abs(j) == 2)
+				continue;
+			if(!i && !j)
+				continue;
+			if(std::find(c->get_resource_coords().begin(),
+					c->get_resource_coords().end(),
+					coord(i, j)) != c->get_resource_coords().end())
+				continue;
+			int terr = m->get_data(c->xpos + i, c->ypos + j);
+			if(terr == -1)
+				continue;
+			if(m->get_land_owner(c->xpos + i, c->ypos + j) != (int)c->civ_id)
+				continue;
+			int tf, tp, tc;
+			m->get_resources_by_terrain(terr, false,
+					&tf, &tp, &tc);
+			if((tf >= opt_food && opt_food < req_food) || (tf >= req_food &&
+			   (tp > opt_prod || (tp == opt_prod && tc > opt_comm)))) {
+				ret.x = i;
+				ret.y = j;
+				opt_food = tf;
+				opt_prod = tp;
+				opt_comm = tc;
+			}
+		}
+	}
+	return ret;
 }
 
 civilization::civilization(std::string name, unsigned int civid, 
@@ -169,7 +211,7 @@ void civilization::increment_resources(const unit_configuration_map& uconfmap,
 			++cit) {
 		int food, prod, comm;
 		total_resources(**cit, *m, &food, &prod, &comm);
-		(*cit)->stored_food += food - (*cit)->population * 2;
+		(*cit)->stored_food += food - (*cit)->get_city_size() * 2;
 		total_commerce += comm;
 		(*cit)->stored_prod += prod;
 		if((*cit)->production.current_production_id > -1) {
@@ -267,13 +309,12 @@ city* civilization::add_city(std::string name, int x, int y)
 	city* c = new city(name, x, y, civ_id);
 	fog.reveal(c->xpos, c->ypos, 2);
 	reveal_land(c->xpos, c->ypos, 2);
+	fog.shade(c->xpos, c->ypos, 2);
+	fog.reveal(c->xpos, c->ypos, 1);
 	cities.push_back(c);
-		c->resource_coords.push_back(coord(0, 0));
-	if(y != 0)
-		c->resource_coords.push_back(coord(0, -1));
-	else
-		c->resource_coords.push_back(coord(0, 1));
 	m->add_city(c, x, y);
+	coord rescoord = next_good_resource_spot(c, m);
+	c->add_resource_worker(rescoord);
 	return c;
 }
 
