@@ -112,7 +112,9 @@ SDL_Surface* sdl_load_image(const char* filename)
 	}
 }
 
-int draw_text(SDL_Surface* screen, const TTF_Font* font, const char* str, int x, int y, Uint8 r, Uint8 g, Uint8 b)
+int draw_text(SDL_Surface* screen, const TTF_Font* font, const char* str, 
+		int x, int y, 
+		Uint8 r, Uint8 g, Uint8 b, bool centered)
 {
 	if(!str)
 		return 0;
@@ -126,7 +128,10 @@ int draw_text(SDL_Surface* screen, const TTF_Font* font, const char* str, int x,
 	}
 	else {
 		SDL_Rect dest;
-		dest.x = x;
+		if(!centered)
+			dest.x = x;
+		else
+			dest.x = x - text->w / 2;
 		dest.y = y;
 		SDL_BlitSurface(text, NULL, screen, &dest);
 		SDL_FreeSurface(text);

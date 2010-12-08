@@ -188,7 +188,21 @@ int main_window::draw_tile(const SDL_Surface* surf, int x, int y) const
 
 int main_window::draw_city(const city& c) const
 {
-	return draw_tile(res.city_images[c.civ_id], c.xpos, c.ypos);
+	if(!tile_visible(c.xpos, c.ypos))
+		return 0;
+
+	if(draw_tile(res.city_images[c.civ_id], c.xpos, c.ypos))
+		return 1;
+	if(!tile_visible(c.xpos + 1, c.ypos) ||
+	   !tile_visible(c.xpos - 1, c.ypos))
+		return 0;
+	char buf[64];
+	snprintf(buf, 63, "%d %s", c.get_city_size(),
+			c.cityname.c_str());
+	buf[63] = '\0';
+	return draw_text(screen, &res.font, buf, tile_xcoord_to_pixel(c.xpos) + tile_h / 2,
+			tile_ycoord_to_pixel(c.ypos) + tile_w,
+			255, 255, 255, true);
 }
 
 int main_window::tile_ycoord_to_pixel(int y) const
@@ -258,6 +272,10 @@ int main_window::draw_main_map()
 				++it) {
 			if(it == current_unit)
 				continue;
+			if(current_unit != myciv->units.end())
+				if((*it)->xpos == (*current_unit)->xpos &&
+				   (*it)->ypos == (*current_unit)->ypos)
+					continue;
 			if(internal_ai || myciv->fog_at((*it)->xpos, (*it)->ypos) == 2) {
 				if(draw_unit(**it)) {
 					return 1;
