@@ -32,16 +32,20 @@ void main_window::get_next_free_unit()
 	for(++current_unit;
 			current_unit != myciv->units.end();
 			++current_unit) {
-		if((*current_unit)->moves > 0 && !(*current_unit)->fortified)
+		if((*current_unit)->moves > 0 && !(*current_unit)->fortified) {
+			try_center_camera_to_unit(*current_unit);
 			return;
+		}
 	}
 
 	// run through the first half
 	for(current_unit = myciv->units.begin();
 			current_unit != uit;
 			++current_unit) {
-		if((*current_unit)->moves > 0 && !(*current_unit)->fortified)
+		if((*current_unit)->moves > 0 && !(*current_unit)->fortified) {
+			try_center_camera_to_unit(*current_unit);
 			return;
+		}
 	}
 	current_unit = myciv->units.end();
 }
@@ -662,8 +666,9 @@ int main_window::handle_window_input(const SDL_Event& ev)
 	else {
 		handle_input_gui_mod(ev, &c);
 	}
-	if(!internal_ai && current_unit == myciv->units.end())
+	if(!internal_ai && current_unit == myciv->units.end()) {
 		get_next_free_unit();
+	}
 	update_view();
 	if(c) {
 		add_subwindow(new city_window(screen, screen_w, screen_h, data, res, c,
@@ -802,7 +807,5 @@ void main_window::init_turn()
 	if(internal_ai)
 		return;
 	get_next_free_unit();
-	if(current_unit != myciv->units.end())
-		try_center_camera_to_unit(*current_unit);
 }
 
