@@ -47,7 +47,9 @@ enum relationship {
 
 class civilization {
 	public:
-		civilization(std::string name, unsigned int civid, const color& c_, map* m_, bool ai_);
+		civilization(std::string name, unsigned int civid, const color& c_, map* m_, bool ai_,
+				const std::vector<std::string>::iterator& names_start,
+				const std::vector<std::string>::iterator& names_end);
 		~civilization();
 		unit* add_unit(int uid, int x, int y, const unit_configuration& uconf);
 		void remove_unit(unit* u);
@@ -57,7 +59,7 @@ class civilization {
 				const advance_map& amap,
 				const city_improv_map& cimap);
 		char fog_at(int x, int y) const;
-		city* add_city(std::string name, int x, int y);
+		city* add_city(int x, int y);
 		void remove_city(city* c);
 		void add_message(const msg& m);
 		relationship get_relationship_to_civ(unsigned int civid) const;
@@ -93,6 +95,8 @@ class civilization {
 		void reveal_land(int x, int y, int r);
 		std::vector<relationship> relationships;
 		buf2d<int> known_land_map;
+		std::vector<std::string> city_names;
+		unsigned int curr_city_name_index;
 };
 
 

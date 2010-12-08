@@ -23,7 +23,8 @@
 #include "SDL/SDL_image.h"
 #include "SDL/SDL_ttf.h"
 
-std::vector<std::vector<std::string> > parser(const std::string& filepath, unsigned int num_fields)
+std::vector<std::vector<std::string> > parser(const std::string& filepath, 
+		unsigned int num_fields, bool vararg = false)
 {
 	using namespace std;
 	ifstream ifs(filepath.c_str(), ifstream::in);
@@ -66,9 +67,11 @@ std::vector<std::vector<std::string> > parser(const std::string& filepath, unsig
 				value += line[i];
 			}
 		}
+		// add last parsed token to values
 		if(value.size())
 			values.push_back(value);
-		if(values.size() == num_fields) {
+
+		if(values.size() == num_fields || (vararg && values.size() > num_fields)) {
 			results.push_back(values);
 		}
 		else if(values.size() != 0) {
@@ -123,13 +126,13 @@ std::vector<std::string> get_file_list(const std::string& prefix, const std::str
 std::vector<civilization*> parse_civs_config(const std::string& fp)
 {
 	std::vector<civilization*> civs;
-	parse_result pcivs = parser(fp, 4);
+	parse_result pcivs = parser(fp, 5, true);
 	for(unsigned int i = 0; i < pcivs.size(); i++) {
 		civs.push_back(new civilization(pcivs[i][0], i, 
 					color(stoi(pcivs[i][1]),
 						stoi(pcivs[i][2]),
 						stoi(pcivs[i][3])),
-					NULL, false));
+					NULL, false, pcivs[i].begin() + 4, pcivs[i].end()));
 	}
 	return civs;
 }

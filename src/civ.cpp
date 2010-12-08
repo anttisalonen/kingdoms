@@ -72,7 +72,9 @@ coord next_good_resource_spot(const city* c, const map* m)
 }
 
 civilization::civilization(std::string name, unsigned int civid, 
-		const color& c_, map* m_, bool ai_)
+		const color& c_, map* m_, bool ai_,
+		const std::vector<std::string>::iterator& names_start,
+		const std::vector<std::string>::iterator& names_end)
 	: civname(name),
 	civ_id(civid),
 	col(c_),
@@ -85,8 +87,14 @@ civilization::civilization(std::string name, unsigned int civid,
 	research_goal_id(0),
 	ai(ai_),
 	relationships(civid + 1, relationship_unknown),
-	known_land_map(buf2d<int>(0, 0, -1))
+	known_land_map(buf2d<int>(0, 0, -1)),
+	curr_city_name_index(0)
 {
+	for(std::vector<std::string>::const_iterator it = names_start;
+			it != names_end;
+			++it) {
+		city_names.push_back(*it);
+	}
 	relationships[civid] = relationship_peace;
 	if(m) {
 		fog = fog_of_war(m);
@@ -304,9 +312,15 @@ char civilization::fog_at(int x, int y) const
 	return fog.get_value(m->wrap_x(x), m->wrap_y(y));
 }
 
-city* civilization::add_city(std::string name, int x, int y)
+city* civilization::add_city(int x, int y)
 {
-	city* c = new city(name, x, y, civ_id);
+	city* c = new city(city_names[curr_city_name_index++], x, y, civ_id);
+	if(curr_city_name_index >= city_names.size()) {
+		for(unsigned int i = 0; i < city_names.size(); i++) {
+			city_names[i] = std::string("New ") + city_names[i];
+		}
+		curr_city_name_index = 0;
+	}
 	fog.reveal(c->xpos, c->ypos, 2);
 	reveal_land(c->xpos, c->ypos, 2);
 	fog.shade(c->xpos, c->ypos, 2);

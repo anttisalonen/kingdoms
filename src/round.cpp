@@ -212,7 +212,7 @@ bool round::perform_action(int civid, const action& a)
 						if(can_build && 
 							m.city_on_spot(a.data.unit_data.u->xpos, 
 								a.data.unit_data.u->ypos) == NULL) {
-							city* c = (*current_civ)->add_city("city name", a.data.unit_data.u->xpos,
+							city* c = (*current_civ)->add_city(a.data.unit_data.u->xpos,
 									a.data.unit_data.u->ypos);
 							set_default_city_production(c, uconfmap);
 							(*current_civ)->remove_unit(a.data.unit_data.u);
