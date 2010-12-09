@@ -440,14 +440,18 @@ std::vector<coord> map::get_starting_places(int num) const
 			get_total_city_resources(xp, yp, &f, &p, &c);
 			if(f < 10 || p < 4 || c < 3)
 				continue;
+			bool too_close = false;
 			for(std::vector<coord>::const_iterator it = retval.begin();
 					it != retval.end();
 					++it) {
 				int manh = abs(it->x - xp) + abs(it->y - yp);
-				if(manh < 4)
+				if(manh < 4) {
+					too_close = true;
 					continue;
+				}
 			}
-			retval.push_back(v);
+			if(!too_close)
+				retval.push_back(v);
 		}
 	}
 	return retval;
