@@ -193,8 +193,6 @@ goto_orders::goto_orders(const civilization* civ_, unit* u_,
 	ignore_enemy(ignore_enemy_)
 {
 	get_new_path();
-	if(!path.empty())
-		path.pop_front();
 }
 
 void goto_orders::get_new_path()
