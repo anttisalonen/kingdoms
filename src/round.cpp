@@ -35,7 +35,7 @@ void combat(unit* u1, unit* u2)
 		s1 *= 1.5f;
 	if(u2->veteran)
 		s2 *= 1.5f;
-	if(u2->fortified)
+	if(u2->is_fortified())
 		s2 *= 2;
 	unsigned int u1chance = s1 * s1;
 	unsigned int u2chance = s2 * s2;
@@ -225,10 +225,10 @@ bool round::perform_action(int civid, const action& a)
 						return false;
 					}
 				case action_skip:
-					a.data.unit_data.u->moves = 0;
+					a.data.unit_data.u->skip_turn();
 					return true;
 				case action_fortify:
-					a.data.unit_data.u->fortified = true;
+					a.data.unit_data.u->fortify();
 					return true;
 				default:
 					break;

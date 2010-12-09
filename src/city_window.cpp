@@ -103,7 +103,7 @@ int city_window::on_exit()
 int city_window::on_unit(unit* u)
 {
 	if(!internal_ai)
-		u->fortified = false;
+		u->wake_up();
 	return 0;
 }
 

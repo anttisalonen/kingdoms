@@ -164,13 +164,7 @@ void civilization::refill_moves(const unit_configuration_map& uconfmap)
 	for(std::list<unit*>::iterator uit = units.begin();
 		uit != units.end();
 		++uit) {
-		unit_configuration_map::const_iterator max_moves_it = uconfmap.find((*uit)->unit_id);
-		int max_moves;
-		if(max_moves_it == uconfmap.end())
-			max_moves = 0;
-		else
-			max_moves = max_moves_it->second.max_moves;
-		(*uit)->refill_moves(max_moves);
+		(*uit)->new_round();
 	}
 }
 
@@ -444,8 +438,7 @@ bool civilization::can_move_to(int x, int y) const
 	if(!units.empty())
 		unit_owner = units.front()->civ_id;
 	bool acceptable_unit_owner = unit_owner == -1 ||
-		unit_owner == (int)civ_id ||
-		get_relationship_to_civ(unit_owner) != relationship_peace;
+		unit_owner == (int)civ_id;
 	bool acceptable_land_owner = land_owner == -1 ||
 		land_owner == (int)civ_id ||
 		get_relationship_to_civ(land_owner) != relationship_peace;

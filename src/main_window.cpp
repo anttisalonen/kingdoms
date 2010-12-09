@@ -32,7 +32,7 @@ void main_window::get_next_free_unit()
 	for(++current_unit;
 			current_unit != myciv->units.end();
 			++current_unit) {
-		if((*current_unit)->moves > 0 && !(*current_unit)->fortified) {
+		if((*current_unit)->moves > 0 && !(*current_unit)->fortified_or_fortifying()) {
 			try_center_camera_to_unit(*current_unit);
 			return;
 		}
@@ -42,7 +42,7 @@ void main_window::get_next_free_unit()
 	for(current_unit = myciv->units.begin();
 			current_unit != uit;
 			++current_unit) {
-		if((*current_unit)->moves > 0 && !(*current_unit)->fortified) {
+		if((*current_unit)->moves > 0 && !(*current_unit)->fortified_or_fortifying()) {
 			try_center_camera_to_unit(*current_unit);
 			return;
 		}
@@ -604,7 +604,7 @@ void main_window::handle_successful_action(const action& a, city** c)
 					break;
 				case action_found_city:
 					current_unit = myciv->units.end();
-					*c = myciv->cities.rend()->second;
+					*c = myciv->cities.rbegin()->second;
 					// fall through
 				case action_skip:
 				case action_fortify:
@@ -810,7 +810,7 @@ int main_window::try_choose_with_mouse(city** c)
 				it != myciv->units.end();
 				++it) {
 			if((*it)->xpos == mouse_down_sqx && (*it)->ypos == mouse_down_sqy) {
-				(*it)->fortified = false;
+				(*it)->wake_up();
 				if((*it)->moves > 0) {
 					current_unit = it;
 					blink_unit = false;
