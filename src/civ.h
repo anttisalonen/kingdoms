@@ -31,7 +31,7 @@ struct msg {
 	msg_type type;
 	union {
 		struct {
-			city* building_city;
+			int building_city_id;
 			int prod_id;
 		} city_prod_data;
 		int discovered_civ_id;
@@ -80,7 +80,7 @@ class civilization {
 		const unsigned int civ_id;
 		color col;
 		std::list<unit*> units;
-		std::list<city*> cities;
+		std::map<unsigned int, city*> cities;
 		map* m;
 		fog_of_war fog;
 		int gold;
@@ -97,6 +97,7 @@ class civilization {
 		buf2d<int> known_land_map;
 		std::vector<std::string> city_names;
 		unsigned int curr_city_name_index;
+		unsigned int next_city_id;
 };
 
 

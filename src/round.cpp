@@ -83,7 +83,8 @@ round::round(const unit_configuration_map& uconfmap_,
 	: uconfmap(uconfmap_),
 	amap(amap_),
 	cimap(cimap_),
-	m(m_)
+	m(m_),
+	round_number(0)
 {
 	current_civ = civs.begin();
 }
@@ -119,6 +120,8 @@ bool round::next_civ()
 		return false;
 	current_civ++;
 	if(current_civ == civs.end()) {
+		round_number++;
+		fprintf(stderr, "Round: %d\n", round_number);
 		current_civ = civs.begin();
 		increment_resources();
 		check_for_city_updates();
@@ -144,35 +147,36 @@ void round::check_for_city_updates()
 	for(std::vector<civilization*>::iterator it = civs.begin();
 	    it != civs.end();
 	    ++it) {
-		for(std::list<city*>::iterator cit = (*it)->cities.begin();
+		for(std::map<unsigned int, city*>::iterator cit = (*it)->cities.begin();
 				cit != (*it)->cities.end();
 				++cit) {
-			if((*cit)->stored_food < 0) {
-				if((*cit)->get_city_size() <= 1) {
-					std::list<city*>::iterator cit2(cit);
+			city* c = cit->second;
+			if(c->stored_food < 0) {
+				if(c->get_city_size() <= 1) {
+					std::map<unsigned int, city*>::iterator cit2(cit);
 					cit2--;
-					(*it)->remove_city(*cit);
+					(*it)->remove_city(c);
 					update_land = true;
 					cit = cit2;
 					continue;
 				}
 				else {
-					(*cit)->decrement_city_size();
+					c->decrement_city_size();
 				}
 			}
-			if((*cit)->stored_food >= needed_food_for_growth((*cit)->get_city_size())) {
-				(*cit)->increment_city_size();
-				coord rescoord = next_good_resource_spot(*cit, &m);
-				(*cit)->add_resource_worker(rescoord);
-				if((*cit)->has_granary(cimap)) {
-					(*cit)->stored_food = needed_food_for_growth((*cit)->get_city_size()) / 2;
+			if(c->stored_food >= needed_food_for_growth(c->get_city_size())) {
+				c->increment_city_size();
+				coord rescoord = next_good_resource_spot(c, &m);
+				c->add_resource_worker(rescoord);
+				if(c->has_granary(cimap)) {
+					c->stored_food = needed_food_for_growth(c->get_city_size()) / 2;
 				}
 				else {
-					(*cit)->stored_food = 0;
+					c->stored_food = 0;
 				}
 			}
-			if((*cit)->accum_culture >= needed_culture_for_growth((*cit)->culture_level)) {
-				(*cit)->culture_level++;
+			if(c->accum_culture >= needed_culture_for_growth(c->culture_level)) {
+				c->culture_level++;
 				update_land = true;
 			}
 		}
@@ -257,10 +261,10 @@ void round::update_land_owners()
 	for(std::vector<civilization*>::iterator it = civs.begin();
 	    it != civs.end();
 	    ++it) {
-		for(std::list<city*>::iterator cit = (*it)->cities.begin();
+		for(std::map<unsigned int, city*>::iterator cit = (*it)->cities.begin();
 				cit != (*it)->cities.end();
 				++cit) {
-			m.grab_land(*cit);
+			m.grab_land(cit->second);
 		}
 	}
 }
@@ -368,5 +372,10 @@ void round::peace_between(unsigned int civ1, unsigned int civ2)
 bool round::in_war(unsigned int civ1, unsigned int civ2) const
 {
 	return civs[civ1]->get_relationship_to_civ(civ2) == relationship_war;
+}
+
+int round::get_round_number() const
+{
+	return round_number;
 }
 

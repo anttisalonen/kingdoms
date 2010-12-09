@@ -1,3 +1,7 @@
 # civ name - color (r, g, b)
-Babylonians	255 0   0	Sumer Kish Uruk Ur Nippur Lagash Ngirsu Umma Hamazi Adab Mari Akshak Akkad Isin Kuara Zabala Kisurra Marad Dilbat Borsippa Kutha Der
+Babylonians	0   0   255	Sumer Kish Uruk Ur Nippur Lagash Ngirsu Umma Hamazi Adab Mari Akshak Akkad Isin Kuara Zabala Kisurra Marad Dilbat Borsippa Kutha Der
 Egyptians	255 255 0	Memphis Cairo Heliopolis Bubastis Dahshur Helwan Meydum Herakleopolis Lahun Qus Thebes Thinis Zawty Dehnet Abusir "El Hiba" Nekhen
+Romans		255 0   0	Rome Antium Veii Tarquirii Capua Neapolis Venusia Tarentum Brundisium Heraclea Thurii Ancona Volsinii Perusia Ariminium Pisae Mediolanium
+Indians		60  60  60	Dwarka Sopara Paithan Sravasti Kalibangan Bairat Kannauj Osian Madurai Kalinjar Kaveripattinam Sirkap Aror Sagala Hansi Bhinmal Kurukshetra Kanchipuram
+Greek		128 0   128	Corinth Aegae Knossos Ithaca Heraklion Apollonia Cythera Delphi Dion Elateia Assus Amida Larissa Marathon Rhodes Andros Juktas Epidauros
+Chinese         60  60  200	Beijing Shanghai Guangzhou Shenzhen Tianjin Chongqing "Hong Kong" Dongquan Nanjing Wuhan Hangzhou Shenyang Harbin Chengdu Hefei Zhengzhou Jinan

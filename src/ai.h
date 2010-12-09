@@ -52,14 +52,13 @@ class goto_orders : public orders {
 		void clear();
 		int path_length();
 	protected:
+		void get_new_path();
 		int tgtx;
 		int tgty;
 		const civilization* civ;
 		unit* u;
 		std::list<coord> path;
 		bool ignore_enemy;
-	private:
-		void get_new_path();
 };
 
 class explore_orders : public goto_orders {

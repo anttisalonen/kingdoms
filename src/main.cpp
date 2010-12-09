@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <unistd.h>
+#include <signal.h>
 
 #include <list>
 #include <vector>
@@ -216,10 +217,13 @@ resource_configuration parse_resource_config(const std::string& fp)
 	return resconf;
 }
 
-int run(bool observer)
+int run(bool observer, bool use_gui)
 {
 	const int map_x = 80;
 	const int map_y = 60;
+
+	if(!use_gui)
+		observer = true;
 
 	std::vector<civilization*> civs = parse_civs_config("share/civs.txt");
 	unit_configuration_map uconfmap = parse_unit_config("share/units.txt");
@@ -232,14 +236,14 @@ int run(bool observer)
 	}
 	round r(uconfmap, amap, cimap, m);
 
-	std::vector<coord> starting_places = m.get_starting_places(2);
-	civs[0]->add_unit(0, starting_places[0].x, starting_places[0].y, (*(r.uconfmap.find(0))).second);
-	civs[0]->add_unit(1, starting_places[0].x, starting_places[0].y, (*(r.uconfmap.find(1))).second);
-	civs[1]->add_unit(0, starting_places[1].x, starting_places[1].y, (*(r.uconfmap.find(0))).second);
-	civs[1]->add_unit(1, starting_places[1].x, starting_places[1].y, (*(r.uconfmap.find(1))).second);
-
-	r.add_civilization(civs[0]);
-	r.add_civilization(civs[1]);
+	std::vector<coord> starting_places = m.get_starting_places(civs.size());
+	for(unsigned int i = 0; i < civs.size(); i++) {
+		// settler
+		civs[i]->add_unit(0, starting_places[i].x, starting_places[i].y, (*(r.uconfmap.find(0))).second);
+		// warrior
+		civs[i]->add_unit(1, starting_places[i].x, starting_places[i].y, (*(r.uconfmap.find(1))).second);
+		r.add_civilization(civs[i]);
+	}
 
 	std::vector<std::string> terrain_files = get_file_list("share/", "share/terrain-gfx.txt");
 	std::vector<std::string> unit_files = get_file_list("share/", "share/units-gfx.txt");
@@ -255,45 +259,56 @@ int run(bool observer)
 	std::map<unsigned int, ai> ais;
 	if(observer)
 		ais.insert(std::make_pair(0, ai(m, r, r.civs[0])));
-	ais.insert(std::make_pair(1, ai(m, r, r.civs[1])));
-	gui g(1024, 768, m, r, terrain_files, unit_files, "share/empty.png", 
-			"share/city.png", *font,
-			"share/food_icon.png",
-			"share/prod_icon.png",
-			"share/comm_icon.png",
-			observer ? &ais.find(0)->second : NULL, civs[0]);
-	g.display();
-	g.init_turn();
-	while(running) {
-		if(r.current_civ_id() == (int)civs[0]->civ_id) {
-			SDL_Event event;
-			while(SDL_PollEvent(&event)) {
-				switch(event.type) {
-					case SDL_KEYDOWN:
-					case SDL_MOUSEBUTTONDOWN:
-					case SDL_MOUSEBUTTONUP:
-						if(g.handle_input(event))
+	for(unsigned int i = 1; i < civs.size(); i++)
+		ais.insert(std::make_pair(i, ai(m, r, r.civs[i])));
+	if(use_gui) {
+		gui g(1024, 768, m, r, terrain_files, unit_files, "share/empty.png", 
+				"share/city.png", *font,
+				"share/food_icon.png",
+				"share/prod_icon.png",
+				"share/comm_icon.png",
+				observer ? &ais.find(0)->second : NULL, civs[0]);
+		g.display();
+		g.init_turn();
+		while(running) {
+			if(r.current_civ_id() == (int)civs[0]->civ_id) {
+				SDL_Event event;
+				while(SDL_PollEvent(&event)) {
+					switch(event.type) {
+						case SDL_KEYDOWN:
+						case SDL_MOUSEBUTTONDOWN:
+						case SDL_MOUSEBUTTONUP:
+							if(g.handle_input(event))
+								running = false;
+							break;
+						case SDL_QUIT:
 							running = false;
-						break;
-					case SDL_QUIT:
-						running = false;
-					default:
-						break;
+						default:
+							break;
+					}
 				}
-			}
-			SDL_Delay(50);
-			g.process(50);
-		}
-		else {
-			std::map<unsigned int, ai>::iterator ait = ais.find(r.current_civ_id());
-			if(ait != ais.end()) {
-				if(ait->second.play())
-					running = false;
-				else
-					g.init_turn();
+				SDL_Delay(50);
+				g.process(50);
 			}
 			else {
-				running = false;
+				std::map<unsigned int, ai>::iterator ait = ais.find(r.current_civ_id());
+				if(ait != ais.end()) {
+					if(ait->second.play())
+						running = false;
+					else
+						g.init_turn();
+				}
+				else {
+					running = false;
+				}
+			}
+		}
+	}
+	else {
+		while(1) {
+			std::map<unsigned int, ai>::iterator ait = ais.find(r.current_civ_id());
+			if(ait != ais.end()) {
+				ait->second.play();
 			}
 		}
 	}
@@ -307,14 +322,47 @@ int run(bool observer)
 int main(int argc, char **argv)
 {
 	bool observer = false;
-	srand(time(NULL));
-	if(argc > 1 && !strcmp(argv[1], "-o")) {
-		observer = true;
+	bool gui = true;
+	int seed = 0;
+	int c;
+	bool succ = true;
+	while((c = getopt(argc, argv, "oxs:")) != -1) {
+		switch(c) {
+			case 'o':
+				observer = true;
+				break;
+			case 'x':
+				gui = false;
+				break;
+			case 's':
+				seed = atoi(optarg);
+				break;
+			case '?':
+			default:
+				fprintf(stderr, "Unrecognized option: -%c\n",
+						optopt);
+				succ = false;
+				break;
+		}
 	}
-	if (SDL_Init(SDL_INIT_EVERYTHING) < 0) {
+	if(!succ)
+		exit(2);
+	if(seed)
+		srand(seed);
+	else {
+		seed = time(NULL);
+		printf("Seed: %d\n", seed);
+		srand(seed);
+	}
+	int sdl_flags = SDL_INIT_EVERYTHING;
+	if(!gui)
+		sdl_flags |= SDL_INIT_NOPARACHUTE;
+	if (SDL_Init(sdl_flags) < 0) {
 		fprintf(stderr, "Unable to init SDL: %s\n", SDL_GetError());
 		exit(1);
 	}
+	if(!gui)
+		signal(SIGINT, SIG_DFL);
 	if(!IMG_Init(IMG_INIT_PNG)) {
 		fprintf(stderr, "Unable to init SDL_image: %s\n", IMG_GetError());
 	}
@@ -323,7 +371,7 @@ int main(int argc, char **argv)
 	}
 	SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
 	try {
-		run(observer);
+		run(observer, gui);
 	}
 	catch (std::exception& e) {
 		printf("std::exception: %s\n", e.what());

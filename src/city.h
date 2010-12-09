@@ -14,7 +14,9 @@ struct city_production {
 
 class city {
 	public:
-		city(std::string name, int x, int y, unsigned int civid);
+		city(std::string name, int x, int y, 
+				unsigned int civid, 
+				unsigned int cityid);
 		bool producing_something() const;
 		void set_unit_production(int uid);
 		void set_improv_production(int uid);
@@ -33,6 +35,7 @@ class city {
 		const int xpos;
 		const int ypos;
 		unsigned int civ_id;
+		unsigned int city_id;
 		int stored_food;
 		int stored_prod;
 		city_production production;

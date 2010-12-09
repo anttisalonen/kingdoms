@@ -1,11 +1,13 @@
 #include <algorithm>
 #include "city.h"
 
-city::city(std::string name, int x, int y, unsigned int civid)
+city::city(std::string name, int x, int y, unsigned int civid,
+		unsigned int cityid)
 	: cityname(name),
 	xpos(x),
 	ypos(y),
 	civ_id(civid),
+	city_id(cityid),
 	stored_food(0),
 	stored_prod(0),
 	accum_culture(0),

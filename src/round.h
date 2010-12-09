@@ -62,6 +62,7 @@ class round
 		const advance_map amap;
 		const city_improv_map cimap;
 		bool in_war(unsigned int civ1, unsigned int civ2) const;
+		int get_round_number() const;
 	private:
 		bool next_civ();
 		void refill_moves();
@@ -75,6 +76,7 @@ class round
 		void update_land_owners();
 		std::vector<civilization*>::iterator current_civ;
 		map& m;
+		int round_number;
 };
 
 #endif

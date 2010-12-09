@@ -88,7 +88,8 @@ civilization::civilization(std::string name, unsigned int civid,
 	ai(ai_),
 	relationships(civid + 1, relationship_unknown),
 	known_land_map(buf2d<int>(0, 0, -1)),
-	curr_city_name_index(0)
+	curr_city_name_index(0),
+	next_city_id(1)
 {
 	for(std::vector<std::string>::const_iterator it = names_start;
 			it != names_end;
@@ -109,9 +110,10 @@ civilization::~civilization()
 		delete units.back();
 		units.pop_back();
 	}
-	while(!cities.empty()) {
-		delete cities.back();
-		cities.pop_back();
+	for(std::map<unsigned int, city*>::iterator cit = cities.begin();
+			cit != cities.end();
+			++cit) {
+		delete cit->second;
 	}
 }
 
@@ -149,8 +151,10 @@ void civilization::eliminate()
 	while(!units.empty()) {
 		remove_unit(units.back());
 	}
-	while(!cities.empty()) {
-		remove_city(cities.back());
+	for(std::map<unsigned int, city*>::iterator cit = cities.begin();
+			cit != cities.end();
+			++cit) {
+		delete cit->second;
 	}
 	m->remove_civ_land(civ_id);
 }
@@ -179,7 +183,7 @@ msg new_unit_msg(unit* u, city* c)
 {
 	msg m;
 	m.type = msg_new_unit;
-	m.msg_data.city_prod_data.building_city = c;
+	m.msg_data.city_prod_data.building_city_id = c->city_id;
 	m.msg_data.city_prod_data.prod_id = u->unit_id;
 	return m;
 }
@@ -205,7 +209,7 @@ msg new_improv_msg(city* c, unsigned int ciid)
 {
 	msg m;
 	m.type = msg_new_city_improv;
-	m.msg_data.city_prod_data.building_city = c;
+	m.msg_data.city_prod_data.building_city_id = c->city_id;
 	m.msg_data.city_prod_data.prod_id = ciid;
 	return m;
 }
@@ -214,50 +218,51 @@ void civilization::increment_resources(const unit_configuration_map& uconfmap,
 		const advance_map& amap, const city_improv_map& cimap)
 {
 	int total_commerce = 0;
-	for(std::list<city*>::iterator cit = cities.begin();
+	for(std::map<unsigned int, city*>::iterator cit = cities.begin();
 			cit != cities.end();
 			++cit) {
 		int food, prod, comm;
-		total_resources(**cit, *m, &food, &prod, &comm);
-		(*cit)->stored_food += food - (*cit)->get_city_size() * 2;
+		city* this_city = cit->second;
+		total_resources(*this_city, *m, &food, &prod, &comm);
+		this_city->stored_food += food - this_city->get_city_size() * 2;
 		total_commerce += comm;
-		(*cit)->stored_prod += prod;
-		if((*cit)->production.current_production_id > -1) {
-			if((*cit)->production.producing_unit) {
-				unit_configuration_map::const_iterator prod_unit = uconfmap.find((*cit)->production.current_production_id);
+		this_city->stored_prod += prod;
+		if(this_city->production.current_production_id > -1) {
+			if(this_city->production.producing_unit) {
+				unit_configuration_map::const_iterator prod_unit = uconfmap.find(this_city->production.current_production_id);
 				if(prod_unit != uconfmap.end()) {
-					if((int)prod_unit->second.production_cost <= (*cit)->stored_prod) {
-						unit* u = add_unit((*cit)->production.current_production_id, 
-								(*cit)->xpos, (*cit)->ypos, prod_unit->second);
-						if((*cit)->has_barracks(cimap))
+					if((int)prod_unit->second.production_cost <= this_city->stored_prod) {
+						unit* u = add_unit(this_city->production.current_production_id, 
+								this_city->xpos, this_city->ypos, prod_unit->second);
+						if(this_city->has_barracks(cimap))
 							u->veteran = true;
-						(*cit)->stored_prod -= prod_unit->second.production_cost;
-						add_message(new_unit_msg(u, (*cit)));
+						this_city->stored_prod -= prod_unit->second.production_cost;
+						add_message(new_unit_msg(u, this_city));
 					}
 				}
 			}
 			else {
-				city_improv_map::const_iterator prod_improv = cimap.find((*cit)->production.current_production_id);
+				city_improv_map::const_iterator prod_improv = cimap.find(this_city->production.current_production_id);
 				if(prod_improv != cimap.end()) {
-					if((int)prod_improv->second.cost <= (*cit)->stored_prod) {
-						if((*cit)->built_improvements.find(prod_improv->first) ==
-								(*cit)->built_improvements.end()) {
-							(*cit)->built_improvements.insert(prod_improv->first);
-							(*cit)->stored_prod -= prod_improv->second.cost;
+					if((int)prod_improv->second.cost <= this_city->stored_prod) {
+						if(this_city->built_improvements.find(prod_improv->first) ==
+								this_city->built_improvements.end()) {
+							this_city->built_improvements.insert(prod_improv->first);
+							this_city->stored_prod -= prod_improv->second.cost;
 						}
-						add_message(new_improv_msg(*cit, prod_improv->first));
-						(*cit)->production.current_production_id = -1;
+						add_message(new_improv_msg(this_city, prod_improv->first));
+						this_city->production.current_production_id = -1;
 					}
 				}
 			}
 		}
 
-		for(std::set<unsigned int>::const_iterator ciit = (*cit)->built_improvements.begin();
-				ciit != (*cit)->built_improvements.end();
+		for(std::set<unsigned int>::const_iterator ciit = this_city->built_improvements.begin();
+				ciit != this_city->built_improvements.end();
 				++ciit) {
 			city_improv_map::const_iterator cnit = cimap.find(*ciit);
 			if(cnit != cimap.end())
-				(*cit)->accum_culture += cnit->second.culture;
+				this_city->accum_culture += cnit->second.culture;
 		}
 	}
 	int gold_add = total_commerce * alloc_gold / 10;
@@ -314,7 +319,8 @@ char civilization::fog_at(int x, int y) const
 
 city* civilization::add_city(int x, int y)
 {
-	city* c = new city(city_names[curr_city_name_index++], x, y, civ_id);
+	city* c = new city(city_names[curr_city_name_index++], x, y, civ_id,
+			next_city_id);
 	if(curr_city_name_index >= city_names.size()) {
 		for(unsigned int i = 0; i < city_names.size(); i++) {
 			city_names[i] = std::string("New ") + city_names[i];
@@ -325,7 +331,7 @@ city* civilization::add_city(int x, int y)
 	reveal_land(c->xpos, c->ypos, 2);
 	fog.shade(c->xpos, c->ypos, 2);
 	fog.reveal(c->xpos, c->ypos, 1);
-	cities.push_back(c);
+	cities.insert(std::make_pair(next_city_id++, c));
 	m->add_city(c, x, y);
 	coord rescoord = next_good_resource_spot(c, m);
 	c->add_resource_worker(rescoord);
@@ -334,10 +340,13 @@ city* civilization::add_city(int x, int y)
 
 void civilization::remove_city(city* c)
 {
-	fog.shade(c->xpos, c->ypos, 2);
-	m->remove_city(c);
-	cities.remove(c);
-	delete c;
+	std::map<unsigned int, city*>::iterator cit = cities.find(c->city_id);
+	if(cit != cities.end()) {
+		fog.shade(c->xpos, c->ypos, 2);
+		m->remove_city(c);
+		cities.erase(cit);
+		delete c;
+	}
 }
 
 relationship civilization::get_relationship_to_civ(unsigned int civid) const

@@ -200,6 +200,8 @@ goto_orders::goto_orders(const civilization* civ_, unit* u_,
 void goto_orders::get_new_path()
 {
 	path = map_astar(*civ, *u, ignore_enemy, coord(u->xpos, u->ypos), coord(tgtx, tgty));
+	if(!path.empty())
+		path.pop_front();
 }
 
 action goto_orders::get_action()
@@ -279,9 +281,9 @@ void explore_orders::get_new_path()
 			coord(u->xpos, u->ypos), 
 			picker);
 	if(!fog_path.empty()) {
-		path = map_astar(*civ, *u, false, coord(u->xpos, u->ypos), coord(fog_path.back().x, fog_path.back().y));
-		if(!path.empty())
-			path.pop_front();
+		tgtx = fog_path.back().x;
+		tgty = fog_path.back().y;
+		goto_orders::get_new_path();
 	}
 }
 
@@ -526,11 +528,12 @@ bool ai::play()
 	}
 
 	// assign orders to cities not producing anything
-	for(std::list<city*>::iterator it = myciv->cities.begin();
+	for(std::map<unsigned int, city*>::iterator it = myciv->cities.begin();
 			it != myciv->cities.end();
 			++it) {
-		if(!(*it)->producing_something()) {
-			cityordersmap[*it] = create_city_orders(*it);
+		city* c = it->second;
+		if(!c->producing_something()) {
+			cityordersmap[c] = create_city_orders(c);
 		}
 	}
 
@@ -758,7 +761,9 @@ ai::orderprio_t ai::found_new_city(unit* u)
 		tgty = u->ypos;
 	}
 	else {
-		find_best_city_pos(myciv, param.found_city, u, &tgtx, &tgty, &prio);
+		if(!find_best_city_pos(myciv, param.found_city, u, &tgtx, &tgty, &prio)) {
+			return std::make_pair(-1, new primitive_orders(unit_action(action_skip, u)));
+		}
 	}
 	orders_composite* o = new orders_composite();
 	o->add_orders(new found_city_orders(myciv, u, param.found_city, tgtx, tgty));
@@ -849,17 +854,22 @@ void ai::handle_new_advance(unsigned int adv_id)
 
 void ai::handle_civ_discovery(int civ_id)
 {
+	r.declare_war_between(myciv->civ_id, civ_id);
 }
 
 void ai::handle_new_improv(const msg& m)
 {
-	city* c = m.msg_data.city_prod_data.building_city;
-	cityordersmap[c] = create_city_orders(c);
+	std::map<unsigned int, city*>::iterator cit = myciv->cities.find(m.msg_data.city_prod_data.building_city_id);
+	if(cit != myciv->cities.end()) {
+		city* c = cit->second;
+		cityordersmap[c] = create_city_orders(c);
+	}
 }
 
 void ai::handle_new_unit(const msg& m)
 {
-	city* c = m.msg_data.city_prod_data.building_city;
-	cityordersmap[c] = create_city_orders(c);
+	std::map<unsigned int, city*>::iterator cit = myciv->cities.find(m.msg_data.city_prod_data.building_city_id);
+	if(cit != myciv->cities.end())
+		cityordersmap[cit->second] = create_city_orders(cit->second);
 }
 

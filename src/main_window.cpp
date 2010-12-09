@@ -282,11 +282,12 @@ int main_window::draw_main_map()
 				}
 			}
 		}
-		for(std::list<city*>::const_iterator it = (*cit)->cities.begin();
+		for(std::map<unsigned int, city*>::const_iterator it = (*cit)->cities.begin();
 				it != (*cit)->cities.end();
 				++it) {
-			if(internal_ai || myciv->fog_at((*it)->xpos, (*it)->ypos) > 0) {
-				if(draw_city(**it)) {
+			city* c = it->second;
+			if(internal_ai || myciv->fog_at(c->xpos, c->ypos) > 0) {
+				if(draw_city(*c)) {
 					return 1;
 				}
 			}
@@ -603,7 +604,7 @@ void main_window::handle_successful_action(const action& a, city** c)
 					break;
 				case action_found_city:
 					current_unit = myciv->units.end();
-					*c = myciv->cities.back();
+					*c = myciv->cities.rend()->second;
 					// fall through
 				case action_skip:
 				case action_fortify:
@@ -793,11 +794,12 @@ int main_window::handle_mouse_down(const SDL_Event& ev, city** c)
 int main_window::try_choose_with_mouse(city** c)
 {
 	// choose city
-	for(std::list<city*>::const_iterator it = myciv->cities.begin();
+	for(std::map<unsigned int, city*>::const_iterator it = myciv->cities.begin();
 			it != myciv->cities.end();
 			++it) {
-		if((*it)->xpos == mouse_down_sqx && (*it)->ypos == mouse_down_sqy) {
-			*c = *it;
+		city *cn = it->second;
+		if(cn->xpos == mouse_down_sqx && cn->ypos == mouse_down_sqy) {
+			*c = cn;
 			break;
 		}
 	}
