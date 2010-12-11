@@ -1,10 +1,13 @@
 #include <utility>
 #include <stdio.h>
 
+// man 3p round
+namespace math {
+#include <math.h>
+}
+
 #include "map-astar.h"
 #include "ai.h"
-
-// #define AI_DEBUG
 
 class city_picker {
 	private:
@@ -103,10 +106,6 @@ int points_for_city_founding(const civilization* civ,
 			comm_points < found_city.min_comm_points)
 		return -1;
 
-#ifdef AI_DEBUG
-	printf("City prio: %d\n", found_city.found_city_coeff * 
-			(counter + food_points + prod_points + comm_points));
-#endif
 	return clamp<int>(0,
 			found_city.found_city_coeff * 
 			(counter + food_points + prod_points + comm_points),
@@ -470,8 +469,6 @@ action found_city_orders::get_action()
 	if(path.empty()) {
 		int new_city_points = points_for_city_founding(civ,
 				found_city, 1, coord(tgtx, tgty));
-		printf("old: %d - new: %d\n", city_points,
-				new_city_points);
 		if(new_city_points < 1 || new_city_points < city_points) {
 			replan();
 			return action_none;
@@ -558,6 +555,8 @@ bool improve_orders::replan()
 			int xp = base_city->xpos + i;
 			int yp = base_city->ypos + j;
 			if(civ->m->get_land_owner(xp, yp) == (int)civ->civ_id) {
+				if(civ->m->city_on_spot(xp, yp) != NULL)
+					continue;
 				const std::list<unit*>& units = civ->m->units_on_spot(xp, yp);
 				for(std::list<unit*>::const_iterator it = units.begin();
 						it != units.end(); ++it) {
@@ -622,17 +621,19 @@ ai_tunable_parameters::ai_tunable_parameters()
 	exploration_min_prio(100),
 	exploration_max_prio(600),
 	exploration_length_decr_coeff(50),
-	unit_prodcost_prio_coeff(1),
+	unit_prodcost_prio_coeff(0),
 	offense_dist_prio_coeff(50),
+	unit_strength_prio_coeff(1),
 	max_offense_prio(1000),
 	worker_prio(900)
 {
 }
 
-ai::ai(map& m_, round& r_, civilization* c)
+ai::ai(map& m_, round& r_, civilization* c, bool debug_)
 	: m(m_),
 	r(r_),
-	myciv(c)
+	myciv(c),
+	debug(debug_)
 {
 }
 
@@ -732,16 +733,14 @@ bool ai::play()
 		action a = oit->second->get_action();
 		int success = r.perform_action(myciv->civ_id, a);
 		if(!success) {
-#ifdef AI_DEBUG
-			printf("AI error: could not perform action.\n");
-#endif
+			if(debug)
+				printf("AI error: could not perform action.\n");
 			oit->second->replan();
 			action a = oit->second->get_action();
 			success = r.perform_action(myciv->civ_id, a);
 			if(!success) {
-#ifdef AI_DEBUG
-				printf("AI error: still could not perform action.\n");
-#endif
+				if(debug)
+					printf("AI error: still could not perform action.\n");
 				oit->second->clear();
 			}
 		}
@@ -804,9 +803,47 @@ ai::orderprio_t ai::create_orders(unit* u)
 	}
 }
 
+class worker_searcher {
+	private:
+		const civilization* myciv;
+		int maxrange;
+		unit* found_unit;
+		const unit* self;
+	public:
+		worker_searcher(const civilization* myciv_, const unit* self_, int maxrange_) : 
+			myciv(myciv_), maxrange(maxrange_), found_unit(NULL), self(self_) { }
+		const unit* get_found_unit() const { return found_unit; }
+		bool operator()(const coord& co) {
+			const std::list<unit*>& units = myciv->m->units_on_spot(co.x, co.y);
+			for(std::list<unit*>::const_iterator it = units.begin();
+					it != units.end();
+					++it) {
+				if((*it)->uconf.worker && (*it) != self) {
+					found_unit = *it;
+					return true;
+				}
+			}
+			maxrange--;
+			if(maxrange < 0) {
+				return true;
+			}
+			return false;
+		}
+};
+
 ai::orderprio_t ai::workers_orders(unit* u)
 {
 	int prio = param.worker_prio;
+	worker_searcher searcher(myciv, u, 25);
+	boost::function<bool(const coord& a)> testfunc = boost::ref(searcher);
+	map_path_to_nearest(*myciv, 
+			*u, 
+			false,
+			coord(u->xpos, u->ypos), 
+			testfunc);
+	if(searcher.get_found_unit() != NULL) {
+		prio = -1;
+	}
 	orders_composite* o = new orders_composite();
 	orders* io = new improve_orders(myciv, u);
 	if(io->finished())
@@ -818,15 +855,13 @@ ai::orderprio_t ai::workers_orders(unit* u)
 ai::orderprio_t ai::military_unit_orders(unit* u)
 {
 	ordersqueue_t ordersq;
-#ifdef AI_DEBUG
-	printf("AI: ");
-#endif
+	if(debug)
+		printf("AI (%s): ", u->uconf.unit_name.c_str());
 	get_exploration_prio(ordersq, u);
 	get_defense_prio(ordersq, u);
 	get_offense_prio(ordersq, u);
-#ifdef AI_DEBUG
-	printf("\n");
-#endif
+	if(debug)
+		printf("\n");
 	orderprio_t best = ordersq.top();
 	ordersq.pop();
 	while(!ordersq.empty()) {
@@ -847,12 +882,12 @@ void ai::get_exploration_prio(ordersqueue_t& pq, unit* u)
 		prio = 0;
 	else
 		prio = clamp<int>(param.exploration_min_prio, 
-				param.exploration_max_prio - 
-					e->path_length() * param.exploration_length_decr_coeff, 
+				param.exploration_max_prio + 
+				param.unit_strength_prio_coeff * math::pow(u->uconf.max_strength, 2) - 
+				e->path_length() * param.exploration_length_decr_coeff, 
 				param.exploration_max_prio);
-#ifdef AI_DEBUG
-	printf("exploration: %d; ", prio);
-#endif
+	if(debug)
+		printf("exploration: %d; ", prio);
 	pq.push(std::make_pair(prio, o));
 }
 
@@ -868,10 +903,13 @@ ai::orderprio_t ai::get_defense_orders(unit* u)
 			tgtx = c->xpos;
 			tgty = c->ypos;
 			const std::list<unit*>& units = m.units_on_spot(tgtx, tgty);
-			int num_units = units.size();
+			int num_units = std::count_if(units.begin(),
+					units.end(),
+					std::mem_fun(&unit::is_military_unit));
 			if(tgtx == u->xpos && tgty == u->ypos)
 				num_units--;
-			prio = clamp<int>(1, param.max_defense_prio - 
+			prio = clamp<int>(1, param.max_defense_prio + 
+					param.unit_strength_prio_coeff * math::pow(u->uconf.max_strength, 2) - 
 					param.defense_units_prio_coeff * num_units,
 					param.max_defense_prio);
 		}
@@ -880,9 +918,8 @@ ai::orderprio_t ai::get_defense_orders(unit* u)
 	o->add_orders(new goto_orders(myciv, u, false, tgtx, tgty));
 	o->add_orders(new primitive_orders(unit_action(action_fortify, u)));
 	o->add_orders(new wait_orders(u, 50)); // time not updating orders
-#ifdef AI_DEBUG
-	printf("defense: %d; ", prio);
-#endif
+	if(debug)
+		printf("defense: %d; ", prio);
 	return std::make_pair(prio, o);
 }
 
@@ -898,14 +935,14 @@ void ai::get_offense_prio(ordersqueue_t& pq, unit* u)
 	tgtx = u->xpos;
 	tgty = u->ypos;
 	if(find_nearest_enemy(u, &tgtx, &tgty)) {
-		prio = std::max<int>(0, param.max_offense_prio - 
-				param.offense_dist_prio_coeff * abs(tgtx - u->xpos) + abs(tgty - u->ypos));
+		prio = std::max<int>(0, param.max_offense_prio + 
+				param.unit_strength_prio_coeff * math::pow(u->uconf.max_strength, 2) - 
+				param.offense_dist_prio_coeff * (abs(tgtx - u->xpos) + abs(tgty - u->ypos)));
 	}
 	orders_composite* o = new orders_composite();
 	o->add_orders(new attack_orders(myciv, u, tgtx, tgty));
-#ifdef AI_DEBUG
-	printf("offense: %d; ", prio);
-#endif
+	if(debug)
+		printf("offense: %d; ", prio);
 	pq.push(std::make_pair(prio, o));
 }
 
@@ -992,7 +1029,6 @@ void ai::handle_new_unit(const msg& m)
 
 void ai::handle_unit_disbanded(const msg& m)
 {
-#ifdef AI_DEBUG
-	printf("AI: unit disbanded.\n");
-#endif
+	if(debug)
+		printf("AI: unit disbanded.\n");
 }

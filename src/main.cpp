@@ -283,9 +283,9 @@ int run(bool observer, bool use_gui)
 
 	std::map<unsigned int, ai> ais;
 	if(observer)
-		ais.insert(std::make_pair(0, ai(m, r, r.civs[0])));
+		ais.insert(std::make_pair(0, ai(m, r, r.civs[0], true)));
 	for(unsigned int i = 1; i < civs.size(); i++)
-		ais.insert(std::make_pair(i, ai(m, r, r.civs[i])));
+		ais.insert(std::make_pair(i, ai(m, r, r.civs[i], false)));
 	if(use_gui) {
 		std::vector<const char*> road_images;
 		road_images.push_back("share/road_nw.png");

@@ -130,4 +130,9 @@ bool unit::idle() const
 	return moves > 0 && !fortified_or_fortifying() && !is_improving();
 }
 
+bool unit::is_military_unit() const
+{
+	return uconf.max_strength > 0;
+}
+
 

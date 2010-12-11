@@ -154,6 +154,7 @@ struct ai_tunable_parameters {
 	int exploration_length_decr_coeff;
 	int unit_prodcost_prio_coeff;
 	int offense_dist_prio_coeff;
+	int unit_strength_prio_coeff;
 	int max_offense_prio;
 	ai_tunables_found_city found_city;
 	int worker_prio;
@@ -166,7 +167,7 @@ class ai {
 	typedef std::priority_queue<orderprio_t> ordersqueue_t;
 	typedef std::priority_queue<std::pair<int, coord> > city_points_t;
 	public:
-		ai(map& m_, round& r_, civilization* c);
+		ai(map& m_, round& r_, civilization* c, bool debug_);
 		bool play();
 	private:
 		city_production* create_city_orders(city* c);
@@ -191,6 +192,7 @@ class ai {
 		cityordersmap_t cityordersmap;
 		ai_tunable_parameters param;
 		city_points_t cityq;
+		bool debug;
 };
 
 bool find_best_city_pos(const civilization* myciv,

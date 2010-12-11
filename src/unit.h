@@ -23,6 +23,7 @@ class unit
 		void start_improving_to(improvement_type i, int turns);
 		bool is_improving() const;
 		bool idle() const;
+		bool is_military_unit() const;
 		const int unit_id;
 		const int civ_id;
 		int xpos;
