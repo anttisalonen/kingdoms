@@ -706,16 +706,6 @@ int main_window::handle_window_input(const SDL_Event& ev)
 	return a.type == action_give_up;
 }
 
-class not_in_set {
-	private:
-		const std::set<unsigned int>& u;
-	public:
-		not_in_set(const std::set<unsigned int>& u_) : u(u_) { }
-		bool operator()(const std::pair<unsigned int, advance>& i) {
-			return u.find(i.first) == u.end();
-		}
-};
-
 int main_window::handle_civ_messages(std::list<msg>* messages)
 {
 	while(!messages->empty()) {
@@ -742,14 +732,6 @@ int main_window::handle_civ_messages(std::list<msg>* messages)
 					advance_map::const_iterator it = data.r.amap.find(adv_id);
 					if(it != data.r.amap.end()) {
 						printf("Discovered advance '%s'.\n",
-								it->second.advance_name.c_str());
-					}
-					it = std::find_if(data.r.amap.begin(),
-							data.r.amap.end(),
-							not_in_set(myciv->researched_advances));
-					if(it != data.r.amap.end()) {
-						myciv->research_goal_id = it->first;
-						printf("Now researching '%s'.\n",
 								it->second.advance_name.c_str());
 					}
 				}

@@ -101,6 +101,7 @@ class civilization {
 		void reveal_land(int x, int y, int r);
 		void update_national_income();
 		void update_military_expenses();
+		void setup_default_research_goal(const advance_map& amap);
 		std::vector<relationship> relationships;
 		buf2d<int> known_land_map;
 		std::vector<std::string> city_names;

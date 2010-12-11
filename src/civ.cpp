@@ -329,13 +329,36 @@ void civilization::increment_resources(const unit_configuration_map& uconfmap,
 	science += science_add;
 	advance_map::const_iterator adv = amap.find(research_goal_id);
 	if(adv == amap.end()) {
-		research_goal_id = 0;
 		add_message(new_advance_discovered(0));
+		setup_default_research_goal(amap);
 	}
 	else if(adv->second.cost <= science) {
 		science -= adv->second.cost;
 		add_message(new_advance_discovered(research_goal_id));
 		researched_advances.insert(research_goal_id);
+		setup_default_research_goal(amap);
+	}
+}
+
+class not_in_set {
+	private:
+		const std::set<unsigned int>& u;
+	public:
+		not_in_set(const std::set<unsigned int>& u_) : u(u_) { }
+		bool operator()(const std::pair<unsigned int, advance>& i) {
+			return u.find(i.first) == u.end();
+		}
+};
+
+void civilization::setup_default_research_goal(const advance_map& amap)
+{
+	advance_map::const_iterator it = std::find_if(amap.begin(),
+			amap.end(),
+			not_in_set(researched_advances));
+	if(it != amap.end()) {
+		research_goal_id = it->first;
+	}
+	else {
 		research_goal_id = 0;
 	}
 }
