@@ -74,7 +74,8 @@ coord next_good_resource_spot(const city* c, const map* m)
 civilization::civilization(std::string name, unsigned int civid, 
 		const color& c_, map* m_, bool ai_,
 		const std::vector<std::string>::iterator& names_start,
-		const std::vector<std::string>::iterator& names_end)
+		const std::vector<std::string>::iterator& names_end,
+		const government* gov_)
 	: civname(name),
 	civ_id(civid),
 	col(c_),
@@ -89,7 +90,8 @@ civilization::civilization(std::string name, unsigned int civid,
 	relationships(civid + 1, relationship_unknown),
 	known_land_map(buf2d<int>(0, 0, -1)),
 	curr_city_name_index(0),
-	next_city_id(1)
+	next_city_id(1),
+	gov(gov_)
 {
 	for(std::vector<std::string>::const_iterator it = names_start;
 			it != names_end;
@@ -190,7 +192,6 @@ msg new_advance_discovered(unsigned int adv_id)
 	return m;
 }
 
-
 msg discovered_civ(int civid)
 {
 	msg m;
@@ -205,6 +206,13 @@ msg new_improv_msg(city* c, unsigned int ciid)
 	m.type = msg_new_city_improv;
 	m.msg_data.city_prod_data.building_city_id = c->city_id;
 	m.msg_data.city_prod_data.prod_id = ciid;
+	return m;
+}
+
+msg unit_disbanded()
+{
+	msg m;
+	m.type = msg_unit_disbanded;
 	return m;
 }
 
@@ -271,7 +279,15 @@ void civilization::increment_resources(const unit_configuration_map& uconfmap,
 		(10 - alloc_gold - alloc_science) : 
 		0;
 #endif
-	gold += gold_add;
+
+	int military_expenses = std::max<int>(0, units.size() - gov->free_units) * 
+		gov->unit_cost;
+	gold += gold_add - military_expenses;
+	while(!units.empty() && gold < 0) {
+		gold += gov->unit_cost;
+		remove_unit(*(units.begin()));
+		add_message(unit_disbanded());
+	}
 	science += science_add;
 	advance_map::const_iterator adv = amap.find(research_goal_id);
 	if(adv == amap.end()) {
@@ -462,6 +478,11 @@ bool civilization::blocked_by_land(int x, int y) const
 	else {
 		return get_relationship_to_civ(land_owner) == relationship_peace;
 	}
+}
+
+void civilization::set_government(const government* g)
+{
+	gov = g;
 }
 
 

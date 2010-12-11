@@ -753,7 +753,12 @@ int main_window::handle_civ_messages(std::list<msg>* messages)
 					}
 				}
 				break;
+			case msg_unit_disbanded:
+				printf("Unit disbanded.\n");
+				break;
 			default:
+				printf("Unknown message received: %d\n",
+						m.type);
 				break;
 		}
 		messages->pop_front();

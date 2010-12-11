@@ -19,12 +19,14 @@
 #include "map.h"
 #include "fog_of_war.h"
 #include "advance.h"
+#include "government.h"
 
 enum msg_type {
 	msg_new_unit,
 	msg_civ_discovery,
 	msg_new_advance,
 	msg_new_city_improv,
+	msg_unit_disbanded,
 };
 
 struct msg {
@@ -49,7 +51,8 @@ class civilization {
 	public:
 		civilization(std::string name, unsigned int civid, const color& c_, map* m_, bool ai_,
 				const std::vector<std::string>::iterator& names_start,
-				const std::vector<std::string>::iterator& names_end);
+				const std::vector<std::string>::iterator& names_end,
+				const government* gov_);
 		~civilization();
 		unit* add_unit(int uid, int x, int y, const unit_configuration& uconf);
 		void remove_unit(unit* u);
@@ -76,6 +79,7 @@ class civilization {
 		int get_known_land_owner(int x, int y) const;
 		void eliminate();
 		void set_map(map* m_);
+		void set_government(const government* g);
 		std::string civname;
 		const unsigned int civ_id;
 		color col;
@@ -98,6 +102,7 @@ class civilization {
 		std::vector<std::string> city_names;
 		unsigned int curr_city_name_index;
 		unsigned int next_city_id;
+		const government* gov;
 };
 
 

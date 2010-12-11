@@ -169,6 +169,7 @@ class ai {
 		void handle_civ_discovery(int civ_id);
 		void handle_new_unit(const msg& m);
 		void handle_new_improv(const msg& m);
+		void handle_unit_disbanded(const msg& m);
 		map& m;
 		round& r;
 		civilization* myciv;

@@ -133,7 +133,8 @@ std::vector<civilization*> parse_civs_config(const std::string& fp)
 					color(stoi(pcivs[i][1]),
 						stoi(pcivs[i][2]),
 						stoi(pcivs[i][3])),
-					NULL, false, pcivs[i].begin() + 4, pcivs[i].end()));
+					NULL, false, pcivs[i].begin() + 4, 
+					pcivs[i].end(), NULL));
 	}
 	return civs;
 }
@@ -217,6 +218,21 @@ resource_configuration parse_resource_config(const std::string& fp)
 	return resconf;
 }
 
+government_map parse_government_config(const std::string& fp)
+{
+	government_map govmap;
+	parse_result governments = parser(fp, 5);
+
+	for(unsigned int i = 0; i < governments.size(); i++) {
+		government gov(i + 1, governments[i][0]);
+		gov.needed_advance = stoi(governments[i][1]);
+		gov.free_units = stoi(governments[i][2]);
+		gov.unit_cost = stoi(governments[i][3]);
+		govmap.insert(std::make_pair(gov.gov_id, gov));
+	}
+	return govmap;
+}
+
 int run(bool observer, bool use_gui)
 {
 	const int map_x = 80;
@@ -230,9 +246,11 @@ int run(bool observer, bool use_gui)
 	advance_map amap = parse_advance_config("share/discoveries.txt");
 	city_improv_map cimap = parse_city_improv_config("share/improvs.txt");
 	resource_configuration resconf = parse_resource_config("share/terrain.txt");
+	government_map govmap = parse_government_config("share/governments.txt");
 	map m(map_x, map_y, resconf);
 	for(unsigned int i = 0; i < civs.size(); i++) {
 		civs[i]->set_map(&m);
+		civs[i]->set_government(&govmap.begin()->second);
 	}
 	round r(uconfmap, amap, cimap, m);
 

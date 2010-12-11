@@ -519,6 +519,9 @@ bool ai::play()
 			case msg_new_city_improv:
 				handle_new_improv(m);
 				break;
+			case msg_unit_disbanded:
+				handle_unit_disbanded(m);
+				break;
 			default:
 				break;
 		}
@@ -871,3 +874,9 @@ void ai::handle_new_unit(const msg& m)
 		cityordersmap[cit->second] = create_city_orders(cit->second);
 }
 
+void ai::handle_unit_disbanded(const msg& m)
+{
+#ifdef AI_DEBUG
+	printf("AI: unit disbanded.\n");
+#endif
+}
