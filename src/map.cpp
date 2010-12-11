@@ -520,7 +520,8 @@ bool map::try_improve_terrain(int x, int y,
 	if(!can_improve_terrain(x, y, civ_id, i))
 		return false;
 	int old = get_improvements_on(x, y);
-	old &= 0x01; // leave road, destroy rest
+	if(i != improv_road)
+		old &= 0x01; // leave road, destroy rest
 	improv_map.set(x, y, old | i);
 	return true;
 }
