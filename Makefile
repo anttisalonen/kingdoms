@@ -4,18 +4,20 @@ LDFLAGS  += -lSDL -lSDL_image -lSDL_ttf
 BINDIR = bin
 TARGET = $(BINDIR)/main
 SRCDIR = src
-SRCS   = $(SRCDIR)/color.cpp $(SRCDIR)/sdl-utils.cpp $(SRCDIR)/utils.cpp $(SRCDIR)/rect.cpp \
-	 $(SRCDIR)/government.cpp $(SRCDIR)/civ.cpp \
-	 $(SRCDIR)/gui-utils.cpp $(SRCDIR)/main_window.cpp $(SRCDIR)/city_window.cpp \
-	 $(SRCDIR)/diplomacy_window.cpp $(SRCDIR)/gui.cpp \
-	 $(SRCDIR)/astar.cpp $(SRCDIR)/map-astar.cpp $(SRCDIR)/ai.cpp \
-	 $(SRCDIR)/resource_configuration.cpp $(SRCDIR)/advance.cpp \
-	 $(SRCDIR)/city_improvement.cpp $(SRCDIR)/unit.cpp \
-	 $(SRCDIR)/city.cpp $(SRCDIR)/map.cpp $(SRCDIR)/fog_of_war.cpp \
-	 $(SRCDIR)/round.cpp \
-	 $(SRCDIR)/main.cpp
+SRCFILES = color.cpp sdl-utils.cpp utils.cpp rect.cpp \
+	   resource_configuration.cpp advance.cpp \
+	   city_improvement.cpp unit.cpp \
+	   city.cpp map.cpp fog_of_war.cpp \
+	   government.cpp civ.cpp \
+	   round.cpp \
+	   gui-utils.cpp main_window.cpp city_window.cpp \
+	   diplomacy_window.cpp gui.cpp \
+	   astar.cpp map-astar.cpp ai.cpp \
+	   main.cpp
 OBJS   = $(SRCS:.cpp=.o)
 DEPS   = $(SRCS:.cpp=.dep)
+
+SRCS = $(addprefix $(SRCDIR)/, $(SRCFILES))
 
 .PHONY: clean all
 

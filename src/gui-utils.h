@@ -16,6 +16,9 @@
 struct tileset {
 	tileset(int w, int h);
 	std::vector<SDL_Surface*> textures;
+	SDL_Surface* irrigation_overlay;
+	SDL_Surface* mine_overlay;
+	SDL_Surface* road_overlays[9];
 	const int tile_w;
 	const int tile_h;
 };

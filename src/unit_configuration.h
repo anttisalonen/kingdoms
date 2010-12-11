@@ -9,6 +9,7 @@ class unit_configuration {
 		std::string unit_name;
 		unsigned int max_moves;
 		bool settler;
+		bool worker;
 		unsigned int production_cost;
 		unsigned int max_strength;
 		unsigned int needed_advance;

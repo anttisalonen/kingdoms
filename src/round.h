@@ -22,6 +22,7 @@ enum unit_action_type {
 	action_found_city,
 	action_skip,
 	action_fortify,
+	action_improvement,
 };
 
 struct action {
@@ -36,6 +37,7 @@ struct action {
 					int chx;
 					int chy;
 				} move_pos;
+				improvement_type improv;
 			} unit_action_data;
 		} unit_data;
 	} data;
@@ -43,6 +45,7 @@ struct action {
 
 action unit_action(unit_action_type t, unit* u);
 action move_unit_action(unit* u, int chx, int chy);
+action improve_unit_action(unit* u, improvement_type i);
 
 class round
 {

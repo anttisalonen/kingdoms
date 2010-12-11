@@ -146,9 +146,8 @@ int city_window::draw_city_resources_screen(int xpos, int ypos)
 		int tile_xcoord = data.m.wrap_x(c->xpos + it->x);
 		int tile_ycoord = data.m.wrap_y(c->ypos + it->y);
 		int food, prod, comm;
-		data.m.get_resources_by_terrain(data.m.get_data(tile_xcoord,
-				tile_ycoord), it->x == 0 && it->y == 0, &food,
-				&prod, &comm);
+		data.m.get_resources_on_spot(tile_xcoord, tile_ycoord,
+				&food, &prod, &comm);
 		for(int i = 0; i < food; i++)
 			draw_image(tile_x + i * res.terrains.tile_w / (food * 2),
 				   tile_y, res.food_icon, screen);

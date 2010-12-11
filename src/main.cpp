@@ -151,6 +151,7 @@ unit_configuration_map parse_unit_config(const std::string& fp)
 		u.production_cost = stoi(units[i][3]);
 		u.needed_advance = stoi(units[i][4]);
 		u.settler = get_flag(units[i][5], 0);
+		u.worker = get_flag(units[i][5], 1);
 		uconfmap.insert(std::make_pair(i, u));
 	}
 	return uconfmap;
@@ -198,7 +199,10 @@ resource_configuration parse_resource_config(const std::string& fp)
 	resource_configuration resconf;
 	resconf.city_food_bonus = 1;
 	resconf.city_prod_bonus = 1;
-	resconf.city_comm_bonus = 1;
+	resconf.city_comm_bonus = 0; // compensated by road
+	resconf.irrigation_needed_turns = 3;
+	resconf.mine_needed_turns = 4;
+	resconf.road_needed_turns = 2;
 	parse_result terrains = parser(fp, 8);
 
 	if(terrains.size() >= (int)num_terrain_types) {
@@ -214,6 +218,9 @@ resource_configuration parse_resource_config(const std::string& fp)
 		resconf.temperature[i] = stoi(terrains[i][5]);
 		resconf.humidity[i] = stoi(terrains[i][6]);
 		resconf.found_city[i] = get_flag(terrains[i][7], 0);
+		resconf.irrigatable[i] = get_flag(terrains[i][7], 1);
+		resconf.mineable[i] = get_flag(terrains[i][7], 2);
+		resconf.roadable[i] = get_flag(terrains[i][7], 3);
 	}
 	return resconf;
 }
@@ -259,7 +266,7 @@ int run(bool observer, bool use_gui)
 		// settler
 		civs[i]->add_unit(0, starting_places[i].x, starting_places[i].y, (*(r.uconfmap.find(0))).second);
 		// warrior
-		civs[i]->add_unit(1, starting_places[i].x, starting_places[i].y, (*(r.uconfmap.find(1))).second);
+		civs[i]->add_unit(2, starting_places[i].x, starting_places[i].y, (*(r.uconfmap.find(2))).second);
 		r.add_civilization(civs[i]);
 	}
 
@@ -280,11 +287,24 @@ int run(bool observer, bool use_gui)
 	for(unsigned int i = 1; i < civs.size(); i++)
 		ais.insert(std::make_pair(i, ai(m, r, r.civs[i])));
 	if(use_gui) {
+		std::vector<const char*> road_images;
+		road_images.push_back("share/road_nw.png");
+		road_images.push_back("share/road_w.png");
+		road_images.push_back("share/road_sw.png");
+		road_images.push_back("share/road_n.png");
+		road_images.push_back("share/road.png");
+		road_images.push_back("share/road_s.png");
+		road_images.push_back("share/road_ne.png");
+		road_images.push_back("share/road_e.png");
+		road_images.push_back("share/road_se.png");
 		gui g(1024, 768, m, r, terrain_files, unit_files, "share/empty.png", 
 				"share/city.png", *font,
 				"share/food_icon.png",
 				"share/prod_icon.png",
 				"share/comm_icon.png",
+				"share/irrigation.png",
+				"share/mine.png",
+				road_images,
 				observer ? &ais.find(0)->second : NULL, civs[0]);
 		g.display();
 		g.init_turn();

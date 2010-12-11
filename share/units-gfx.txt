@@ -1,2 +1,3 @@
 settlers.png
+worker.png
 warrior.png

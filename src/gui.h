@@ -31,6 +31,9 @@ class gui
 				const char* food_icon_name,
 				const char* prod_icon_name,
 				const char* curr_icon_name,
+				const char* irrigation_name,
+				const char* mine_name,
+				const std::vector<const char*>& road_names,
 				ai* ai_,
 				civilization* myciv_);
 		~gui();

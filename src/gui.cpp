@@ -9,6 +9,9 @@ gui::gui(int x, int y, map& mm, round& rr,
 		const char* food_icon_name,
 		const char* prod_icon_name,
 		const char* curr_icon_name,
+		const char* irrigation_name,
+		const char* mine_name,
+		const std::vector<const char*>& road_names,
 		ai* ai_,
 		civilization* myciv_)
 	: screen_w(x),
@@ -27,6 +30,12 @@ gui::gui(int x, int y, map& mm, round& rr,
 	res.terrains.textures.resize(terrain_files.size());
 	for(unsigned int i = 0; i < terrain_files.size(); i++) {
 		res.terrains.textures[i] = sdl_load_image(terrain_files[i].c_str());
+	}
+	res.terrains.irrigation_overlay = sdl_load_image(irrigation_name);
+	res.terrains.mine_overlay = sdl_load_image(mine_name);
+	for(unsigned int i = 0; i < 9; i++) {
+		res.terrains.road_overlays[i] = road_names.size() > i ? 
+			sdl_load_image(road_names[i]) : NULL;
 	}
 	res.plain_unit_images.resize(rr.uconfmap.size());
 	for(unsigned int i = 0; i < unit_files.size(); i++) {
@@ -63,6 +72,12 @@ gui::gui(int x, int y, map& mm, round& rr,
 
 gui::~gui()
 {
+	SDL_FreeSurface(res.terrains.irrigation_overlay);
+	SDL_FreeSurface(res.terrains.mine_overlay);
+	for(unsigned int i = 0; i < 9; i++) {
+		if(res.terrains.road_overlays[i])
+			SDL_FreeSurface(res.terrains.road_overlays[i]);
+	}
 	for(unsigned int i = 0; i < res.terrains.textures.size(); i++) {
 		SDL_FreeSurface(res.terrains.textures[i]);
 	}

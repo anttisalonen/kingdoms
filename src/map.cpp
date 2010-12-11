@@ -12,6 +12,7 @@ map::map(int x, int y, const resource_configuration& resconf_)
 	unit_map(buf2d<std::list<unit*> >(x, y, std::list<unit*>())),
 	city_map(buf2d<city*>(x, y, NULL)),
 	land_map(buf2d<int>(x, y, -1)),
+	improv_map(buf2d<int>(x, y, 0)),
 	resconf(resconf_)
 {
 	x_wrap = true;
@@ -243,7 +244,7 @@ bool map::y_wrapped() const
 
 int map::get_data(int x, int y) const
 {
-	const int* v = data.get(x, y);
+	const int* v = data.get(wrap_x(x), wrap_y(y));
 	if(!v)
 		return -1;
 	return *v;
@@ -267,6 +268,19 @@ void map::get_resources_by_terrain(int terr, bool city, int* food, int* prod, in
 	*food = resconf.terrain_food_values[terr] + (city ? resconf.city_food_bonus : 0);
 	*prod = resconf.terrain_prod_values[terr] + (city ? resconf.city_prod_bonus : 0);
 	*comm = resconf.terrain_comm_values[terr] + (city ? resconf.city_comm_bonus : 0);
+}
+
+void map::get_resources_on_spot(int x, int y, int* food, int* prod, int* comm) const
+{
+	get_resources_by_terrain(get_data(x, y), city_on_spot(x, y) != NULL, 
+			food, prod, comm);
+	int imps = get_improvements_on(x, y);
+	if(imps & improv_irrigation)
+		(*food)++;
+	if(imps & improv_mine)
+		(*prod)++;
+	if(imps & improv_road)
+		(*comm)++;
 }
 
 void map::add_unit(unit* u)
@@ -360,6 +374,7 @@ void map::add_city(city* c, int x, int y)
 	if(city_on_spot(x, y))
 		return;
 	city_map.set(x, y, c);
+	improv_map.set(x, y, 0x01);
 	grab_land(c);
 }
 
@@ -434,7 +449,7 @@ std::vector<coord> map::get_starting_places(int num) const
 	while((int)retval.size() < num) {
 		int xp = rand() % size_x();
 		int yp = rand() % size_y();
-		if(resconf.can_found_city(get_data(xp, yp))) {
+		if(resconf.can_found_city_on(get_data(xp, yp))) {
 			coord v(xp, yp);
 			int f, p, c;
 			get_total_city_resources(xp, yp, &f, &p, &c);
@@ -476,4 +491,53 @@ void map::get_total_city_resources(int x, int y, int* food_points,
 		}
 	}
 }
+
+bool map::can_found_city_on(int x, int y) const
+{
+	x = wrap_x(x);
+	y = wrap_y(y);
+	return city_on_spot(x, y) == NULL &&
+		resconf.can_found_city_on(get_data(x, y));
+}
+
+bool map::can_improve_terrain(int x, int y, unsigned int civ_id, 
+		improvement_type i) const
+{
+	x = wrap_x(x);
+	y = wrap_y(y);
+	int own = get_land_owner(x, y);
+	return resconf.can_have_improvement(get_data(x, y), i) &&
+	   ((get_improvements_on(x, y) & i) == 0) &&
+	   city_on_spot(x, y) == NULL && 
+	   (own == -1 || (int)civ_id == own);
+}
+
+bool map::try_improve_terrain(int x, int y, 
+		unsigned int civ_id, improvement_type i)
+{
+	x = wrap_x(x);
+	y = wrap_y(y);
+	if(!can_improve_terrain(x, y, civ_id, i))
+		return false;
+	int old = get_improvements_on(x, y);
+	old &= 0x01; // leave road, destroy rest
+	improv_map.set(x, y, old | i);
+	return true;
+}
+
+int map::get_improvements_on(int x, int y) const
+{
+	x = wrap_x(x);
+	y = wrap_y(y);
+	const int* v = improv_map.get(x, y);
+	if(!v)
+		return 0;
+	return *v;
+}
+
+int map::get_needed_turns_for_improvement(improvement_type i) const
+{
+	return resconf.get_needed_turns_for_improvement(i);
+}
+
 

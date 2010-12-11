@@ -12,7 +12,7 @@ void set_default_city_production(city* c, const unit_configuration_map& uconfmap
 	for(unit_configuration_map::const_iterator it = uconfmap.begin();
 			it != uconfmap.end();
 			++it) {
-		if(!it->second.settler) {
+		if(it->second.max_strength) {
 			c->production.current_production_id = it->first;
 			return;
 		}
@@ -73,6 +73,13 @@ action move_unit_action(unit* u, int chx, int chy)
 	action a = unit_action(action_move_unit, u);
 	a.data.unit_data.unit_action_data.move_pos.chx = chx;
 	a.data.unit_data.unit_action_data.move_pos.chy = chy;
+	return a;
+}
+
+action improve_unit_action(unit* u, improvement_type i)
+{
+	action a = unit_action(action_improvement, u);
+	a.data.unit_data.unit_action_data.improv = i;
 	return a;
 }
 
@@ -211,11 +218,12 @@ bool round::perform_action(int civid, const action& a)
 							a.data.unit_data.unit_action_data.move_pos.chy);
 				case action_found_city:
 					{
-						const unit_configuration* uconf = get_unit_configuration(a.data.unit_data.u->unit_id);
-						bool can_build = uconf == NULL ? false : uconf->settler;
+						bool can_build = a.data.unit_data.u->uconf.settler;
 						if(can_build && 
 							m.city_on_spot(a.data.unit_data.u->xpos, 
-								a.data.unit_data.u->ypos) == NULL) {
+								a.data.unit_data.u->ypos) == NULL && 
+							m.can_found_city_on(a.data.unit_data.u->xpos,
+								a.data.unit_data.u->ypos)) {
 							city* c = (*current_civ)->add_city(a.data.unit_data.u->xpos,
 									a.data.unit_data.u->ypos);
 							set_default_city_production(c, uconfmap);
@@ -229,6 +237,21 @@ bool round::perform_action(int civid, const action& a)
 					return true;
 				case action_fortify:
 					a.data.unit_data.u->fortify();
+					return true;
+				case action_improvement:
+					if(a.data.unit_data.unit_action_data.improv == improv_none) {
+						return false;
+					}
+					if(!a.data.unit_data.u->uconf.worker) {
+						return false;
+					}
+					if(!m.can_improve_terrain(a.data.unit_data.u->xpos,
+							a.data.unit_data.u->ypos,
+							a.data.unit_data.u->civ_id,
+							a.data.unit_data.unit_action_data.improv))
+						return false;
+					a.data.unit_data.u->start_improving_to(a.data.unit_data.unit_action_data.improv,
+							m.get_needed_turns_for_improvement(a.data.unit_data.unit_action_data.improv));
 					return true;
 				default:
 					break;

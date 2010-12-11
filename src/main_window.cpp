@@ -32,7 +32,7 @@ void main_window::get_next_free_unit()
 	for(++current_unit;
 			current_unit != myciv->units.end();
 			++current_unit) {
-		if((*current_unit)->moves > 0 && !(*current_unit)->fortified_or_fortifying()) {
+		if((*current_unit)->idle()) {
 			try_center_camera_to_unit(*current_unit);
 			return;
 		}
@@ -42,7 +42,7 @@ void main_window::get_next_free_unit()
 	for(current_unit = myciv->units.begin();
 			current_unit != uit;
 			++current_unit) {
-		if((*current_unit)->moves > 0 && !(*current_unit)->fortified_or_fortifying()) {
+		if((*current_unit)->idle()) {
 			try_center_camera_to_unit(*current_unit);
 			return;
 		}
@@ -549,6 +549,15 @@ action main_window::input_to_action(const SDL_Event& ev)
 					else if(k == SDLK_SPACE) {
 						return unit_action(action_skip, *current_unit);
 					}
+					else if(k == SDLK_i) {
+						return improve_unit_action(*current_unit, improv_irrigation);
+					}
+					else if(k == SDLK_m) {
+						return improve_unit_action(*current_unit, improv_mine);
+					}
+					else if(k == SDLK_r) {
+						return improve_unit_action(*current_unit, improv_road);
+					}
 					else if(k == SDLK_f) {
 						return unit_action(action_fortify, *current_unit);
 					}
@@ -606,6 +615,7 @@ void main_window::handle_successful_action(const action& a, city** c)
 					current_unit = myciv->units.end();
 					*c = myciv->cities.rbegin()->second;
 					// fall through
+				case action_improvement:
 				case action_skip:
 				case action_fortify:
 					get_next_free_unit();

@@ -17,6 +17,7 @@ class map {
 		int size_x() const;
 		int size_y() const;
 		void get_resources_by_terrain(int terr, bool city, int* food, int* prod, int* comm) const;
+		void get_resources_on_spot(int x, int y, int* food, int* prod, int* comm) const;
 		void get_total_city_resources(int x, int y, int* food_points,
 				int* prod_points, int* comm_points) const;
 		void add_unit(unit* u);
@@ -39,6 +40,11 @@ class map {
 		std::vector<coord> get_starting_places(int num) const;
 		bool x_wrapped() const;
 		bool y_wrapped() const;
+		bool can_found_city_on(int x, int y) const;
+		bool can_improve_terrain(int x, int y, unsigned int civ_id, improvement_type i) const;
+		bool try_improve_terrain(int x, int y, unsigned int civ_id, improvement_type i);
+		int get_improvements_on(int x, int y) const;
+		int get_needed_turns_for_improvement(improvement_type i) const;
 	private:
 		int get_index(int x, int y) const;
 		void create_mountains(int x, int y, int width);
@@ -52,6 +58,7 @@ class map {
 		buf2d<std::list<unit*> > unit_map;
 		buf2d<city*> city_map;
 		buf2d<int> land_map;
+		buf2d<int> improv_map;
 	public:
 		const resource_configuration& resconf;
 	private:

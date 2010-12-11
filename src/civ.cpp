@@ -13,9 +13,8 @@ void total_resources(const city& c, const map& m,
 			it != resource_coords.end();
 			++it) {
 		int f, p, cm;
-		m.get_resources_by_terrain(m.get_data(c.xpos + it->x,
-				c.ypos + it->y), it->x == 0 && it->y == 0, &f,
-				&p, &cm);
+		m.get_resources_on_spot(c.xpos + it->x,
+				c.ypos + it->y, &f, &p, &cm);
 		*food += f;
 		*prod += p;
 		*comm += cm;
@@ -56,8 +55,7 @@ coord next_good_resource_spot(const city* c, const map* m)
 			if(m->get_land_owner(c->xpos + i, c->ypos + j) != (int)c->civ_id)
 				continue;
 			int tf, tp, tc;
-			m->get_resources_by_terrain(terr, false,
-					&tf, &tp, &tc);
+			m->get_resources_on_spot(c->xpos + i, c->ypos + j, &tf, &tp, &tc);
 			if((tf >= opt_food && opt_food < req_food) || (tf >= req_food &&
 			   (tp > opt_prod || (tp == opt_prod && tc > opt_comm)))) {
 				ret.x = i;
@@ -166,7 +164,12 @@ void civilization::refill_moves(const unit_configuration_map& uconfmap)
 	for(std::list<unit*>::iterator uit = units.begin();
 		uit != units.end();
 		++uit) {
-		(*uit)->new_round();
+		improvement_type i = improv_none;
+		(*uit)->new_round(i);
+		if(i != improv_none) {
+			m->try_improve_terrain((*uit)->xpos,
+					(*uit)->ypos, civ_id, i);
+		}
 	}
 }
 
