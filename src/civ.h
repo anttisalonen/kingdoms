@@ -80,6 +80,8 @@ class civilization {
 		void eliminate();
 		void set_map(map* m_);
 		void set_government(const government* g);
+		int get_national_income() const;
+		int get_military_expenses() const;
 		std::string civname;
 		const unsigned int civ_id;
 		color col;
@@ -97,12 +99,16 @@ class civilization {
 		bool ai;
 	private:
 		void reveal_land(int x, int y, int r);
+		void update_national_income();
+		void update_military_expenses();
 		std::vector<relationship> relationships;
 		buf2d<int> known_land_map;
 		std::vector<std::string> city_names;
 		unsigned int curr_city_name_index;
 		unsigned int next_city_id;
 		const government* gov;
+		int national_income;
+		int military_expenses;
 };
 
 

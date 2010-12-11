@@ -101,6 +101,19 @@ class attack_orders : public goto_orders {
 		int att_y;
 };
 
+class improve_orders : public goto_orders {
+	public:
+		improve_orders(const civilization* civ_, unit* u_);
+		action get_action();
+		void drop_action();
+		bool finished();
+		bool replan();
+		void clear();
+	private:
+		city* base_city;
+		improvement_type tgt_imp;
+};
+
 struct ai_tunables_found_city {
 	ai_tunables_found_city();
 	int min_dist_to_city;
@@ -143,6 +156,7 @@ struct ai_tunable_parameters {
 	int offense_dist_prio_coeff;
 	int max_offense_prio;
 	ai_tunables_found_city found_city;
+	int worker_prio;
 };
 
 class ai {
@@ -159,7 +173,7 @@ class ai {
 		orderprio_t create_orders(unit* u);
 		orderprio_t found_new_city(unit* u);
 		orderprio_t military_unit_orders(unit* u);
-		city* find_nearest_city(const unit* u, bool own) const;
+		orderprio_t workers_orders(unit* u);
 		bool find_nearest_enemy(const unit* u, int* tgtx, int* tgty) const;
 		void get_defense_prio(ordersqueue_t& pq, unit* u);
 		void get_offense_prio(ordersqueue_t& pq, unit* u);

@@ -219,6 +219,35 @@ msg unit_disbanded()
 	return m;
 }
 
+void civilization::update_national_income()
+{
+	int total_commerce = 0;
+	for(std::map<unsigned int, city*>::iterator cit = cities.begin();
+			cit != cities.end();
+			++cit) {
+		int food, prod, comm;
+		city* this_city = cit->second;
+		total_resources(*this_city, *m, &food, &prod, &comm);
+		total_commerce += comm;
+	}
+	national_income = total_commerce * alloc_gold / 10;
+}
+
+void civilization::update_military_expenses()
+{
+	military_expenses = 0;
+	int free_units_togo = gov->free_units;
+	for(std::list<unit*>::const_iterator it = units.begin();
+			it != units.end(); ++it) {
+		if((*it)->uconf.max_strength > 0) {
+			if(free_units_togo > 0)
+				free_units_togo--;
+			else
+				military_expenses += gov->unit_cost;
+		}
+	}
+}
+
 void civilization::increment_resources(const unit_configuration_map& uconfmap,
 		const advance_map& amap, const city_improv_map& cimap)
 {
@@ -270,26 +299,32 @@ void civilization::increment_resources(const unit_configuration_map& uconfmap,
 				this_city->accum_culture += cnit->second.culture;
 		}
 	}
-	int gold_add = total_commerce * alloc_gold / 10;
+	national_income = total_commerce * alloc_gold / 10;
 	int science_add = alloc_gold != 10 ? 
-		(total_commerce - gold_add) * alloc_science / (10 - alloc_gold) : 
+		(total_commerce - national_income) * alloc_science / (10 - alloc_gold) : 
 		0;
 
 #if 0
 	int luxury_add = alloc_gold + alloc_science != 10 ? 
-		(total_commerce - gold_add - science_add) * 
+		(total_commerce - national_income - science_add) * 
 		(10 - alloc_science - alloc_gold) / 
 		(10 - alloc_gold - alloc_science) : 
 		0;
 #endif
 
-	int military_expenses = std::max<int>(0, units.size() - gov->free_units) * 
-		gov->unit_cost;
-	gold += gold_add - military_expenses;
-	while(!units.empty() && gold < 0) {
-		gold += gov->unit_cost;
-		remove_unit(*(units.begin()));
-		add_message(unit_disbanded());
+	update_military_expenses();
+	gold += national_income - military_expenses;
+	{
+		std::list<unit*>::iterator uit = units.begin();
+		while(uit != units.end() && gold < 0) {
+			std::list<unit*>::iterator uit2(uit);
+			uit++;
+			if((*uit2)->uconf.max_strength > 0) {
+				gold += gov->unit_cost;
+				remove_unit(*uit2);
+				add_message(unit_disbanded());
+			}
+		}
 	}
 	science += science_add;
 	advance_map::const_iterator adv = amap.find(research_goal_id);

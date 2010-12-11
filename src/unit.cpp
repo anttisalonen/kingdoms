@@ -114,8 +114,10 @@ int unit::turns_still_improving() const
 
 void unit::start_improving_to(improvement_type i, int turns)
 {
-	improving = i;
-	turns_improving = turns;
+	if(i != improving) {
+		improving = i;
+		turns_improving = turns;
+	}
 }
 
 bool unit::is_improving() const

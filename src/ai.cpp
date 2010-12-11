@@ -6,6 +6,47 @@
 
 // #define AI_DEBUG
 
+class city_picker {
+	private:
+		const civilization* myciv;
+		bool my_city;
+	public:
+		city_picker(const civilization* myciv_, bool my_city_) : 
+			myciv(myciv_), my_city(my_city_) { }
+		bool operator()(const coord& co) {
+			const city* c = myciv->m->city_on_spot(co.x, co.y);
+			if(!c) {
+				return false;
+			}
+			else {
+				if(my_city) {
+					return c->civ_id == myciv->civ_id;
+				}
+				else {
+					return c->civ_id != myciv->civ_id && 
+						myciv->get_relationship_to_civ(c->civ_id) == relationship_war;
+				}
+			}
+		}
+};
+
+city* find_nearest_city(const civilization* myciv, const unit* u, bool own)
+{
+	city_picker picker(myciv, own);
+	std::list<coord> path_to_city = map_path_to_nearest(*myciv, 
+			*u, 
+			false,
+			coord(u->xpos, u->ypos), 
+			picker);
+	if(path_to_city.empty()) {
+		return NULL;
+	}
+	else {
+		return myciv->m->city_on_spot(path_to_city.back().x,
+				path_to_city.back().y);
+	}
+}
+
 class found_city_picker {
 	private:
 		const civilization* myciv;
@@ -27,6 +68,9 @@ int points_for_city_founding(const civilization* civ,
 		int counter, const coord& co)
 {
 	if(counter <= 0)
+		return -1;
+
+	if(!civ->m->can_found_city_on(co.x, co.y))
 		return -1;
 
 	// do not found a city nearer than N squares to a friendly city
@@ -466,6 +510,96 @@ void found_city_orders::clear()
 	goto_orders::clear();
 }
 
+improve_orders::improve_orders(const civilization* civ_, unit* u_)
+	: goto_orders(civ_, u_, false, u_->xpos, u_->ypos),
+	base_city(NULL),
+	tgt_imp(improv_none)
+{
+	replan();
+}
+
+action improve_orders::get_action()
+{
+	if(u->is_improving())
+		return action_none;
+	if(path.empty()) {
+		return improve_unit_action(u, tgt_imp);
+	}
+	else {
+		return goto_orders::get_action();
+	}
+}
+
+void improve_orders::drop_action()
+{
+	if(u->is_improving())
+		return;
+	if(path.empty()) {
+		tgt_imp = improv_none;
+	}
+	else {
+		goto_orders::drop_action();
+	}
+}
+
+bool improve_orders::finished()
+{
+	return path.empty() && tgt_imp == improv_none;
+}
+
+bool improve_orders::replan()
+{
+	path.clear();
+	base_city = find_nearest_city(civ, u, true);
+	if(!base_city)
+		return false;
+	for(int i = -2; i <= 2; i++) {
+		for(int j = -2; j <= 2; j++) {
+			int xp = base_city->xpos + i;
+			int yp = base_city->ypos + j;
+			if(civ->m->get_land_owner(xp, yp) == (int)civ->civ_id) {
+				const std::list<unit*>& units = civ->m->units_on_spot(xp, yp);
+				for(std::list<unit*>::const_iterator it = units.begin();
+						it != units.end(); ++it) {
+					if((*it)->civ_id == (int)civ->civ_id &&
+						(*it)->uconf.worker)
+						continue;
+				}
+				if((civ->m->get_improvements_on(xp, yp) & ~improv_road) == 0) {
+					if(civ->m->can_improve_terrain(xp,
+								yp, civ->civ_id, improv_irrigation)) {
+						tgtx = xp;
+						tgty = yp;
+						tgt_imp = improv_irrigation;
+						return goto_orders::replan();
+					}
+					else if(civ->m->can_improve_terrain(xp,
+								yp, civ->civ_id, improv_mine)) {
+						tgtx = xp;
+						tgty = yp;
+						tgt_imp = improv_mine;
+						return goto_orders::replan();
+					}
+				}
+				if(civ->m->can_improve_terrain(xp,
+							yp, civ->civ_id, improv_road)) {
+					tgtx = xp;
+					tgty = yp;
+					tgt_imp = improv_road;
+					return goto_orders::replan();
+				}
+			}
+		}
+	}
+	return false;
+}
+
+void improve_orders::clear()
+{
+	tgt_imp = improv_none;
+	goto_orders::clear();
+}
+
 ai_tunables_found_city::ai_tunables_found_city()
 	: min_dist_to_city(3),
 	min_dist_to_friendly_city(4),
@@ -490,7 +624,8 @@ ai_tunable_parameters::ai_tunable_parameters()
 	exploration_length_decr_coeff(50),
 	unit_prodcost_prio_coeff(1),
 	offense_dist_prio_coeff(50),
-	max_offense_prio(1000)
+	max_offense_prio(1000),
+	worker_prio(900)
 {
 }
 
@@ -655,7 +790,29 @@ ai::orderprio_t ai::create_orders(unit* u)
 			return found;
 		}
 	}
-	return military_unit_orders(u);
+	else if(u->uconf.worker) {
+		orderprio_t work = workers_orders(u);
+		if(work.first < 0) {
+			return get_defense_orders(u);
+		}
+		else {
+			return work;
+		}
+	}
+	else {
+		return military_unit_orders(u);
+	}
+}
+
+ai::orderprio_t ai::workers_orders(unit* u)
+{
+	int prio = param.worker_prio;
+	orders_composite* o = new orders_composite();
+	orders* io = new improve_orders(myciv, u);
+	if(io->finished())
+		prio = -1;
+	o->add_orders(io);
+	return std::make_pair(prio, o);
 }
 
 ai::orderprio_t ai::military_unit_orders(unit* u)
@@ -706,7 +863,7 @@ ai::orderprio_t ai::get_defense_orders(unit* u)
 	tgtx = u->xpos;
 	tgty = u->ypos;
 	if(myciv->cities.size() != 0) {
-		city* c = find_nearest_city(u, true);
+		city* c = find_nearest_city(myciv, u, true);
 		if(c) {
 			tgtx = c->xpos;
 			tgty = c->ypos;
@@ -771,30 +928,6 @@ ai::orderprio_t ai::found_new_city(unit* u)
 	return std::make_pair(prio, o);
 }
 
-class city_picker {
-	private:
-		const civilization* myciv;
-		bool my_city;
-	public:
-		city_picker(const civilization* myciv_, bool my_city_) : 
-			myciv(myciv_), my_city(my_city_) { }
-		bool operator()(const coord& co) {
-			const city* c = myciv->m->city_on_spot(co.x, co.y);
-			if(!c) {
-				return false;
-			}
-			else {
-				if(my_city) {
-					return c->civ_id == myciv->civ_id;
-				}
-				else {
-					return c->civ_id != myciv->civ_id && 
-						myciv->get_relationship_to_civ(c->civ_id) == relationship_war;
-				}
-			}
-		}
-};
-
 class enemy_picker {
 	private:
 		const civilization* myciv;
@@ -829,23 +962,6 @@ bool ai::find_nearest_enemy(const unit* u, int* tgtx, int* tgty) const
 		*tgtx = found_path.back().x;
 		*tgty = found_path.back().y;
 		return true;
-	}
-}
-
-city* ai::find_nearest_city(const unit* u, bool own) const
-{
-	city_picker picker(myciv, own);
-	std::list<coord> path_to_city = map_path_to_nearest(*myciv, 
-			*u, 
-			false,
-			coord(u->xpos, u->ypos), 
-			picker);
-	if(path_to_city.empty()) {
-		return NULL;
-	}
-	else {
-		return m.city_on_spot(path_to_city.back().x,
-				path_to_city.back().y);
 	}
 }
 
