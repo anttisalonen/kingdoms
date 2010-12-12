@@ -5,4 +5,4 @@
 "Currency"		20	2 0 0 0
 "Ceremonial Burial"	20	2 0 0 0
 "Map Making"		30	4 5 0 0
-
+"Navigation"		40	7 0 0 0

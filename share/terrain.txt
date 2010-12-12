@@ -1,8 +1,9 @@
-# Terrain name - food - production - commerce - height - type - temperature - humidity - flags
+# Terrain name - food - production - commerce - type - temperature - humidity - flags
 # types: 0: sea
 #        1: land
 #        2: hill
 #        3: mountain
+#        4: ocean
 #
 # temperatures: 1 => cold, 9 => hot, 0 => any
 # humidities:   1 => dry,  9 => humid, 0 => any
@@ -13,6 +14,7 @@
 #	mineable
 #	roadable
 Sea		1 0 2 0 0 0 0000
+Ocean		1 0 1 4 0 0 0000
 Grassland	2 0 1 1 5 4 1101
 Forest		1 2 0 1 0 6 1001
 Plains		1 0 1 1 7 2 1101

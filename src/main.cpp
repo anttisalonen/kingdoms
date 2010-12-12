@@ -153,6 +153,7 @@ unit_configuration_map parse_unit_config(const std::string& fp)
 		u.settler = get_flag(units[i][5], 0);
 		u.worker = get_flag(units[i][5], 1);
 		u.sea_unit = get_flag(units[i][5], 2);
+		u.ocean_unit = get_flag(units[i][5], 3);
 		uconfmap.insert(std::make_pair(i, u));
 	}
 	return uconfmap;

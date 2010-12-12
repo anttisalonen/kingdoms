@@ -19,11 +19,12 @@ map::map(int x, int y, const resource_configuration& resconf_)
 	y_wrap = false;
 	int sea_tile = resconf.get_sea_tile();
 	int grass_tile = resconf.get_grass_tile();
+	int ocean_tile = resconf.get_ocean_tile();
 
 	// init to water
 	for(int i = 0; i < y; i++) {
 		for(int j = 0; j < x; j++) {
-			data.set(j, i, sea_tile);
+			data.set(j, i, ocean_tile);
 		}
 	}
 
@@ -34,6 +35,8 @@ map::map(int x, int y, const resource_configuration& resconf_)
 		int cont_x = rand() % x;
 		int cont_y = 10 + rand() % (y - 20);
 		data.set(cont_x, cont_y, grass_tile);
+		sea_around_land(cont_x, cont_y, sea_tile);
+
 		std::vector<coord> candidates;
 		candidates.push_back(coord(cont_x, cont_y));
 		int cont_size = rand() % max_continent_size + 1;
@@ -46,6 +49,7 @@ map::map(int x, int y, const resource_configuration& resconf_)
 			already_taken.insert(c);
 			candidates.erase(candidates.begin() + cand);
 			data.set(c.x, c.y, grass_tile);
+			sea_around_land(c.x, c.y, sea_tile);
 			int dx1 = wrap_x(c.x - 1);
 			int dx2 = wrap_x(c.x + 1);
 			if(already_taken.find(coord(dx1, c.y)) == already_taken.end())
@@ -70,7 +74,7 @@ map::map(int x, int y, const resource_configuration& resconf_)
 		int ridge_size = rand() % max_ridge_length + 4;
 		for(int j = 0; j < ridge_size; j++) {
 			int realdir = dir % 8;
-			if(get_data(xpos, ypos) != sea_tile) {
+			if(!resconf.is_water_tile(get_data(xpos, ypos))) {
 				create_mountains(xpos, ypos, ridge_width);
 			}
 			ridge_width += rand() % 3 - 1;
@@ -100,6 +104,19 @@ map::map(int x, int y, const resource_configuration& resconf_)
 			std::vector<int> candidates = get_terrain_candidates(types, humidity);
 			int chosen_type_index = rand() % candidates.size();
 			data.set(i, j, candidates[chosen_type_index]);
+		}
+	}
+}
+
+void map::sea_around_land(int x, int y, int sea_tile)
+{
+	for(int j = -1; j <= 1; j++) {
+		for(int k = -1; k <= 1; k++) {
+			if(!j && !k)
+				continue;
+			if(resconf.is_ocean_tile(get_data(x + j, y + k))) {
+				data.set(x + j, y + k, sea_tile);
+			}
 		}
 	}
 }
@@ -335,10 +352,17 @@ bool map::terrain_allowed(const unit& u, int x, int y) const
 	int t = get_data(wrap_x(x), wrap_y(y));
 	if(t == -1)
 		return false;
-	if(!u.uconf.sea_unit)
+	if(!u.uconf.sea_unit) {
 		return !resconf.is_water_tile(t);
-	else
-		return resconf.is_water_tile(t);
+	}
+	else {
+		if(u.uconf.ocean_unit) {
+			return resconf.is_water_tile(t);
+		}
+		else {
+			return resconf.is_sea_tile(t);
+		}
+	}
 }
 
 const std::list<unit*>& map::units_on_spot(int x, int y) const

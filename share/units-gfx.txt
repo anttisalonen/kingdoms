@@ -4,3 +4,4 @@ warrior.png
 archer.png
 spearman.png
 trireme.png
+caravel.png

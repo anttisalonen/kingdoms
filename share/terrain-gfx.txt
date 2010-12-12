@@ -1,4 +1,5 @@
 sea.png
+ocean.png
 grassland.png
 forest.png
 plains.png

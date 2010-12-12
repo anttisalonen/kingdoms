@@ -21,6 +21,7 @@ resource_configuration::resource_configuration()
 	grass_tile = -1;
 	hill_tile = -1;
 	mountain_tile = -1;
+	ocean_tile = -1;
 	irrigation_needed_turns = 1;
 	mine_needed_turns = 1;
 	road_needed_turns = 1;
@@ -78,6 +79,19 @@ int resource_configuration::get_mountain_tile() const
 	return 0;
 }
 
+int resource_configuration::get_ocean_tile() const
+{
+	if(ocean_tile != -1)
+		return ocean_tile;
+	for(int i = 0; i < num_terrain_types; i++) {
+		if(terrain_type[i] == land_type_ocean) {
+			ocean_tile = i;
+			return i;
+		}
+	}
+	return 0;
+}
+
 template<typename T>
 T resource_configuration::get_value(int t, const T& def, const T ar[]) const
 {
@@ -95,7 +109,22 @@ bool resource_configuration::is_water_tile(int t) const
 {
 	if(t < 0 || t >= num_terrain_types)
 		return false;
+	return terrain_type[t] == land_type_sea ||
+		terrain_type[t] == land_type_ocean;
+}
+
+bool resource_configuration::is_sea_tile(int t) const
+{
+	if(t < 0 || t >= num_terrain_types)
+		return false;
 	return terrain_type[t] == land_type_sea;
+}
+
+bool resource_configuration::is_ocean_tile(int t) const
+{
+	if(t < 0 || t >= num_terrain_types)
+		return false;
+	return terrain_type[t] == land_type_ocean;
 }
 
 bool resource_configuration::is_hill_tile(int t) const

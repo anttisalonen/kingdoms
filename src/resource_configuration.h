@@ -10,6 +10,7 @@ enum land_type {
 	land_type_land,
 	land_type_hill,
 	land_type_mountain,
+	land_type_ocean,
 };
 
 enum improvement_type {
@@ -23,11 +24,14 @@ class resource_configuration {
 	public:
 		resource_configuration();
 		int get_sea_tile() const;
+		int get_ocean_tile() const;
 		int get_grass_tile() const;
 		int get_hill_tile() const;
 		int get_mountain_tile() const;
 		bool can_found_city_on(int t) const;
 		bool is_water_tile(int t) const;
+		bool is_sea_tile(int t) const;
+		bool is_ocean_tile(int t) const;
 		bool is_hill_tile(int t) const;
 		bool is_mountain_tile(int t) const;
 		bool is_irrigatable(int t) const;
@@ -59,6 +63,7 @@ class resource_configuration {
 		mutable int grass_tile;
 		mutable int hill_tile;
 		mutable int mountain_tile;
+		mutable int ocean_tile;
 };
 
 

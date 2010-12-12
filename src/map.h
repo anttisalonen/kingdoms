@@ -57,6 +57,7 @@ class map {
 		std::vector<int> get_terrain_candidates(const std::vector<int>& types, 
 				int humidity) const;
 		float get_latitude(int y) const;
+		void sea_around_land(int x, int y, int sea_tile);
 		buf2d<int> data;
 		buf2d<std::list<unit*> > unit_map;
 		buf2d<city*> city_map;
