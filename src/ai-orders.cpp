@@ -1,4 +1,5 @@
 #include <queue>
+#include <stdio.h>
 
 #include "ai-orders.h"
 #include "map-astar.h"
@@ -102,7 +103,7 @@ int points_for_city_founding(const civilization* civ,
 
 	return clamp<int>(0,
 			found_city.found_city_coeff * 
-			(counter + food_points + prod_points + comm_points),
+			(food_points + prod_points + comm_points),
 			found_city.max_found_city_prio);
 }
 
@@ -133,7 +134,7 @@ bool find_best_city_pos(const civilization* myciv,
 	if(picker.pq.empty()) {
 		*tgtx = u->xpos;
 		*tgty = u->ypos;
-		if(prio)
+		if(prio) 
 			*prio = -1;
 		return false;
 	}
@@ -376,6 +377,47 @@ void wait_orders::clear()
 	rounds_to_go = 0;
 }
 
+defend_orders::defend_orders(const civilization* civ_, unit* u_, 
+		int x_, int y_, int waittime_)
+	: goto_orders(civ_, u_, true, x_, y_),
+	waittime(waittime_),
+	max_waittime(waittime_)
+{
+}
+
+action defend_orders::get_action()
+{
+	if(path.empty())
+		return unit_action(action_fortify, u);
+	else
+		return goto_orders::get_action();
+}
+
+void defend_orders::drop_action()
+{
+	if(!path.empty())
+		goto_orders::drop_action();
+	else if(waittime > 0)
+		waittime--;
+}
+
+bool defend_orders::finished()
+{
+	return path.empty() && waittime <= 0;
+}
+
+bool defend_orders::replan()
+{
+	waittime = max_waittime;
+	return goto_orders::replan();
+}
+
+void defend_orders::clear()
+{
+	goto_orders::clear();
+	waittime = 0;
+}
+
 attack_orders::attack_orders(const civilization* civ_, unit* u_, int x_, int y_)
 	: goto_orders(civ_, u_, true, x_, y_),
 	att_x(-1),
@@ -452,7 +494,7 @@ found_city_orders::found_city_orders(const civilization* civ_,
 		unit* u_, const ai_tunables_found_city& found_city_, 
 		int x_, int y_)
 	: goto_orders(civ_, u_, false, x_, y_),
-	found_city(found_city_)
+	found_city(found_city_), failed(false)
 {
 	city_points = points_for_city_founding(civ, found_city,
 			1, coord(tgtx, tgty));
@@ -483,7 +525,7 @@ void found_city_orders::drop_action()
 
 bool found_city_orders::finished()
 {
-	return false;
+	return failed;
 }
 
 bool found_city_orders::replan()
@@ -493,7 +535,9 @@ bool found_city_orders::replan()
 	if(succ)
 		city_points = points_for_city_founding(civ, found_city,
 				0, coord(tgtx, tgty));
-	return succ && city_points > 0;
+	if(!(succ && city_points > 0))
+		failed = true;
+	return !failed;
 }
 
 void found_city_orders::clear()
@@ -546,6 +590,8 @@ bool improve_orders::replan()
 		return false;
 	for(int i = -2; i <= 2; i++) {
 		for(int j = -2; j <= 2; j++) {
+			if(abs(i) == 2 && abs(j) == 2)
+				continue;
 			int xp = base_city->xpos + i;
 			int yp = base_city->ypos + j;
 			if(civ->m->get_land_owner(xp, yp) == (int)civ->civ_id) {
@@ -596,16 +642,16 @@ void improve_orders::clear()
 ai_tunables_found_city::ai_tunables_found_city()
 	: min_dist_to_city(3),
 	min_dist_to_friendly_city(4),
-	food_coeff(1),
+	food_coeff(3),
 	prod_coeff(1),
 	comm_coeff(0),
-	min_food_points(2),
+	min_food_points(12),
 	min_prod_points(2),
 	min_comm_points(0),
-	max_search_range(50),
+	max_search_range(500),
 	range_coeff(1),
 	max_found_city_prio(1000),
-	found_city_coeff(10)
+	found_city_coeff(6)
 {
 }
 

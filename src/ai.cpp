@@ -176,6 +176,9 @@ ai::orderprio_t ai::create_orders(unit* u)
 {
 	if(u->uconf.settler) {
 		orderprio_t found = found_new_city(u);
+		if(debug) {
+			printf("Settler: %d\n", found.first);
+		}
 		if(found.first <= 0) {
 			return get_defense_orders(u);
 		}
@@ -185,6 +188,9 @@ ai::orderprio_t ai::create_orders(unit* u)
 	}
 	else if(u->uconf.worker) {
 		orderprio_t work = workers_orders(u);
+		if(debug) {
+			printf("Worker: %d\n", work.first);
+		}
 		if(work.first < 0) {
 			return get_defense_orders(u);
 		}
@@ -309,7 +315,7 @@ ai::orderprio_t ai::get_defense_orders(unit* u)
 		}
 	}
 	orders_composite* o = new orders_composite();
-	o->add_orders(new goto_orders(myciv, u, false, tgtx, tgty));
+	o->add_orders(new defend_orders(myciv, u, tgtx, tgty, 50));
 	o->add_orders(new primitive_orders(unit_action(action_fortify, u)));
 	o->add_orders(new wait_orders(u, 50)); // time not updating orders
 	if(debug)

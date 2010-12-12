@@ -87,6 +87,20 @@ class wait_orders : public orders {
 		unsigned int total_rounds;
 };
 
+class defend_orders : public goto_orders {
+	public:
+		defend_orders(const civilization* civ_, unit* u_, 
+				int x_, int y_, int waittime_);
+		action get_action();
+		void drop_action();
+		bool finished();
+		bool replan();
+		void clear();
+	private:
+		int waittime;
+		int max_waittime;
+};
+
 class attack_orders : public goto_orders {
 	public:
 		attack_orders(const civilization* civ_, unit* u_, int x_, int y_);
@@ -143,6 +157,7 @@ class found_city_orders : public goto_orders {
 	private:
 		const ai_tunables_found_city& found_city;
 		int city_points;
+		bool failed;
 };
 
 bool find_best_city_pos(const civilization* myciv,
