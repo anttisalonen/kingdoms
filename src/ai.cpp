@@ -19,7 +19,13 @@ ai_tunable_parameters::ai_tunable_parameters()
 	offense_dist_prio_coeff(50),
 	unit_strength_prio_coeff(1),
 	max_offense_prio(1000),
-	worker_prio(700)
+	worker_prio(700),
+	ci_barracks_value(300),
+	ci_granary_value(600),
+	ci_comm_bonus_coeff(10),
+	ci_culture_coeff(100),
+	ci_happiness_coeff(300),
+	ci_cost_coeff(1)
 {
 }
 
@@ -152,24 +158,84 @@ city_production* ai::create_city_orders(city* c)
 {
 	city_production* cp = new city_production();
 
-	cp->producing_unit = true;
-	std::priority_queue<std::pair<int, int> > unitpq;
+	if(debug)
+		printf("===\nAI: deciding what to build in %s...\n", c->cityname.c_str());
+	std::pair<int, int> unitpr = create_city_unit_orders(c);
+	std::pair<int, int> improvpr = create_city_improv_orders(c);
+	if(unitpr.first >= improvpr.first) {
+		cp->producing_unit = true;
+		cp->current_production_id = unitpr.second;
+		if(debug)
+			printf("Building unit (priority: %d; ID %d).\n===\n", 
+					unitpr.first, unitpr.second);
+	}
+	else {
+		cp->producing_unit = false;
+		cp->current_production_id = improvpr.second;
+		if(debug)
+			printf("Building improvement (priority: %d; ID %d).\n===\n", 
+					improvpr.first, improvpr.second);
+	}
+	return cp;
+}
+
+std::pair<int, int> ai::create_city_unit_orders(city* c)
+{
+	std::pair<int, int> top = std::make_pair(-1, -1);
 	for(unit_configuration_map::const_iterator it = r.uconfmap.begin();
 			it != r.uconfmap.end();
 			++it) {
+		if(!myciv->unit_discovered(it->second))
+			continue;
 		unit dummy(0, c->xpos, c->ypos, myciv->civ_id,
 				it->second, r.get_num_road_moves());
 		orderprio_t o = create_orders(&dummy);
-		unitpq.push(std::make_pair(o.first - param.unit_prodcost_prio_coeff * it->second.production_cost, 
-					it->first));
+		int pr = o.first - param.unit_prodcost_prio_coeff * it->second.production_cost;
+		if(pr > top.first) {
+			top.first = pr;
+			top.second = it->first;
+		}
 	}
-	if(unitpq.empty()) {
-		cp->current_production_id = -1;
+	return top;
+}
+
+std::pair<int, int> ai::create_city_improv_orders(city* c)
+{
+	std::pair<int, int> top = std::make_pair(-1, -1);
+	for(city_improv_map::const_iterator it = r.cimap.begin();
+			it != r.cimap.end();
+			++it) {
+		if(!myciv->improv_discovered(it->second))
+			continue;
+		if(c->built_improvements.find(it->first) != c->built_improvements.end())
+			continue;
+		int pr = get_city_improv_value(it->second);
+		if(pr > top.first) {
+			top.first = pr;
+			top.second = it->first;
+		}
 	}
-	else {
-		cp->current_production_id = unitpq.top().second;
+	return top;
+}
+
+int ai::get_city_improv_value(const city_improvement& ci) const
+{
+	int val = 0;
+	if(ci.palace)
+		return -1;
+	if(ci.barracks)
+		val += param.ci_barracks_value;
+	if(ci.granary)
+		val += param.ci_granary_value;
+	val += param.ci_comm_bonus_coeff * ci.comm_bonus;
+	val += param.ci_culture_coeff * ci.culture;
+	val += param.ci_happiness_coeff * ci.happiness;
+	val -= param.ci_cost_coeff * ci.cost;
+	if(debug) {
+		printf("%s: %d\n", ci.improv_name.c_str(),
+				val);
 	}
-	return cp;
+	return val;
 }
 
 ai::orderprio_t ai::create_orders(unit* u)
@@ -191,7 +257,7 @@ ai::orderprio_t ai::create_orders(unit* u)
 		if(debug) {
 			printf("Worker: %d\n", work.first);
 		}
-		if(work.first < 0) {
+		if(work.first <= 0) {
 			return get_defense_orders(u);
 		}
 		else {
@@ -256,7 +322,7 @@ ai::orderprio_t ai::military_unit_orders(unit* u)
 {
 	ordersqueue_t ordersq;
 	if(debug)
-		printf("AI (%s): ", u->uconf.unit_name.c_str());
+		printf("%s: ", u->uconf.unit_name.c_str());
 	get_exploration_prio(ordersq, u);
 	get_defense_prio(ordersq, u);
 	get_offense_prio(ordersq, u);
@@ -318,7 +384,9 @@ ai::orderprio_t ai::get_defense_orders(unit* u)
 	o->add_orders(new defend_orders(myciv, u, tgtx, tgty, 50));
 	o->add_orders(new primitive_orders(unit_action(action_fortify, u)));
 	o->add_orders(new wait_orders(u, 50)); // time not updating orders
-	if(debug)
+	if(u->uconf.max_strength < 1)
+		prio = -1;
+	if(debug && prio > -1)
 		printf("defense: %d; ", prio);
 	return std::make_pair(prio, o);
 }

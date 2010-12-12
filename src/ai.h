@@ -20,6 +20,12 @@ struct ai_tunable_parameters {
 	int max_offense_prio;
 	ai_tunables_found_city found_city;
 	int worker_prio;
+	int ci_barracks_value;
+	int ci_granary_value;
+	int ci_comm_bonus_coeff;
+	int ci_culture_coeff;
+	int ci_happiness_coeff;
+	int ci_cost_coeff;
 };
 
 class ai {
@@ -47,6 +53,9 @@ class ai {
 		void handle_new_unit(const msg& m);
 		void handle_new_improv(const msg& m);
 		void handle_unit_disbanded(const msg& m);
+		std::pair<int, int> create_city_unit_orders(city* c);
+		std::pair<int, int> create_city_improv_orders(city* c);
+		int get_city_improv_value(const city_improvement& ci) const;
 		map& m;
 		round& r;
 		civilization* myciv;
