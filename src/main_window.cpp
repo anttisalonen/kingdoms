@@ -607,9 +607,11 @@ void main_window::handle_successful_action(const action& a, city** c)
 		case action_unit_action:
 			switch(a.data.unit_data.uatype) {
 				case action_move_unit:
-					if((*current_unit)->num_moves() == 0 && 
-						(*current_unit)->num_road_moves() == 0) {
-						current_unit = myciv->units.end();
+					if(current_unit != myciv->units.end()) {
+						if((*current_unit)->num_moves() == 0 && 
+								(*current_unit)->num_road_moves() == 0) {
+							current_unit = myciv->units.end();
+						}
 					}
 					break;
 				case action_found_city:
@@ -733,6 +735,11 @@ int main_window::handle_civ_messages(std::list<msg>* messages)
 					advance_map::const_iterator it = data.r.amap.find(adv_id);
 					if(it != data.r.amap.end()) {
 						printf("Discovered advance '%s'.\n",
+								it->second.advance_name.c_str());
+					}
+					it = data.r.amap.find(myciv->research_goal_id);
+					if(it != data.r.amap.end()) {
+						printf("Now researching '%s'.\n",
 								it->second.advance_name.c_str());
 					}
 				}
