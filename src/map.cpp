@@ -315,14 +315,31 @@ int map::get_spot_resident(int x, int y) const
 	return val->front()->civ_id;
 }
 
-int map::get_move_cost(const unit& u, int x, int y) const
+int map::get_move_cost(const unit& u, int x1, int y1, int x2, int y2, bool* road) const
 {
-	int t = get_data(wrap_x(x), wrap_y(y));
+	x1 = wrap_x(x1);
+	y1 = wrap_y(y1);
+	x2 = wrap_x(x2);
+	y2 = wrap_y(y2);
+	int t = get_data(x2, y2);
+	if(abs(x1 - x2) > 1 || abs(y1 - y2) > 1)
+		return -1;
+	*road = false;
 	if(t == -1)
 		return -1;
-	if(t == 0)
+	if(!terrain_allowed(u, x2, y2))
 		return -1;
+	if(road_between(x1, y1, x2, y2)) {
+		*road = true;
+		return 1;
+	}
 	return 1;
+}
+
+bool map::terrain_allowed(const unit& u, int x, int y) const
+{
+	int t = get_data(wrap_x(x), wrap_y(y));
+	return t != 0 && t != -1;
 }
 
 const std::list<unit*>& map::units_on_spot(int x, int y) const
@@ -541,4 +558,9 @@ int map::get_needed_turns_for_improvement(improvement_type i) const
 	return resconf.get_needed_turns_for_improvement(i);
 }
 
+bool map::road_between(int x1, int y1, int x2, int y2) const
+{
+	return (get_improvements_on(x1, y1) & improv_road) &&
+			(get_improvements_on(x2, y2) & improv_road);
+}
 

@@ -153,7 +153,7 @@ int main_window::draw_unit_info() const
 	draw_text(screen, &res.font, uconf->unit_name.c_str(), 10, sidebar_size * tile_h / 2 + 100, 255, 255, 255);
 	char buf[256];
 	buf[255] = '\0';
-	snprintf(buf, 255, "Moves: %-2d/%2d", (*current_unit)->moves, uconf->max_moves);
+	snprintf(buf, 255, "Moves: %-2d/%2d", (*current_unit)->num_moves(), uconf->max_moves);
 	draw_text(screen, &res.font, buf, 10, sidebar_size * tile_h / 2 + 120, 255, 255, 255);
 	if((*current_unit)->strength) {
 		snprintf(buf, 255, "Unit strength:");
@@ -607,7 +607,8 @@ void main_window::handle_successful_action(const action& a, city** c)
 		case action_unit_action:
 			switch(a.data.unit_data.uatype) {
 				case action_move_unit:
-					if((*current_unit)->moves == 0) {
+					if((*current_unit)->num_moves() == 0 && 
+						(*current_unit)->num_road_moves() == 0) {
 						current_unit = myciv->units.end();
 					}
 					break;
@@ -808,7 +809,7 @@ int main_window::try_choose_with_mouse(city** c)
 				++it) {
 			if((*it)->xpos == mouse_down_sqx && (*it)->ypos == mouse_down_sqy) {
 				(*it)->wake_up();
-				if((*it)->moves > 0) {
+				if((*it)->num_moves() > 0 || (*it)->num_road_moves() > 0) {
 					current_unit = it;
 					blink_unit = false;
 				}

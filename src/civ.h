@@ -54,13 +54,16 @@ class civilization {
 				const std::vector<std::string>::iterator& names_end,
 				const government* gov_);
 		~civilization();
-		unit* add_unit(int uid, int x, int y, const unit_configuration& uconf);
+		unit* add_unit(int uid, int x, int y, 
+				const unit_configuration& uconf,
+				unsigned int road_moves);
 		void remove_unit(unit* u);
 		int try_move_unit(unit* u, int chx, int chy);
 		void refill_moves(const unit_configuration_map& uconfmap);
 		void increment_resources(const unit_configuration_map& uconfmap,
 				const advance_map& amap,
-				const city_improv_map& cimap);
+				const city_improv_map& cimap,
+				unsigned int road_moves);
 		char fog_at(int x, int y) const;
 		city* add_city(int x, int y);
 		void remove_city(city* c);

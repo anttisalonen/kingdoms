@@ -8,7 +8,7 @@
 
 bool terrain_allowed(const map& m, const unit& u, int x, int y)
 {
-	return m.get_move_cost(u, x, y) >= 0;
+	return m.terrain_allowed(u, x, y);
 }
 
 void check_insert(std::set<coord>& s, const civilization& civ,
@@ -60,7 +60,12 @@ std::set<coord> map_bird_graph(const coord& a)
 
 int map_cost(const map& m, const unit& u, const coord& a, const coord& b)
 {
-	return m.get_move_cost(u, b.x, b.y);
+	bool road;
+	int cost = m.get_move_cost(u, a.x, a.y, b.x, b.y, &road);
+	if(!road)
+		return cost * 10;
+	else
+		return 4;
 }
 
 int map_heur(const coord& b, const coord& a)

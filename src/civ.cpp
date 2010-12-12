@@ -128,9 +128,11 @@ void civilization::reveal_land(int x, int y, int r)
 	}
 }
 
-unit* civilization::add_unit(int uid, int x, int y, const unit_configuration& uconf)
+unit* civilization::add_unit(int uid, int x, int y, 
+		const unit_configuration& uconf,
+		unsigned int road_moves)
 {
-	unit* u = new unit(uid, x, y, civ_id, uconf);
+	unit* u = new unit(uid, x, y, civ_id, uconf, road_moves);
 	units.push_back(u);
 	m->add_unit(u);
 	fog.reveal(x, y, 1);
@@ -249,7 +251,8 @@ void civilization::update_military_expenses()
 }
 
 void civilization::increment_resources(const unit_configuration_map& uconfmap,
-		const advance_map& amap, const city_improv_map& cimap)
+		const advance_map& amap, const city_improv_map& cimap,
+		unsigned int road_moves)
 {
 	int total_commerce = 0;
 	for(std::map<unsigned int, city*>::iterator cit = cities.begin();
@@ -267,7 +270,8 @@ void civilization::increment_resources(const unit_configuration_map& uconfmap,
 				if(prod_unit != uconfmap.end()) {
 					if((int)prod_unit->second.production_cost <= this_city->stored_prod) {
 						unit* u = add_unit(this_city->production.current_production_id, 
-								this_city->xpos, this_city->ypos, prod_unit->second);
+								this_city->xpos, this_city->ypos, prod_unit->second,
+								road_moves);
 						if(this_city->has_barracks(cimap))
 							u->veteran = true;
 						this_city->stored_prod -= prod_unit->second.production_cost;
@@ -365,20 +369,19 @@ void civilization::setup_default_research_goal(const advance_map& amap)
 
 int civilization::try_move_unit(unit* u, int chx, int chy)
 {
-	if(!u->moves || !(chx || chy))
+	if((!u->num_moves() && !u->num_road_moves()) || !(chx || chy))
 		return 0;
 	int newx = m->wrap_x(u->xpos + chx);
 	int newy = m->wrap_y(u->ypos + chy);
 	if(m->get_data(newx, newy) > 0 && can_move_to(newx, newy)) {
 		m->remove_unit(u);
 		fog.shade(u->xpos, u->ypos, 1);
-		u->xpos = newx;
-		u->ypos = newy;
-		u->moves--;
+		bool succ = u->move_to(newx, newy, 
+				m->road_between(u->xpos, u->ypos, newx, newy));
 		fog.reveal(u->xpos, u->ypos, 1);
 		reveal_land(u->xpos, u->ypos, 1);
 		m->add_unit(u);
-		return 1;
+		return succ;
 	}
 	return 0;
 }

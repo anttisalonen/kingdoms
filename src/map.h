@@ -31,7 +31,8 @@ class map {
 		void add_city(city* c, int x, int y);
 		void grab_land(city* c);
 		void remove_city(const city* c);
-		int get_move_cost(const unit& u, int x, int y) const;
+		int get_move_cost(const unit& u, int x1, int y1, int x2, int y2, bool* road) const;
+		bool terrain_allowed(const unit& u, int x, int y) const;
 		void set_land_owner(int civ_id, int x, int y);
 		int get_land_owner(int x, int y) const;
 		void remove_civ_land(unsigned int civ_id);
@@ -45,6 +46,7 @@ class map {
 		bool try_improve_terrain(int x, int y, unsigned int civ_id, improvement_type i);
 		int get_improvements_on(int x, int y) const;
 		int get_needed_turns_for_improvement(improvement_type i) const;
+		bool road_between(int x1, int y1, int x2, int y2) const;
 	private:
 		int get_index(int x, int y) const;
 		void create_mountains(int x, int y, int width);

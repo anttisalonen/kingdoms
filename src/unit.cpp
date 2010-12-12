@@ -1,12 +1,13 @@
 #include <stdlib.h>
 #include "unit.h"
 
-unit::unit(int uid, int x, int y, int civid, const unit_configuration& uconf_)
+unit::unit(int uid, int x, int y, int civid, 
+		const unit_configuration& uconf_,
+		unsigned int def_road_moves_)
 	: unit_id(uid),
 	civ_id(civid),
 	xpos(x),
 	ypos(y),
-	moves(0),
 	uconf(uconf_),
 	strength(10 * uconf_.max_strength),
 	veteran(false),
@@ -14,7 +15,10 @@ unit::unit(int uid, int x, int y, int civid, const unit_configuration& uconf_)
 	fortified(false),
 	resting(false),
 	turns_improving(0),
-	improving(improv_none)
+	improving(improv_none),
+	moves(0),
+	road_moves(0),
+	def_road_moves(def_road_moves_)
 {
 }
 
@@ -33,6 +37,7 @@ void unit::new_round(improvement_type& i)
 		}
 	}
 	moves = uconf.max_moves;
+	road_moves = 0;
 	if(fortifying) {
 		fortifying = false;
 		fortified = true;
@@ -78,6 +83,7 @@ bool unit::fortified_or_fortifying() const
 void unit::skip_turn()
 {
 	moves = 0;
+	road_moves = 0;
 	resting = true;
 	turns_improving = 0;
 	improving = improv_none;
@@ -88,18 +94,45 @@ int unit::num_moves() const
 	return moves;
 }
 
-void unit::move_to(int x, int y)
+int unit::num_road_moves() const
+{
+	return road_moves;
+}
+
+bool unit::move_to(int x, int y, bool road)
 {
 	turns_improving = 0;
 	improving = improv_none;
-	if(moves < 1)
-		return;
+	if(moves < 1 && road_moves < 1)
+		return false;
 	if(abs(xpos - x) > 1 || abs(ypos - y) > 1)
-		return;
+		return false;
 	xpos = x;
 	ypos = y;
-	moves--;
-	return;
+	if(!road) {
+		if(moves) {
+			moves--;
+		}
+		else {
+			road_moves = 0;
+		}
+	}
+	else {
+		if(road_moves) {
+			road_moves--;
+		}
+		else {
+			moves--;
+			road_moves = def_road_moves - 1;
+		}
+	}
+	return true;
+}
+
+void unit::decrement_moves()
+{
+	if(moves)
+		moves--;
 }
 
 improvement_type unit::improving_to() const
@@ -127,7 +160,7 @@ bool unit::is_improving() const
 
 bool unit::idle() const
 {
-	return moves > 0 && !fortified_or_fortifying() && !is_improving();
+	return (moves > 0 || road_moves > 0) && !fortified_or_fortifying() && !is_improving();
 }
 
 bool unit::is_military_unit() const

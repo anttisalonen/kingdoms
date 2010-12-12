@@ -242,8 +242,9 @@ government_map parse_government_config(const std::string& fp)
 
 int run(bool observer, bool use_gui)
 {
-	const int map_x = 80;
-	const int map_y = 60;
+	const int map_x = 140;
+	const int map_y = 120;
+	const int road_moves = 3;
 
 	if(!use_gui)
 		observer = true;
@@ -259,14 +260,16 @@ int run(bool observer, bool use_gui)
 		civs[i]->set_map(&m);
 		civs[i]->set_government(&govmap.begin()->second);
 	}
-	round r(uconfmap, amap, cimap, m);
+	round r(uconfmap, amap, cimap, m, road_moves);
 
 	std::vector<coord> starting_places = m.get_starting_places(civs.size());
 	for(unsigned int i = 0; i < civs.size(); i++) {
 		// settler
-		civs[i]->add_unit(0, starting_places[i].x, starting_places[i].y, (*(r.uconfmap.find(0))).second);
+		civs[i]->add_unit(0, starting_places[i].x, starting_places[i].y, 
+				(*(r.uconfmap.find(0))).second, road_moves);
 		// warrior
-		civs[i]->add_unit(2, starting_places[i].x, starting_places[i].y, (*(r.uconfmap.find(2))).second);
+		civs[i]->add_unit(2, starting_places[i].x, starting_places[i].y, 
+				(*(r.uconfmap.find(2))).second, road_moves);
 		r.add_civilization(civs[i]);
 	}
 

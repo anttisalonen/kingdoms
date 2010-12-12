@@ -53,7 +53,8 @@ class round
 		round(const unit_configuration_map& uconfmap_, 
 				const advance_map& amap_, 
 				const city_improv_map& cimap_,
-				map& m_);
+				map& m_,
+				unsigned int road_moves_);
 		void add_civilization(civilization* civ);
 		bool perform_action(int civid, const action& a);
 		const unit_configuration* get_unit_configuration(int uid) const;
@@ -66,6 +67,7 @@ class round
 		const city_improv_map cimap;
 		bool in_war(unsigned int civ1, unsigned int civ2) const;
 		int get_round_number() const;
+		unsigned int get_num_road_moves() const;
 	private:
 		bool next_civ();
 		void refill_moves();
@@ -80,6 +82,7 @@ class round
 		std::vector<civilization*>::iterator current_civ;
 		map& m;
 		int round_number;
+		const unsigned int road_moves;
 };
 
 #endif

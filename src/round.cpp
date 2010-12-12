@@ -86,12 +86,13 @@ action improve_unit_action(unit* u, improvement_type i)
 round::round(const unit_configuration_map& uconfmap_,
 		const advance_map& amap_,
 		const city_improv_map& cimap_,
-		map& m_)
+		map& m_, unsigned int road_moves_)
 	: uconfmap(uconfmap_),
 	amap(amap_),
 	cimap(cimap_),
 	m(m_),
-	round_number(0)
+	round_number(0),
+	road_moves(road_moves_)
 {
 	current_civ = civs.begin();
 }
@@ -117,7 +118,8 @@ void round::increment_resources()
 	for(std::vector<civilization*>::iterator it = civs.begin();
 	    it != civs.end();
 	    ++it) {
-		(*it)->increment_resources(uconfmap, amap, cimap);
+		(*it)->increment_resources(uconfmap, amap, cimap,
+				road_moves);
 	}
 }
 
@@ -363,7 +365,7 @@ bool round::try_move_unit(unit* u, int chx, int chy)
 	else {
 		if(def_id >= 0 && def_id != u->civ_id) {
 			// won combat - but no move
-			u->moves--;
+			u->decrement_moves();
 			return true;
 		}
 		else {
@@ -400,5 +402,10 @@ bool round::in_war(unsigned int civ1, unsigned int civ2) const
 int round::get_round_number() const
 {
 	return round_number;
+}
+
+unsigned int round::get_num_road_moves() const
+{
+	return road_moves;
 }
 
