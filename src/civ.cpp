@@ -56,8 +56,9 @@ coord next_good_resource_spot(const city* c, const map* m)
 				continue;
 			int tf, tp, tc;
 			m->get_resources_on_spot(c->xpos + i, c->ypos + j, &tf, &tp, &tc);
-			if((tf >= opt_food && opt_food < req_food) || (tf >= req_food &&
-			   (tp > opt_prod || (tp == opt_prod && tc > opt_comm)))) {
+			if((tf >= opt_food && opt_food < req_food) || 
+				 (tf >= req_food &&
+				 (tp > opt_prod || (tp == opt_prod && tc > opt_comm)))) {
 				ret.x = i;
 				ret.y = j;
 				opt_food = tf;
@@ -401,25 +402,40 @@ city* civilization::add_city(int x, int y)
 		}
 		curr_city_name_index = 0;
 	}
+	m->add_city(c, x, y);
+	add_city(c);
+	update_city_resource_workers(c);
+	return c;
+}
+
+void civilization::update_city_resource_workers(city* c)
+{
+	c->clear_resource_workers();
+	while(c->add_resource_worker(next_good_resource_spot(c, m)))
+		;
+}
+
+void civilization::add_city(city* c)
+{
 	fog.reveal(c->xpos, c->ypos, 2);
 	reveal_land(c->xpos, c->ypos, 2);
 	fog.shade(c->xpos, c->ypos, 2);
 	fog.reveal(c->xpos, c->ypos, 1);
+	c->set_city_id(next_city_id);
+	c->set_civ_id(civ_id);
 	cities.insert(std::make_pair(next_city_id++, c));
-	m->add_city(c, x, y);
-	coord rescoord = next_good_resource_spot(c, m);
-	c->add_resource_worker(rescoord);
-	return c;
 }
 
-void civilization::remove_city(city* c)
+void civilization::remove_city(city* c, bool del)
 {
 	std::map<unsigned int, city*>::iterator cit = cities.find(c->city_id);
 	if(cit != cities.end()) {
 		fog.shade(c->xpos, c->ypos, 2);
-		m->remove_city(c);
 		cities.erase(cit);
-		delete c;
+		if(del) {
+			m->remove_city(c);
+			delete c;
+		}
 	}
 }
 

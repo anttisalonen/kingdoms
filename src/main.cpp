@@ -264,7 +264,14 @@ int run(bool observer, bool use_gui)
 	round r(uconfmap, amap, cimap, m, road_moves);
 
 	std::vector<coord> starting_places = m.get_starting_places(civs.size());
-	for(unsigned int i = 0; i < civs.size(); i++) {
+	if(starting_places.size() != civs.size()) {
+		printf("Could find only %d starting places (instead of %d).\n",
+				starting_places.size(), civs.size());
+		if(starting_places.size() < 3) {
+			return 1;
+		}
+	}
+	for(unsigned int i = 0; i < starting_places.size(); i++) {
 		// settler
 		civs[i]->add_unit(0, starting_places[i].x, starting_places[i].y, 
 				(*(r.uconfmap.find(0))).second, road_moves);
@@ -288,7 +295,7 @@ int run(bool observer, bool use_gui)
 	std::map<unsigned int, ai> ais;
 	if(observer)
 		ais.insert(std::make_pair(0, ai(m, r, r.civs[0], true)));
-	for(unsigned int i = 1; i < civs.size(); i++)
+	for(unsigned int i = 1; i < starting_places.size(); i++)
 		ais.insert(std::make_pair(i, ai(m, r, r.civs[i], false)));
 	if(use_gui) {
 		std::vector<const char*> road_images;

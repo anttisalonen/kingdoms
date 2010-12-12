@@ -27,10 +27,14 @@ class city {
 		void increment_city_size();
 		int get_city_size() const;
 		const std::list<coord>& get_resource_coords() const;
-		void pop_resource_worker();
+		bool pop_resource_worker();
 		void drop_resource_worker(const coord& c);
-		void add_resource_worker(const coord& c);
+		bool add_resource_worker(const coord& c);
 		int get_num_entertainers() const;
+		void clear_resource_workers();
+		void clear_stored_resources();
+		void set_city_id(int i);
+		void set_civ_id(int i);
 		std::string cityname;
 		const int xpos;
 		const int ypos;

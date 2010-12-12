@@ -66,7 +66,8 @@ class civilization {
 				unsigned int road_moves);
 		char fog_at(int x, int y) const;
 		city* add_city(int x, int y);
-		void remove_city(city* c);
+		void add_city(city* c);
+		void remove_city(city* c, bool del);
 		void add_message(const msg& m);
 		relationship get_relationship_to_civ(unsigned int civid) const;
 		void set_relationship_to_civ(unsigned int civid, relationship val);
@@ -85,6 +86,7 @@ class civilization {
 		void set_government(const government* g);
 		int get_national_income() const;
 		int get_military_expenses() const;
+		void update_city_resource_workers(city* c);
 		std::string civname;
 		const unsigned int civ_id;
 		color col;

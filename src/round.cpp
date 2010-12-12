@@ -164,7 +164,7 @@ void round::check_for_city_updates()
 				if(c->get_city_size() <= 1) {
 					std::map<unsigned int, city*>::iterator cit2(cit);
 					cit2--;
-					(*it)->remove_city(c);
+					(*it)->remove_city(c, true);
 					update_land = true;
 					cit = cit2;
 					continue;
@@ -277,13 +277,39 @@ bool round::perform_action(int civid, const action& a)
 	return true;
 }
 
-void round::check_city_conquer(int tgtxpos, int tgtypos)
+void round::check_city_conquer(int tgtxpos, int tgtypos, int conquering_civid)
 {
 	city* c = m.city_on_spot(tgtxpos, tgtypos);
-	if(c) {
+	if(c && c->civ_id != (unsigned int)conquering_civid) {
 		civilization* civ = civs[c->civ_id];
-		civ->remove_city(c);
-		update_land_owners();
+		if(c->get_city_size() > 1) {
+			civ->remove_city(c, false);
+			civilization* civ2 = civs[conquering_civid];
+			c->decrement_city_size();
+			c->clear_stored_resources();
+			civ2->add_city(c);
+			destroy_improvements(c);
+			update_land_owners();
+			civ2->update_city_resource_workers(c);
+		}
+		else {
+			civ->remove_city(c, true);
+			update_land_owners();
+		}
+	}
+}
+
+void round::destroy_improvements(city* c)
+{
+	for(std::set<unsigned int>::iterator it = c->built_improvements.begin();
+			it != c->built_improvements.end();) {
+		city_improv_map::const_iterator ciit = cimap.find(*it);
+		if(ciit != cimap.end() && (ciit->second.palace || ((rand() % 3) == 0))) {
+			c->built_improvements.erase(it++);
+		}
+		else {
+			it++;
+		}
 	}
 }
 
@@ -345,7 +371,7 @@ bool round::try_move_unit(unit* u, int chx, int chy)
 			}
 			if(m.units_on_spot(tgtxpos, tgtypos).size() == 0) {
 				// check if a city was conquered
-				check_city_conquer(tgtxpos, tgtypos);
+				check_city_conquer(tgtxpos, tgtypos, u->civ_id);
 				check_civ_elimination(def_id);
 			}
 		}
@@ -365,7 +391,7 @@ bool round::try_move_unit(unit* u, int chx, int chy)
 				civs[*it]->discover((*current_civ)->civ_id);
 			}
 			if(def_id >= 0 && def_id != u->civ_id) {
-				check_city_conquer(tgtxpos, tgtypos);
+				check_city_conquer(tgtxpos, tgtypos, u->civ_id);
 				check_civ_elimination(def_id);
 			}
 			return true;
