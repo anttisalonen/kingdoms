@@ -221,6 +221,22 @@ int city_window::draw_window()
 			c->culture_level);
 	draw_text(screen, &res.font, buf, screen_w * 0.3, screen_h * 0.84, 0, 0, 0);
 
+	// built city improvements
+	int improv_y = screen_w * 0.05 + 10;
+	for(std::set<unsigned int>::const_iterator it = c->built_improvements.begin();
+			it != c->built_improvements.end();
+			++it) {
+		city_improv_map::const_iterator ciit = data.r.cimap.find(*it);
+		if(ciit != data.r.cimap.end()) {
+			snprintf(buf, 63, "%s", ciit->second.improv_name.c_str());
+		}
+		else {
+			snprintf(buf, 63, "<unknown>");
+		}
+		draw_text(screen, &res.font, buf, screen_w * 0.10, improv_y, 0, 0, 0);
+		improv_y += 20;
+	}
+
 	// production choice buttons if any
 	std::for_each(change_prod_buttons.begin(),
 			change_prod_buttons.end(),
