@@ -822,8 +822,11 @@ int main_window::try_choose_with_mouse(city** c)
 void main_window::init_turn()
 {
 	draw_window();
-	if(internal_ai)
+	if(internal_ai) {
+		if(data.r.get_round_number() == 0 && myciv->units.begin() != myciv->units.end())
+			try_center_camera_to_unit(*(myciv->units.begin()));
 		return;
+	}
 	get_next_free_unit();
 }
 
