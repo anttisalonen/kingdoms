@@ -317,13 +317,7 @@ int map::get_spot_resident(int x, int y) const
 
 int map::get_move_cost(const unit& u, int x1, int y1, int x2, int y2, bool* road) const
 {
-	x1 = wrap_x(x1);
-	y1 = wrap_y(y1);
-	x2 = wrap_x(x2);
-	y2 = wrap_y(y2);
-	int t = get_data(x2, y2);
-	if(abs(x1 - x2) > 1 || abs(y1 - y2) > 1)
-		return -1;
+	int t = get_data(wrap_x(x2), wrap_y(y2));
 	*road = false;
 	if(t == -1)
 		return -1;
