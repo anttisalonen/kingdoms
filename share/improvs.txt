@@ -1,7 +1,9 @@
 # name - cost - needed advance - commerce bonus (in %) - culture - happiness - flags
 # flags: barracks
 #	 granary
-"Barracks"	30	1	0	0	0	10
-"Granary"	30	2	0	0	0	01
-"Marketplace"	30	3	25	0	0	00
-"Temple"	40	4	0	1	1	00
+#	 palace
+"Barracks"	30	1	0	0	0	100
+"Granary"	30	2	0	0	0	010
+"Marketplace"	30	3	25	0	0	000
+"Temple"	40	4	0	1	1	000
+"Palace"	200	0	0	2	1	001

@@ -228,6 +228,16 @@ bool round::perform_action(int civid, const action& a)
 								a.data.unit_data.u->ypos)) {
 							city* c = (*current_civ)->add_city(a.data.unit_data.u->xpos,
 									a.data.unit_data.u->ypos);
+							if((*current_civ)->cities.size() == 1) {
+								for(city_improv_map::const_iterator pit = cimap.begin();
+										pit != cimap.end();
+										++pit) {
+									if(pit->second.palace) {
+										c->built_improvements.insert(pit->first);
+										break;
+									}
+								}
+							}
 							set_default_city_production(c, uconfmap);
 							(*current_civ)->remove_unit(a.data.unit_data.u);
 							return true;

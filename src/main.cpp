@@ -189,6 +189,7 @@ city_improv_map parse_city_improv_config(const std::string& fp)
 		a.happiness = stoi(improvs[i][5]);
 		a.barracks = get_flag(improvs[i][6], 0);
 		a.granary = get_flag(improvs[i][6], 1);
+		a.palace = get_flag(improvs[i][6], 2);
 		cimap.insert(std::make_pair(a.improv_id, a));
 	}
 	return cimap;

@@ -12,6 +12,7 @@ class city_improvement {
 		int cost;
 		bool barracks;
 		bool granary;
+		bool palace;
 		int comm_bonus;
 		int culture;
 		int happiness;
