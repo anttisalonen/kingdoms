@@ -10,9 +10,9 @@ SRCFILES = color.cpp sdl-utils.cpp utils.cpp rect.cpp \
 	   city.cpp map.cpp fog_of_war.cpp \
 	   government.cpp civ.cpp \
 	   round.cpp \
+	   astar.cpp map-astar.cpp ai.cpp ai-orders.cpp \
 	   gui-utils.cpp main_window.cpp city_window.cpp \
 	   diplomacy_window.cpp gui.cpp \
-	   astar.cpp map-astar.cpp ai.cpp \
 	   main.cpp
 OBJS   = $(SRCS:.cpp=.o)
 DEPS   = $(SRCS:.cpp=.dep)
