@@ -650,7 +650,7 @@ ai_tunables_found_city::ai_tunables_found_city()
 	min_comm_points(0),
 	max_search_range(500),
 	range_coeff(1),
-	max_found_city_prio(1000),
+	max_found_city_prio(600),
 	found_city_coeff(6)
 {
 }

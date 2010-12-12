@@ -11,7 +11,7 @@ namespace math {
 
 ai_tunable_parameters::ai_tunable_parameters()
 	: max_defense_prio(1000),
-	defense_units_prio_coeff(600),
+	defense_units_prio_coeff(400),
 	exploration_min_prio(100),
 	exploration_max_prio(600),
 	exploration_length_decr_coeff(50),
@@ -19,7 +19,7 @@ ai_tunable_parameters::ai_tunable_parameters()
 	offense_dist_prio_coeff(50),
 	unit_strength_prio_coeff(1),
 	max_offense_prio(1000),
-	worker_prio(900)
+	worker_prio(700)
 {
 }
 
