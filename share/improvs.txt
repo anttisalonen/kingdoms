@@ -2,8 +2,8 @@
 # flags: barracks
 #	 granary
 #	 palace
+"Palace"	200	0	0	2	1	001
 "Barracks"	30	1	0	0	0	100
 "Granary"	30	3	0	0	0	010
 "Marketplace"	30	4	25	0	0	000
 "Temple"	40	5	0	1	1	000
-"Palace"	200	0	0	2	1	001
