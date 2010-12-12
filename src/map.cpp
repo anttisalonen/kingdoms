@@ -586,3 +586,16 @@ bool map::road_between(int x1, int y1, int x2, int y2) const
 			(get_improvements_on(x2, y2) & improv_road);
 }
 
+bool map::connected_to_sea(int x, int y) const
+{
+	for(int i = -1; i <= 1; i++) {
+		for(int j = -1; j <= 1; j++) {
+			if(!i && !j)
+				continue;
+			if(resconf.is_water_tile(get_data(x + i, y + j)))
+				return true;
+		}
+	}
+	return false;
+}
+

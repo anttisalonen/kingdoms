@@ -47,6 +47,7 @@ class map {
 		int get_improvements_on(int x, int y) const;
 		int get_needed_turns_for_improvement(improvement_type i) const;
 		bool road_between(int x1, int y1, int x2, int y2) const;
+		bool connected_to_sea(int x, int y) const;
 	private:
 		int get_index(int x, int y) const;
 		void create_mountains(int x, int y, int width);

@@ -593,3 +593,21 @@ void civilization::destroy_old_palace(const city* c, const city_improv_map& cima
 	}
 }
 
+bool civilization::can_build_unit(const unit_configuration& uc, const city& c) const
+{
+	if(!unit_discovered(uc))
+		return false;
+	if(uc.sea_unit && !m->connected_to_sea(c.xpos, c.ypos))
+		return false;
+	return true;
+}
+
+bool civilization::can_build_improvement(const city_improvement& ci, const city& c) const
+{
+	if(!improv_discovered(ci))
+		return false;
+	if(c.built_improvements.find(ci.improv_id) != c.built_improvements.end())
+		return false;
+	return true;
+}
+

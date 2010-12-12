@@ -185,7 +185,7 @@ std::pair<int, int> ai::create_city_unit_orders(city* c)
 	for(unit_configuration_map::const_iterator it = r.uconfmap.begin();
 			it != r.uconfmap.end();
 			++it) {
-		if(!myciv->unit_discovered(it->second))
+		if(!myciv->can_build_unit(it->second, *c))
 			continue;
 		unit dummy(0, c->xpos, c->ypos, myciv->civ_id,
 				it->second, r.get_num_road_moves());
@@ -205,9 +205,7 @@ std::pair<int, int> ai::create_city_improv_orders(city* c)
 	for(city_improv_map::const_iterator it = r.cimap.begin();
 			it != r.cimap.end();
 			++it) {
-		if(!myciv->improv_discovered(it->second))
-			continue;
-		if(c->built_improvements.find(it->first) != c->built_improvements.end())
+		if(!myciv->can_build_improvement(it->second, *c))
 			continue;
 		int pr = get_city_improv_value(it->second);
 		if(pr > top.first) {

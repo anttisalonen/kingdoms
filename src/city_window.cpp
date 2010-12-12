@@ -61,7 +61,7 @@ int city_window::change_production()
 	for(unit_configuration_map::const_iterator it = data.r.uconfmap.begin();
 			it != data.r.uconfmap.end();
 			++it) {
-		if(!myciv->unit_discovered(it->second))
+		if(!myciv->can_build_unit(it->second, *c))
 			continue;
 		change_prod_buttons.push_back(new plain_button(option_rect,
 				it->second.unit_name.c_str(), &res.font, color(128, 128, 128), color(0, 0, 0),
@@ -71,9 +71,7 @@ int city_window::change_production()
 	for(city_improv_map::const_iterator it = data.r.cimap.begin();
 			it != data.r.cimap.end();
 			++it) {
-		if(!myciv->improv_discovered(it->second))
-			continue;
-		if(c->built_improvements.find(it->first) != c->built_improvements.end())
+		if(!myciv->can_build_improvement(it->second, *c))
 			continue;
 		change_prod_buttons.push_back(new plain_button(option_rect,
 				it->second.improv_name.c_str(), &res.font, color(160, 160, 160), color(0, 0, 0),

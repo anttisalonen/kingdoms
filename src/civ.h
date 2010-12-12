@@ -87,6 +87,8 @@ class civilization {
 		int get_national_income() const;
 		int get_military_expenses() const;
 		void update_city_resource_workers(city* c);
+		bool can_build_unit(const unit_configuration& uc, const city& c) const;
+		bool can_build_improvement(const city_improvement& ci, const city& c) const;
 		std::string civname;
 		const unsigned int civ_id;
 		color col;
