@@ -288,6 +288,9 @@ void civilization::increment_resources(const unit_configuration_map& uconfmap,
 								this_city->built_improvements.end()) {
 							this_city->built_improvements.insert(prod_improv->first);
 							this_city->stored_prod -= prod_improv->second.cost;
+							if(prod_improv->second.palace) {
+								destroy_old_palace(this_city, cimap);
+							}
 						}
 						add_message(new_improv_msg(this_city, prod_improv->first));
 						this_city->production.current_production_id = -1;
@@ -565,4 +568,27 @@ void civilization::set_government(const government* g)
 	gov = g;
 }
 
+void civilization::destroy_old_palace(const city* c, const city_improv_map& cimap)
+{
+	// go through all cities
+	for(std::map<unsigned int, city*>::iterator it = cities.begin();
+			it != cities.end();
+			++it) {
+		if(it->second != c) {
+			// all improvements in the city
+			for(std::set<unsigned int>::iterator cit = it->second->built_improvements.begin();
+					cit != it->second->built_improvements.end();
+					++cit) {
+				// see if this improvement is the palace
+				city_improv_map::const_iterator ciit = cimap.find(*cit);
+				if(ciit != cimap.end()) {
+					if(ciit->second.palace) {
+						it->second->built_improvements.erase(cit);
+						return;
+					}
+				}
+			}
+		}
+	}
+}
 

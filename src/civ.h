@@ -107,6 +107,7 @@ class civilization {
 		void update_national_income();
 		void update_military_expenses();
 		void setup_default_research_goal(const advance_map& amap);
+		void destroy_old_palace(const city* c, const city_improv_map& cimap);
 		std::vector<relationship> relationships;
 		buf2d<int> known_land_map;
 		std::vector<std::string> city_names;
