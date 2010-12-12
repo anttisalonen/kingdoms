@@ -466,14 +466,35 @@ std::vector<coord> map::get_starting_places(int num) const
 			get_total_city_resources(xp, yp, &f, &p, &c);
 			if(f < 10 || p < 4 || c < 3)
 				continue;
+			int at_least_two_food = 0;
+			int at_least_one_prod = 0;
+			for(int i = -2; i <= 2; i++) {
+				for(int j = -2; j <= 2; j++) {
+					if(abs(i) == 2 && abs(j) == 2)
+						continue;
+
+					int terr = get_data(xp + i, yp + j);
+					int food = 0, prod = 0, comm = 0;
+					get_resources_by_terrain(terr, false,
+							&food, &prod, &comm);
+					if(food >= 2)
+						at_least_two_food++;
+					if(prod >= 1)
+						at_least_one_prod++;
+				}
+			}
+			if(at_least_two_food < 2)
+				continue;
+			if(at_least_one_prod < 2)
+				continue;
 			bool too_close = false;
 			for(std::vector<coord>::const_iterator it = retval.begin();
 					it != retval.end();
 					++it) {
 				int manh = abs(it->x - xp) + abs(it->y - yp);
-				if(manh < 4) {
+				if(manh < 10) {
 					too_close = true;
-					continue;
+					break;
 				}
 			}
 			if(!too_close)
