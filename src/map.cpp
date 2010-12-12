@@ -61,12 +61,12 @@ map::map(int x, int y, const resource_configuration& resconf_)
 
 	// create ridges
 	int max_ridge_length = 20;
-	int num_ridges = x * y / (max_ridge_length * 2);
+	int num_ridges = x * y / (max_ridge_length * 4);
 	for(int i = 0; i < num_ridges; i++) {
 		int xpos = rand() % x;
 		int ypos = rand() % y;
 		int dir = rand() % 8;
-		int ridge_width = 2;
+		int ridge_width = 3;
 		int ridge_size = rand() % max_ridge_length + 4;
 		for(int j = 0; j < ridge_size; j++) {
 			int realdir = dir % 8;
@@ -74,7 +74,7 @@ map::map(int x, int y, const resource_configuration& resconf_)
 				create_mountains(xpos, ypos, ridge_width);
 			}
 			ridge_width += rand() % 3 - 1;
-			ridge_width = clamp(2, ridge_width, 4);
+			ridge_width = clamp(2, ridge_width, 5);
 			int dx = realdir > 4 ? 1 : realdir < 3 ? -1 : 0;
 			int dy = realdir == 0 || realdir == 3 || realdir == 5 ? -1 :
 				realdir == 1 || realdir == 6 ? 0 : -1;
@@ -190,7 +190,7 @@ int map::get_humidity_at(int x, int y) const
 		if(resconf.is_mountain_tile(get_data(it->x, it->y)))
 			dist_to_sea += 2;
 	}
-	return clamp(1, dist_to_sea * 2, 9);
+	return clamp(1, dist_to_sea * 2 - 3, 9);
 }
 
 void map::create_mountains(int x, int y, int width)
@@ -202,7 +202,7 @@ void map::create_mountains(int x, int y, int width)
 			int manh = abs(i) + abs(j);
 			if(resconf.is_water_tile(get_data(x + i, y + j)))
 				continue;
-			if(manh == rad || manh == rad + 1)
+			if(manh == rad)
 				data.set(x + i, y + j, resconf.get_hill_tile());
 			else if(manh < rad)
 				data.set(x + i, y + j, resconf.get_mountain_tile());
@@ -457,7 +457,9 @@ void map::remove_civ_land(unsigned int civ_id)
 std::vector<coord> map::get_starting_places(int num) const
 {
 	std::vector<coord> retval;
-	while((int)retval.size() < num) {
+	int tries = 0;
+	while(tries < num * 1000 && (int)retval.size() < num) {
+		tries++;
 		int xp = rand() % size_x();
 		int yp = rand() % size_y();
 		if(resconf.can_found_city_on(get_data(xp, yp))) {
