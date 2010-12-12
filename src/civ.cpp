@@ -373,11 +373,12 @@ void civilization::setup_default_research_goal(const advance_map& amap)
 
 int civilization::try_move_unit(unit* u, int chx, int chy)
 {
-	if((!u->num_moves() && !u->num_road_moves()) || !(chx || chy))
+	if((!u->num_moves() && !u->num_road_moves()) || !(chx || chy)) {
 		return 0;
+	}
 	int newx = m->wrap_x(u->xpos + chx);
 	int newy = m->wrap_y(u->ypos + chy);
-	if(m->get_data(newx, newy) > 0 && can_move_to(newx, newy)) {
+	if(m->terrain_allowed(*u, newx, newy) && can_move_to(newx, newy)) {
 		m->remove_unit(u);
 		fog.shade(u->xpos, u->ypos, 1);
 		bool succ = u->move_to(newx, newy, 

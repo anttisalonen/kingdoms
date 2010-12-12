@@ -105,8 +105,6 @@ bool unit::move_to(int x, int y, bool road)
 	improving = improv_none;
 	if(moves < 1 && road_moves < 1)
 		return false;
-	if(abs(xpos - x) > 1 || abs(ypos - y) > 1)
-		return false;
 	xpos = x;
 	ypos = y;
 	if(!road) {

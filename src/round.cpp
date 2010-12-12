@@ -44,13 +44,13 @@ void combat(unit* u1, unit* u2)
 			u2->xpos, u2->ypos, u1chance, u2chance,
 			u1chance / ((float)u1chance + u2chance));
 	if(val < u1chance) {
-		u1->strength = u1->strength * (val + 1) / u1chance;
+		u1->strength = std::min<unsigned int>(1, u1->strength * (val + 1) / u1chance);
 		u2->strength = 0;
 		printf("attacker won\n");
 	}
 	else {
 		u1->strength = 0;
-		u2->strength = u2->strength * (val + 1 - u1chance) / u2chance;
+		u2->strength = std::min<unsigned int>(1, u2->strength * (val + 1 - u1chance) / u2chance);
 		printf("defender won\n");
 	}
 }
@@ -347,6 +347,10 @@ bool round::try_move_unit(unit* u, int chx, int chy)
 {
 	int tgtxpos = u->xpos + chx;
 	int tgtypos = u->ypos + chy;
+
+	if(!m.terrain_allowed(*u, tgtxpos, tgtypos)) {
+		return false;
+	}
 
 	// attack square?
 	int def_id = m.get_spot_resident(tgtxpos, tgtypos);

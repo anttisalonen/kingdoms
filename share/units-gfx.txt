@@ -1,3 +1,6 @@
 settlers.png
 worker.png
 warrior.png
+archer.png
+spearman.png
+trireme.png

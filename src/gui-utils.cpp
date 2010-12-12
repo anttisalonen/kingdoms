@@ -236,7 +236,7 @@ SDL_Surface* gui_resources::get_unit_tile(const unit& u, const color& c)
 	if(it == unit_images.end()) {
 		// load image
 		SDL_Surface* plain = plain_unit_images[u.unit_id];
-		SDL_Surface* result = SDL_DisplayFormat(plain);
+		SDL_Surface* result = SDL_DisplayFormatAlpha(plain);
 		sdl_change_pixel_color(result, color(0, 255, 255), c);
 		unit_images.insert(std::make_pair(std::make_pair(u.unit_id, c),
 					result));

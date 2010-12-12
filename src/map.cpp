@@ -333,7 +333,12 @@ int map::get_move_cost(const unit& u, int x1, int y1, int x2, int y2, bool* road
 bool map::terrain_allowed(const unit& u, int x, int y) const
 {
 	int t = get_data(wrap_x(x), wrap_y(y));
-	return t != 0 && t != -1;
+	if(t == -1)
+		return false;
+	if(!u.uconf.sea_unit)
+		return !resconf.is_water_tile(t);
+	else
+		return resconf.is_water_tile(t);
 }
 
 const std::list<unit*>& map::units_on_spot(int x, int y) const
