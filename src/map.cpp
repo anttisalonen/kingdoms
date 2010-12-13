@@ -352,6 +352,9 @@ bool map::terrain_allowed(const unit& u, int x, int y) const
 	int t = get_data(wrap_x(x), wrap_y(y));
 	if(t == -1)
 		return false;
+	city* c = city_on_spot(x, y);
+	if(c && c->civ_id == (unsigned int)u.civ_id)
+		return true;
 	if(!u.uconf.sea_unit) {
 		return !resconf.is_water_tile(t);
 	}
