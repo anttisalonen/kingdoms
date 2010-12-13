@@ -141,7 +141,7 @@ std::vector<civilization*> parse_civs_config(const std::string& fp)
 
 unit_configuration_map parse_unit_config(const std::string& fp)
 {
-	parse_result units = parser(fp, 6);
+	parse_result units = parser(fp, 7);
 	unit_configuration_map uconfmap;
 	for(unsigned int i = 0; i < units.size(); i++) {
 		unit_configuration u;
@@ -150,10 +150,11 @@ unit_configuration_map parse_unit_config(const std::string& fp)
 		u.max_strength = stoi(units[i][2]);
 		u.production_cost = stoi(units[i][3]);
 		u.needed_advance = stoi(units[i][4]);
-		u.settler = get_flag(units[i][5], 0);
-		u.worker = get_flag(units[i][5], 1);
-		u.sea_unit = get_flag(units[i][5], 2);
-		u.ocean_unit = get_flag(units[i][5], 3);
+		u.carry_units = stoi(units[i][5]);
+		u.settler = get_flag(units[i][6], 0);
+		u.worker = get_flag(units[i][6], 1);
+		u.sea_unit = get_flag(units[i][6], 2);
+		u.ocean_unit = get_flag(units[i][6], 3);
 		uconfmap.insert(std::make_pair(i, u));
 	}
 	return uconfmap;

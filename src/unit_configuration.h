@@ -15,6 +15,7 @@ class unit_configuration {
 		unsigned int needed_advance;
 		bool sea_unit;
 		bool ocean_unit;
+		unsigned int carry_units;
 };
 
 typedef std::map<int, unit_configuration> unit_configuration_map;

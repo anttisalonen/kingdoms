@@ -1,4 +1,6 @@
+#include <algorithm>
 #include <stdlib.h>
+#include <stdio.h>
 #include "unit.h"
 
 unit::unit(int uid, int x, int y, int civid, 
@@ -14,6 +16,8 @@ unit::unit(int uid, int x, int y, int civid,
 	fortifying(false),
 	fortified(false),
 	resting(false),
+	sentry(false),
+	carrying_unit(NULL),
 	turns_improving(0),
 	improving(improv_none),
 	moves(0),
@@ -68,6 +72,7 @@ void unit::wake_up()
 	fortified = fortifying = false;
 	turns_improving = 0;
 	improving = improv_none;
+	sentry = false;
 }
 
 bool unit::is_fortified() const
@@ -87,6 +92,8 @@ void unit::skip_turn()
 	resting = true;
 	turns_improving = 0;
 	improving = improv_none;
+	if(carrying_unit)
+		sentry = true;
 }
 
 int unit::num_moves() const
@@ -158,7 +165,10 @@ bool unit::is_improving() const
 
 bool unit::idle() const
 {
-	return (moves > 0 || road_moves > 0) && !fortified_or_fortifying() && !is_improving();
+	return (moves > 0 || road_moves > 0) && 
+		!fortified_or_fortifying() && 
+		!is_improving() &&
+		!sentry;
 }
 
 bool unit::is_military_unit() const
@@ -166,4 +176,41 @@ bool unit::is_military_unit() const
 	return uconf.max_strength > 0;
 }
 
+bool unit::load_at(unit* loader)
+{
+	if(carrying_unit || !idle())
+		return false;
+	loader->carried_units.push_back(this);
+	xpos = loader->xpos;
+	ypos = loader->ypos;
+	decrement_moves();
+	sentry = true;
+	carrying_unit = loader;
+	return true;
+}
+
+bool unit::unload(int x, int y)
+{
+	if(!carrying_unit)
+		return false;
+	carrying_unit->carried_units.erase(std::remove(carrying_unit->carried_units.begin(),
+				carrying_unit->carried_units.end(),
+				this), carrying_unit->carried_units.end());
+	xpos = x;
+	ypos = y;
+	decrement_moves();
+	wake_up();
+	carrying_unit = NULL;
+	return true;
+}
+
+bool unit::carried() const
+{
+	return carrying_unit != NULL;
+}
+
+bool unit::carrying() const
+{
+	return carried_units.size() > 0;
+}
 

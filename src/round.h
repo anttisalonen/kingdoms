@@ -23,6 +23,8 @@ enum unit_action_type {
 	action_skip,
 	action_fortify,
 	action_improvement,
+	action_load,
+	action_unload,
 };
 
 struct action {
@@ -80,6 +82,9 @@ class round
 		void check_for_city_updates();
 		void update_land_owners();
 		void destroy_improvements(city* c);
+		bool try_load_unit(unit* u, int x, int y);
+		bool try_unload_units(unit* u, int x, int y);
+		bool try_wakeup_loaded(unit* u);
 		std::vector<civilization*>::iterator current_civ;
 		map& m;
 		int round_number;

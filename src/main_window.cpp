@@ -241,6 +241,8 @@ int main_window::draw_unit(const unit& u)
 	if(!tile_visible(u.xpos, u.ypos)) {
 		return 0;
 	}
+	if(u.carried() && (current_unit == myciv->units.end() || *current_unit != &u))
+		return 0;
 	SDL_Surface* surf = res.get_unit_tile(u, data.r.civs[u.civ_id]->col);
 	return draw_tile(surf, u.xpos, u.ypos);
 }
@@ -561,6 +563,12 @@ action main_window::input_to_action(const SDL_Event& ev)
 					else if(k == SDLK_f) {
 						return unit_action(action_fortify, *current_unit);
 					}
+					else if(k == SDLK_l) {
+						return unit_action(action_load, *current_unit);
+					}
+					else if(k == SDLK_u) {
+						return unit_action(action_unload, *current_unit);
+					}
 					else {
 						int chx, chy;
 						numpad_to_move(k, &chx, &chy);
@@ -621,6 +629,8 @@ void main_window::handle_successful_action(const action& a, city** c)
 				case action_improvement:
 				case action_skip:
 				case action_fortify:
+				case action_load:
+				case action_unload:
 					get_next_free_unit();
 					break;
 				default:

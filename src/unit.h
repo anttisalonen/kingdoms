@@ -1,6 +1,7 @@
 #ifndef UNIT_H
 #define UNIT_H
 
+#include <vector>
 #include "unit_configuration.h"
 #include "resource_configuration.h"
 
@@ -28,6 +29,10 @@ class unit
 		bool is_improving() const;
 		bool idle() const;
 		bool is_military_unit() const;
+		bool load_at(unit* loader);
+		bool unload(int x, int y);
+		bool carried() const;
+		bool carrying() const;
 		const int unit_id;
 		const int civ_id;
 		int xpos;
@@ -35,10 +40,13 @@ class unit
 		const unit_configuration& uconf;
 		unsigned int strength;
 		bool veteran;
+		std::vector<unit*> carried_units;
 	private:
 		bool fortifying;
 		bool fortified;
 		bool resting;
+		bool sentry;
+		unit* carrying_unit;
 		int turns_improving;
 		improvement_type improving;
 		unsigned int moves;

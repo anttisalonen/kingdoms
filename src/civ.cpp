@@ -143,6 +143,14 @@ unit* civilization::add_unit(int uid, int x, int y,
 
 void civilization::remove_unit(unit* u)
 {
+	if(u->carried()) {
+		u->unload(u->xpos, u->ypos);
+	}
+	for(std::vector<unit*>::iterator it = u->carried_units.begin();
+			it != u->carried_units.end();
+			++it) {
+		remove_unit(*it);
+	}
 	fog.shade(u->xpos, u->ypos, 1);
 	m->remove_unit(u);
 	units.remove(u);
@@ -380,12 +388,23 @@ int civilization::try_move_unit(unit* u, int chx, int chy)
 	int newy = m->wrap_y(u->ypos + chy);
 	if(m->terrain_allowed(*u, newx, newy) && can_move_to(newx, newy)) {
 		m->remove_unit(u);
-		fog.shade(u->xpos, u->ypos, 1);
+		if(!u->carried())
+			fog.shade(u->xpos, u->ypos, 1);
 		bool succ = u->move_to(newx, newy, 
 				m->road_between(u->xpos, u->ypos, newx, newy));
-		fog.reveal(u->xpos, u->ypos, 1);
+		if(!u->carried())
+			fog.reveal(u->xpos, u->ypos, 1);
 		reveal_land(u->xpos, u->ypos, 1);
 		m->add_unit(u);
+		for(std::vector<unit*>::iterator it = u->carried_units.begin();
+				it != u->carried_units.end();
+				++it) {
+			(*it)->xpos = u->xpos;
+			(*it)->ypos = u->ypos;
+		}
+		if(succ && u->carried()) {
+			unload_unit(u, newx, newy);
+		}
 		return succ;
 	}
 	return 0;
@@ -608,6 +627,30 @@ bool civilization::can_build_improvement(const city_improvement& ci, const city&
 		return false;
 	if(c.built_improvements.find(ci.improv_id) != c.built_improvements.end())
 		return false;
+	return true;
+}
+
+bool civilization::load_unit(unit* loadee, unit* loader)
+{
+	int oldx = loadee->xpos;
+	int oldy = loadee->ypos;
+	if(loadee->load_at(loader)) {
+		m->remove_unit(loadee);
+		fog.shade(oldx, oldy, 1);
+		printf("loaded unit\n");
+		return true;
+	}
+	return false;
+}
+
+bool civilization::unload_unit(unit* unloadee, int x, int y)
+{
+	if(!unloadee->unload(x, y))
+		return false;
+	m->add_unit(unloadee);
+	fog.reveal(x, y, 1);
+	reveal_land(x, y, 1);
+	printf("unloaded unit\n");
 	return true;
 }
 

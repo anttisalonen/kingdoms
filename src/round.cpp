@@ -265,6 +265,15 @@ bool round::perform_action(int civid, const action& a)
 					a.data.unit_data.u->start_improving_to(a.data.unit_data.unit_action_data.improv,
 							m.get_needed_turns_for_improvement(a.data.unit_data.unit_action_data.improv));
 					return true;
+				case action_load:
+					if(a.data.unit_data.u->uconf.sea_unit || 
+					   a.data.unit_data.u->uconf.ocean_unit)
+						return false;
+					return try_load_unit(a.data.unit_data.u, 
+							a.data.unit_data.u->xpos,
+							a.data.unit_data.u->ypos);
+				case action_unload:
+					return try_wakeup_loaded(a.data.unit_data.u);
 				default:
 					break;
 			}
@@ -349,7 +358,12 @@ bool round::try_move_unit(unit* u, int chx, int chy)
 	int tgtypos = u->ypos + chy;
 
 	if(!m.terrain_allowed(*u, tgtxpos, tgtypos)) {
-		return false;
+		if(u->carrying())
+			return try_unload_units(u, tgtxpos, tgtypos);
+		else if(!u->carried() && !u->uconf.sea_unit && !u->uconf.ocean_unit)
+			return try_load_unit(u, tgtxpos, tgtypos);
+		else
+			return false;
 	}
 
 	// attack square?
@@ -400,7 +414,9 @@ bool round::try_move_unit(unit* u, int chx, int chy)
 			}
 			return true;
 		}
-		return false;
+		else {
+			return false;
+		}
 	}
 	else {
 		if(def_id >= 0 && def_id != u->civ_id) {
@@ -447,5 +463,44 @@ int round::get_round_number() const
 unsigned int round::get_num_road_moves() const
 {
 	return road_moves;
+}
+
+bool round::try_load_unit(unit* u, int x, int y)
+{
+	const std::list<unit*>& units = m.units_on_spot(x, y);
+	for(std::list<unit*>::const_iterator it = units.begin();
+			it != units.end();
+			++it) {
+		if((*it)->civ_id != u->civ_id)
+			continue;
+		if((*it)->uconf.carry_units > (*it)->carried_units.size()) {
+			if(civs[u->civ_id]->load_unit(u, *it))
+				return true;
+		}
+	}
+	return false;
+}
+
+bool round::try_unload_units(unit* u, int x, int y)
+{
+	if(!u->carrying())
+		return false;
+	for(int i = u->carried_units.size() - 1; i >= 0; i--) {
+		if(u->carried_units[i]->num_moves() || 
+				u->carried_units[i]->num_road_moves()) {
+			if(!civs[u->civ_id]->unload_unit(u->carried_units[i], x, y))
+				return false;
+		}
+	}
+	return true;
+}
+
+bool round::try_wakeup_loaded(unit* u)
+{
+	if(!u->carrying())
+		return false;
+	for(unsigned int i = 0; i < u->carried_units.size(); i++)
+		u->carried_units[i]->wake_up();
+	return true;
 }
 
