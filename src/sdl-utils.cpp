@@ -48,7 +48,7 @@ void sdl_put_pixel(SDL_Surface* screen, int x, int y, const color& c)
 color sdl_get_pixel(SDL_Surface* screen, int x, int y)
 {
 	Uint8 r, g, b;
-	Uint32 pixel;
+	Uint32 pixel = 0;
 	switch (screen->format->BytesPerPixel) {
 		case 1: { /* Assuming 8-bpp */
 				Uint8 *bufp;
