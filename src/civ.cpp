@@ -616,7 +616,7 @@ bool civilization::can_build_unit(const unit_configuration& uc, const city& c) c
 {
 	if(!unit_discovered(uc))
 		return false;
-	if(uc.sea_unit && !m->connected_to_sea(c.xpos, c.ypos))
+	if(uc.is_water_unit() && !m->connected_to_sea(c.xpos, c.ypos))
 		return false;
 	return true;
 }

@@ -213,4 +213,9 @@ bool unit::carrying() const
 {
 	return carried_units.size() > 0;
 }
+bool unit::is_land_unit() const
+{
+	return uconf.is_land_unit();
+}
+
 

@@ -33,6 +33,7 @@ class unit
 		bool unload(int x, int y);
 		bool carried() const;
 		bool carrying() const;
+		bool is_land_unit() const;
 		const int unit_id;
 		const int civ_id;
 		int xpos;

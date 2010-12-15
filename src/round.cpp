@@ -266,8 +266,7 @@ bool round::perform_action(int civid, const action& a)
 							m.get_needed_turns_for_improvement(a.data.unit_data.unit_action_data.improv));
 					return true;
 				case action_load:
-					if(a.data.unit_data.u->uconf.sea_unit || 
-					   a.data.unit_data.u->uconf.ocean_unit)
+					if(!a.data.unit_data.u->is_land_unit())
 						return false;
 					return try_load_unit(a.data.unit_data.u, 
 							a.data.unit_data.u->xpos,
@@ -360,7 +359,7 @@ bool round::try_move_unit(unit* u, int chx, int chy)
 	if(!m.terrain_allowed(*u, tgtxpos, tgtypos)) {
 		if(u->carrying())
 			return try_unload_units(u, tgtxpos, tgtypos);
-		else if(!u->carried() && !u->uconf.sea_unit && !u->uconf.ocean_unit)
+		else if(!u->carried() && u->is_land_unit())
 			return try_load_unit(u, tgtxpos, tgtypos);
 		else
 			return false;

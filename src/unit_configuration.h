@@ -16,7 +16,19 @@ class unit_configuration {
 		bool sea_unit;
 		bool ocean_unit;
 		unsigned int carry_units;
+		bool is_land_unit() const;
+		bool is_water_unit() const;
 };
+
+inline bool unit_configuration::is_land_unit() const
+{
+	return !sea_unit && !ocean_unit;
+}
+
+inline bool unit_configuration::is_water_unit() const
+{
+	return sea_unit || ocean_unit;
+}
 
 typedef std::map<int, unit_configuration> unit_configuration_map;
 

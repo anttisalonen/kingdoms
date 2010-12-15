@@ -355,7 +355,7 @@ bool map::terrain_allowed(const unit& u, int x, int y) const
 	city* c = city_on_spot(x, y);
 	if(c && c->civ_id == (unsigned int)u.civ_id)
 		return true;
-	if(!u.uconf.sea_unit) {
+	if(u.is_land_unit()) {
 		return !resconf.is_water_tile(t);
 	}
 	else {
