@@ -1,5 +1,7 @@
-CXXFLAGS += -Wall -g3
-LDFLAGS  += -lSDL -lSDL_image -lSDL_ttf
+CXX      ?= g++
+CXXFLAGS ?= -O2
+CXXFLAGS += -Wall
+LDFLAGS  ?= -lSDL -lSDL_image -lSDL_ttf
 
 BINDIR = bin
 TARGET = $(BINDIR)/main
@@ -33,7 +35,6 @@ $(TARGET): $(OBJS)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 %.dep: %.cpp
-#	$(CXX) -MM $< > $@
 	@rm -f $@
 	@$(CC) -MM $(CPPFLAGS) $< > $@.P
 	@sed 's,\($(notdir $*)\)\.o[ :]*,$(dir $*)\1.o $@ : ,g' < $@.P > $@
