@@ -238,32 +238,37 @@ int ai::get_city_improv_value(const city_improvement& ci) const
 
 ai::orderprio_t ai::create_orders(unit* u)
 {
-	if(u->uconf.settler) {
-		orderprio_t found = found_new_city(u);
-		if(debug) {
-			printf("Settler: %d\n", found.first);
+	if(u->is_land_unit()) {
+		if(u->uconf.settler) {
+			orderprio_t found = found_new_city(u);
+			if(debug) {
+				printf("Settler: %d\n", found.first);
+			}
+			if(found.first <= 0) {
+				return get_defense_orders(u);
+			}
+			else {
+				return found;
+			}
 		}
-		if(found.first <= 0) {
-			return get_defense_orders(u);
+		else if(u->uconf.worker) {
+			orderprio_t work = workers_orders(u);
+			if(debug) {
+				printf("Worker: %d\n", work.first);
+			}
+			if(work.first <= 0) {
+				return get_defense_orders(u);
+			}
+			else {
+				return work;
+			}
 		}
 		else {
-			return found;
-		}
-	}
-	else if(u->uconf.worker) {
-		orderprio_t work = workers_orders(u);
-		if(debug) {
-			printf("Worker: %d\n", work.first);
-		}
-		if(work.first <= 0) {
-			return get_defense_orders(u);
-		}
-		else {
-			return work;
+			return military_unit_orders(u);
 		}
 	}
 	else {
-		return military_unit_orders(u);
+		return sea_unit_orders(u);
 	}
 }
 
@@ -308,24 +313,35 @@ ai::orderprio_t ai::workers_orders(unit* u)
 	if(searcher.get_found_unit() != NULL) {
 		prio = -1;
 	}
-	orders_composite* o = new orders_composite();
-	orders* io = new improve_orders(myciv, u);
-	if(io->finished())
+	orders* o = new improve_orders(myciv, u);
+	if(o->finished())
 		prio = -1;
-	o->add_orders(io);
 	return std::make_pair(prio, o);
 }
 
 ai::orderprio_t ai::military_unit_orders(unit* u)
 {
-	ordersqueue_t ordersq;
 	if(debug)
 		printf("%s: ", u->uconf.unit_name.c_str());
-	get_exploration_prio(ordersq, u);
-	get_defense_prio(ordersq, u);
-	get_offense_prio(ordersq, u);
+	std::vector<orderfunc_t> funcs;
+	funcs.push_back(&ai::get_exploration_prio);
+	funcs.push_back(&ai::get_defense_orders);
+	funcs.push_back(&ai::get_offense_prio);
+	orderprio_t best = get_best_option(u, funcs);
 	if(debug)
 		printf("\n");
+	return best;
+}
+
+ai::orderprio_t ai::get_best_option(unit* u, std::vector<ai::orderfunc_t> funcs)
+{
+	if(funcs.empty())
+		return std::make_pair(-1, 
+				new primitive_orders(unit_action(action_skip, u)));
+	ordersqueue_t ordersq;
+	for(unsigned int i = 0; i < funcs.size(); i++) {
+		ordersq.push(CALL_MEMBER_FUN(*this, funcs[i])(u));
+	}
 	orderprio_t best = ordersq.top();
 	ordersq.pop();
 	while(!ordersq.empty()) {
@@ -335,11 +351,9 @@ ai::orderprio_t ai::military_unit_orders(unit* u)
 	return best;
 }
 
-void ai::get_exploration_prio(ordersqueue_t& pq, unit* u)
+ai::orderprio_t ai::get_exploration_prio(unit* u)
 {
-	orders_composite* o = new orders_composite();
 	explore_orders* e = new explore_orders(myciv, u, false);
-	o->add_orders(e);
 	int len = e->path_length();
 	int prio;
 	if(len == 0)
@@ -352,7 +366,7 @@ void ai::get_exploration_prio(ordersqueue_t& pq, unit* u)
 				param.exploration_max_prio);
 	if(debug)
 		printf("exploration: %d; ", prio);
-	pq.push(std::make_pair(prio, o));
+	return std::make_pair(prio, e);
 }
 
 ai::orderprio_t ai::get_defense_orders(unit* u)
@@ -378,10 +392,7 @@ ai::orderprio_t ai::get_defense_orders(unit* u)
 					param.max_defense_prio);
 		}
 	}
-	orders_composite* o = new orders_composite();
-	o->add_orders(new defend_orders(myciv, u, tgtx, tgty, 50));
-	o->add_orders(new primitive_orders(unit_action(action_fortify, u)));
-	o->add_orders(new wait_orders(u, 50)); // time not updating orders
+	orders* o = new defend_orders(myciv, u, tgtx, tgty, 50);
 	if(u->uconf.max_strength < 1)
 		prio = -1;
 	if(debug && prio > -1)
@@ -389,12 +400,7 @@ ai::orderprio_t ai::get_defense_orders(unit* u)
 	return std::make_pair(prio, o);
 }
 
-void ai::get_defense_prio(ordersqueue_t& pq, unit* u)
-{
-	pq.push(get_defense_orders(u));
-}
-
-void ai::get_offense_prio(ordersqueue_t& pq, unit* u)
+ai::orderprio_t ai::get_offense_prio(unit* u)
 {
 	int tgtx, tgty;
 	int prio = -1;
@@ -405,11 +411,10 @@ void ai::get_offense_prio(ordersqueue_t& pq, unit* u)
 				param.unit_strength_prio_coeff * math::pow(u->uconf.max_strength, 2) - 
 				param.offense_dist_prio_coeff * (abs(tgtx - u->xpos) + abs(tgty - u->ypos)));
 	}
-	orders_composite* o = new orders_composite();
-	o->add_orders(new attack_orders(myciv, u, tgtx, tgty));
+	attack_orders* o = new attack_orders(myciv, u, tgtx, tgty);
 	if(debug)
 		printf("offense: %d; ", prio);
-	pq.push(std::make_pair(prio, o));
+	return std::make_pair(prio, o);
 }
 
 ai::orderprio_t ai::found_new_city(unit* u)
@@ -426,8 +431,7 @@ ai::orderprio_t ai::found_new_city(unit* u)
 			return std::make_pair(-1, new primitive_orders(unit_action(action_skip, u)));
 		}
 	}
-	orders_composite* o = new orders_composite();
-	o->add_orders(new found_city_orders(myciv, u, param.found_city, tgtx, tgty));
+	orders* o = new found_city_orders(myciv, u, param.found_city, tgtx, tgty);
 	return std::make_pair(prio, o);
 }
 
@@ -466,6 +470,11 @@ bool ai::find_nearest_enemy(const unit* u, int* tgtx, int* tgty) const
 		*tgty = found_path.back().y;
 		return true;
 	}
+}
+
+ai::orderprio_t ai::sea_unit_orders(unit* u)
+{
+	return military_unit_orders(u);
 }
 
 void ai::handle_new_advance(unsigned int adv_id)

@@ -28,18 +28,6 @@ class primitive_orders : public orders {
 		bool finished_flag;
 };
 
-class orders_composite : public orders {
-	public:
-		action get_action();
-		void drop_action();
-		bool finished();
-		void add_orders(orders* o);
-		bool replan();
-		void clear();
-	private:
-		std::list<orders*> ord;
-};
-
 class goto_orders : public orders {
 	public:
 		goto_orders(const civilization* civ_, unit* u_, 

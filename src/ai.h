@@ -4,6 +4,7 @@
 #include <utility>
 #include <queue>
 #include "round.h"
+#include "utils.h"
 
 #include "ai-orders.h"
 
@@ -34,19 +35,20 @@ class ai {
 	typedef std::pair<int, orders*> orderprio_t;
 	typedef std::priority_queue<orderprio_t> ordersqueue_t;
 	typedef std::priority_queue<std::pair<int, coord> > city_points_t;
+	typedef orderprio_t(ai::*orderfunc_t)(unit* u);
 	public:
 		ai(map& m_, round& r_, civilization* c, bool debug_);
 		bool play();
 	private:
 		city_production* create_city_orders(city* c);
+		bool find_nearest_enemy(const unit* u, int* tgtx, int* tgty) const;
 		orderprio_t create_orders(unit* u);
 		orderprio_t found_new_city(unit* u);
 		orderprio_t military_unit_orders(unit* u);
 		orderprio_t workers_orders(unit* u);
-		bool find_nearest_enemy(const unit* u, int* tgtx, int* tgty) const;
-		void get_defense_prio(ordersqueue_t& pq, unit* u);
-		void get_offense_prio(ordersqueue_t& pq, unit* u);
-		void get_exploration_prio(ordersqueue_t& pq, unit* u);
+		orderprio_t sea_unit_orders(unit* u);
+		orderprio_t get_offense_prio(unit* u);
+		orderprio_t get_exploration_prio(unit* u);
 		orderprio_t get_defense_orders(unit* u);
 		void handle_new_advance(unsigned int adv_id);
 		void handle_civ_discovery(int civ_id);
@@ -56,6 +58,7 @@ class ai {
 		std::pair<int, int> create_city_unit_orders(city* c);
 		std::pair<int, int> create_city_improv_orders(city* c);
 		int get_city_improv_value(const city_improvement& ci) const;
+		orderprio_t get_best_option(unit* u, std::vector<ai::orderfunc_t> funcs);
 		map& m;
 		round& r;
 		civilization* myciv;

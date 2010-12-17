@@ -178,50 +178,6 @@ void primitive_orders::clear()
 	finished_flag = true;
 }
 
-action orders_composite::get_action()
-{
-	if(finished())
-		return action(action_none);
-	return ord.front()->get_action();
-}
-
-void orders_composite::drop_action()
-{
-	if(ord.size() > 0) {
-		if(ord.front()->finished()) {
-			delete ord.front();
-			ord.pop_front();
-		}
-		else {
-			ord.front()->drop_action();
-		}
-	}
-}
-
-bool orders_composite::finished()
-{
-	if(ord.empty())
-		return true;
-	return ord.size() == 1 && ord.front()->finished();
-}
-
-void orders_composite::add_orders(orders* o)
-{
-	ord.push_back(o);
-}
-
-bool orders_composite::replan()
-{
-	if(ord.empty())
-		return false;
-	return ord.front()->replan();
-}
-
-void orders_composite::clear()
-{
-	ord.clear();
-}
-
 goto_orders::goto_orders(const civilization* civ_, unit* u_, 
 		bool ignore_enemy_, int x_, int y_)
 	: tgtx(x_),
