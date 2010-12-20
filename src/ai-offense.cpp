@@ -63,7 +63,8 @@ int offense_objective::get_unit_points(const unit& u) const
 	if(find_nearest_enemy(myciv, &u, &tgtx, &tgty)) {
 		prio = std::max<int>(0, max_offense_prio + 
 				unit_strength_prio_coeff * u.uconf.max_strength * u.uconf.max_strength - 
-				offense_dist_prio_coeff * (abs(tgtx - u.xpos) + abs(tgty - u.ypos)));
+				offense_dist_prio_coeff * myciv->m->manhattan_distance(tgtx, tgty,
+					u.xpos, u.ypos));
 	}
 	return prio;
 }
@@ -96,12 +97,8 @@ void attack_orders::check_for_enemies()
 		for(int j = -1; j <= 1; j++) {
 			if(i == 0 && j == 0)
 				continue;
-			int xp = u->xpos + i;
-			int yp = u->ypos + j;
-			if(xp < 0 || xp >= civ->m->size_x())
-				continue;
-			if(yp < 0 || yp >= civ->m->size_y())
-				continue;
+			int xp = civ->m->wrap_x(u->xpos + i);
+			int yp = civ->m->wrap_y(u->ypos + j);
 			int owner = civ->m->get_spot_resident(xp, yp);
 			if(owner >= 0 && owner != (int)civ->civ_id &&
 					civ->get_relationship_to_civ(owner) == relationship_war) {
@@ -117,8 +114,8 @@ action attack_orders::get_action()
 {
 	check_for_enemies();
 	if(att_x != -1 && att_y != -1) {
-		return move_unit_action(u, att_x - u->xpos,
-			att_y - u->ypos);
+		return move_unit_action(u, civ->m->wrap_x(att_x - u->xpos),
+			civ->m->wrap_y(att_y - u->ypos));
 	}
 	else {
 		return goto_orders::get_action();
