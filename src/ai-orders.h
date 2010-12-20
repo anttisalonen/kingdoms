@@ -39,6 +39,7 @@ class goto_orders : public orders {
 		virtual bool replan();
 		void clear();
 		int path_length();
+		coord get_target_position();
 	protected:
 		void get_new_path();
 		int tgtx;

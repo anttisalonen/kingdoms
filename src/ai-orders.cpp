@@ -90,6 +90,11 @@ void goto_orders::clear()
 	path.clear();
 }
 
+coord goto_orders::get_target_position()
+{
+	return coord(tgtx, tgty);
+}
+
 wait_orders::wait_orders(unit* u_, unsigned int rounds)
 	: u(u_),
 	rounds_to_go(rounds),

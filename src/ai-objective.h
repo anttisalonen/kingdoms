@@ -6,7 +6,6 @@
 #include "round.h"
 #include "ai-orders.h"
 
-typedef std::pair<int, orders*> orderprio_t;
 typedef std::map<unsigned int, orders*> ordersmap_t;
 
 typedef bool(*unit_comp_func_t)(const unit_configuration& lhs, 
