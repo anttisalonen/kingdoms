@@ -634,4 +634,29 @@ bool map::connected_to_sea(int x, int y) const
 	}
 	return false;
 }
+int map::manhattan_distance(int x1, int y1, int x2, int y2) const
+{
+	if(x_wrap) {
+		x1 = wrap_x(x1);
+		x2 = wrap_x(x2);
+		if(x1 > data.size_x * 3 / 4 && x2 < data.size_x / 4) {
+			x2 += data.size_x;
+		}
+		else if(x2 > data.size_x * 3 / 4 && x1 < data.size_x / 4) {
+			x1 += data.size_x;
+		}
+	}
+	if(y_wrap) {
+		y1 = wrap_y(y1);
+		y2 = wrap_y(y2);
+		if(y1 > data.size_y * 3 / 4 && y2 < data.size_y / 4) {
+			y2 += data.size_y;
+		}
+		else if(y2 > data.size_y * 3 / 4 && y1 < data.size_y / 4) {
+			y1 += data.size_y;
+		}
+	}
+	return abs(x2 - x1) + abs(y2 - y1);
+}
+
 
