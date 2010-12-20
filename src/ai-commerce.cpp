@@ -37,8 +37,8 @@ commerce_objective::commerce_objective(round* r_, civilization* myciv_,
 	worker_prio = 700;
 }
 
-bool compare_commerce_units(const unit_configuration& lhs,
-		const unit_configuration& rhs)
+bool commerce_objective::compare_units(const unit_configuration& lhs,
+		const unit_configuration& rhs) const
 {
 	if(lhs.is_water_unit())
 		return false;
@@ -49,9 +49,14 @@ bool compare_commerce_units(const unit_configuration& lhs,
 	return lhs.max_moves > lhs.max_moves;
 }
 
-bool acceptable_commerce_unit(const unit_configuration& uc)
+bool commerce_objective::usable_unit(const unit_configuration& uc) const
 {
 	return uc.worker;
+}
+
+int commerce_objective::improvement_value(const city_improvement& ci) const
+{
+	return -1;
 }
 
 bool get_next_improv_spot(int startx, int starty, const civilization* civ,
@@ -125,16 +130,9 @@ int commerce_objective::get_unit_points(const unit& u) const
 	return prio;
 }
 
-city_production commerce_objective::get_city_production(const city& c, int* points) const
-{
-	return best_unit_production(c, points,
-			compare_commerce_units,
-			acceptable_commerce_unit);
-}
-
 bool commerce_objective::add_unit(unit* u)
 {
-	if(!acceptable_commerce_unit(u->uconf))
+	if(!usable_unit(u->uconf))
 		return false;
 	orders* o = new improve_orders(myciv, u);
 	if(o->finished())

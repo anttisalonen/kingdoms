@@ -42,8 +42,8 @@ int exploration_distance_to_points(unsigned int dist, int map_dim)
 	return clamp<int>(100, 1000 - dist * drop_coeff, 1000);
 }
 
-bool compare_exploration_units(const unit_configuration& lhs,
-		const unit_configuration& rhs)
+bool exploration_objective::compare_units(const unit_configuration& lhs,
+		const unit_configuration& rhs) const
 {
 	if(lhs.is_water_unit() && rhs.is_land_unit())
 		return true;
@@ -60,9 +60,14 @@ bool compare_exploration_units(const unit_configuration& lhs,
 	return lhs.max_strength > lhs.max_strength;
 }
 
-bool acceptable_exploration_unit(const unit_configuration& uc)
+bool exploration_objective::usable_unit(const unit_configuration& uc) const
 {
 	return !uc.settler && !uc.worker;
+}
+
+int exploration_objective::improvement_value(const city_improvement& ci) const
+{
+	return -1;
 }
 
 exploration_objective::exploration_objective(round* r_, civilization* myciv_, const std::string& n)
@@ -72,21 +77,13 @@ exploration_objective::exploration_objective(round* r_, civilization* myciv_, co
 
 int exploration_objective::get_unit_points(const unit& u) const
 {
-	if(!acceptable_exploration_unit(u.uconf))
+	if(!usable_unit(u.uconf))
 		return -1;
 	unsigned int dist = exploration_path(*myciv, u).size();
 	int val = exploration_distance_to_points(dist, 
 			std::max(myciv->m->size_x(), myciv->m->size_y()));
 	ai_debug_printf(myciv->civ_id, "exploration: %d\n", val);
 	return val;
-}
-
-city_production exploration_objective::get_city_production(const city& c, 
-		int* points) const
-{
-	return best_unit_production(c, points,
-			compare_exploration_units,
-			acceptable_exploration_unit);
 }
 
 bool exploration_objective::add_unit(unit* u)

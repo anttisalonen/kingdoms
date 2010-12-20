@@ -10,8 +10,8 @@ expansion_objective::expansion_objective(round* r_, civilization* myciv_,
 {
 }
 
-bool compare_expansion_units(const unit_configuration& lhs,
-		const unit_configuration& rhs)
+bool expansion_objective::compare_units(const unit_configuration& lhs,
+		const unit_configuration& rhs) const
 {
 	if(lhs.max_moves > rhs.max_moves)
 		return true;
@@ -24,9 +24,14 @@ bool compare_expansion_units(const unit_configuration& lhs,
 	return lhs.max_strength > lhs.max_strength;
 }
 
-bool acceptable_expansion_unit(const unit_configuration& uc)
+bool expansion_objective::usable_unit(const unit_configuration& uc) const
 {
 	return uc.settler;
+}
+
+int expansion_objective::improvement_value(const city_improvement& ci) const
+{
+	return -1;
 }
 
 int found_new_city(const unit* u, civilization* myciv, 
@@ -49,22 +54,15 @@ int found_new_city(const unit* u, civilization* myciv,
 
 int expansion_objective::get_unit_points(const unit& u) const
 {
-	if(!acceptable_expansion_unit(u.uconf))
+	if(!usable_unit(u.uconf))
 		return -1;
 	int val = found_new_city(&u, myciv, found_city);
 	return val;
 }
 
-city_production expansion_objective::get_city_production(const city& c, int* points) const
-{
-	return best_unit_production(c, points,
-			compare_expansion_units,
-			acceptable_expansion_unit);
-}
-
 bool expansion_objective::add_unit(unit* u)
 {
-	if(!acceptable_expansion_unit(u->uconf))
+	if(!usable_unit(u->uconf))
 		return false;
 	int tgtx, tgty, prio;
 	if(!find_best_city_pos(myciv, found_city, u, &tgtx, &tgty, &prio)) {

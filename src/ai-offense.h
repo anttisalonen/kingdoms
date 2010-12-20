@@ -2,14 +2,13 @@
 #define AI_OFFENSE_H
 
 #include "ai-orders.h"
-#include "ai-objective.h"
+#include "ai-defense.h"
 #include "round.h"
 
-class offense_objective : public objective {
+class offense_objective : public defense_objective {
 	public:
 		offense_objective(round* r_, civilization* myciv_, const std::string& n);
 		int get_unit_points(const unit& u) const;
-		city_production get_city_production(const city& c, int* points) const;
 		bool add_unit(unit* u);
 	private:
 		int max_offense_prio;

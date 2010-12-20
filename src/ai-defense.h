@@ -7,10 +7,15 @@
 
 class defense_objective : public objective {
 	public:
+		virtual ~defense_objective() {}
 		defense_objective(round* r_, civilization* myciv_, const std::string& n);
-		int get_unit_points(const unit& u) const;
-		city_production get_city_production(const city& c, int* points) const;
-		bool add_unit(unit* u);
+		virtual int get_unit_points(const unit& u) const;
+		virtual bool add_unit(unit* u);
+	protected:
+		virtual bool compare_units(const unit_configuration& lhs,
+				const unit_configuration& rhs) const;
+		virtual bool usable_unit(const unit_configuration& uc) const;
+		virtual int improvement_value(const city_improvement& ci) const;
 	private:
 		int unit_strength_prio_coeff;
 		int defense_units_prio_coeff;
@@ -29,9 +34,5 @@ class defend_orders : public goto_orders {
 		int waittime;
 		int max_waittime;
 };
-
-bool compare_defense_units(const unit_configuration& lhs,
-		const unit_configuration& rhs);
-bool acceptable_defense_unit(const unit_configuration& uc);
 
 #endif

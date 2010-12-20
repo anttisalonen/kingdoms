@@ -43,7 +43,7 @@ bool find_nearest_enemy(const civilization* myciv, const unit* u, int* tgtx, int
 
 offense_objective::offense_objective(round* r_, civilization* myciv_,
 		const std::string& n)
-	: objective(r_, myciv_, n)
+	: defense_objective(r_, myciv_, n)
 {
 	max_offense_prio = 1000;
 	unit_strength_prio_coeff = 1;
@@ -66,13 +66,6 @@ int offense_objective::get_unit_points(const unit& u) const
 				offense_dist_prio_coeff * (abs(tgtx - u.xpos) + abs(tgty - u.ypos)));
 	}
 	return prio;
-}
-
-city_production offense_objective::get_city_production(const city& c, int* points) const
-{
-	return best_unit_production(c, points,
-			compare_defense_units,
-			acceptable_defense_unit);
 }
 
 bool offense_objective::add_unit(unit* u)

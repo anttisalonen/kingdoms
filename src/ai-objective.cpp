@@ -3,37 +3,31 @@
 #include "ai-objective.h"
 #include "ai-debug.h"
 
-unit_configuration_map::const_iterator choose_best_unit(const round& r, 
-		const civilization& myciv, const city& c,
-		unit_comp_func_t comp_func, unit_accept_func_t accept_func)
-{
-	unit_configuration_map::const_iterator chosen = r.uconfmap.end();
-	for(unit_configuration_map::const_iterator it = r.uconfmap.begin();
-			it != r.uconfmap.end();
-			++it) {
-		if(!myciv.can_build_unit(it->second, c))
-			continue;
-		if(accept_func(it->second)) {
-			if(chosen == r.uconfmap.end() || 
-				comp_func(it->second, chosen->second)) {
-				chosen = it;
-			}
-		}
-	}
-	return chosen;
-}
-
 objective::objective(round* r_, civilization* myciv_, const std::string& obj_name_)
 	: r(r_), myciv(myciv_), obj_name(obj_name_)
 {
 }
 
-city_production objective::best_unit_production(const city& c, int* points,
-		unit_comp_func_t comp_func, unit_accept_func_t accept_func) const
+city_production objective::get_city_production(const city& c, int* points) const
+{
+	int upoints = -1;
+	int ipoints = -1;
+	city_production up = best_unit_production(c, &upoints);
+	city_production ip = best_improv_production(c, &ipoints);
+	if(upoints > ipoints) {
+		*points = upoints;
+		return up;
+	}
+	else {
+		*points = ipoints;
+		return ip;
+	}
+}
+
+city_production objective::best_unit_production(const city& c, int* points) const
 {
 	unit_configuration_map::const_iterator chosen = choose_best_unit(*r,
-			*myciv, c, comp_func,
-			accept_func);
+			*myciv, c);
 	if(chosen != r->uconfmap.end()) {
 		unit dummy(0, chosen->first, c.xpos, c.ypos, myciv->civ_id,
 				chosen->second, r->get_num_road_moves());
@@ -41,6 +35,29 @@ city_production objective::best_unit_production(const city& c, int* points,
 		ai_debug_printf(myciv->civ_id, "%s: %s: %d\n",
 				obj_name.c_str(),
 				chosen->second.unit_name.c_str(), *points);
+		return city_production(true, chosen->first);
+	}
+	else {
+		return city_production(true, -1);
+	}
+}
+
+city_production objective::best_improv_production(const city& c, int* points) const
+{
+	*points = -1;
+	city_improv_map::const_iterator chosen = r->cimap.end();
+	for(city_improv_map::const_iterator it = r->cimap.begin();
+			it != r->cimap.end();
+			++it) {
+		if(!myciv->can_build_improvement(it->second, c))
+			continue;
+		int tp = improvement_value(it->second);
+		if(tp > *points) {
+			chosen = it;
+			*points = tp;
+		}
+	}
+	if(chosen != r->cimap.end()) {
 		return city_production(true, chosen->first);
 	}
 	else {
@@ -91,6 +108,25 @@ void objective::process(std::set<unsigned int>* freed_units)
 const std::string& objective::get_name() const
 {
 	return obj_name;
+}
+
+unit_configuration_map::const_iterator objective::choose_best_unit(const round& r, 
+		const civilization& myciv, const city& c) const
+{
+	unit_configuration_map::const_iterator chosen = r.uconfmap.end();
+	for(unit_configuration_map::const_iterator it = r.uconfmap.begin();
+			it != r.uconfmap.end();
+			++it) {
+		if(!myciv.can_build_unit(it->second, c))
+			continue;
+		if(usable_unit(it->second)) {
+			if(chosen == r.uconfmap.end() || 
+				compare_units(it->second, chosen->second)) {
+				chosen = it;
+			}
+		}
+	}
+	return chosen;
 }
 
 

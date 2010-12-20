@@ -12,6 +12,11 @@ class exploration_objective : public objective {
 		int get_unit_points(const unit& u) const;
 		city_production get_city_production(const city& c, int* points) const;
 		bool add_unit(unit* u);
+	protected:
+		bool compare_units(const unit_configuration& lhs,
+				const unit_configuration& rhs) const;
+		bool usable_unit(const unit_configuration& uc) const;
+		int improvement_value(const city_improvement& ci) const;
 	private:
 		orders* create_exploration_orders(unit* u) const;
 };
