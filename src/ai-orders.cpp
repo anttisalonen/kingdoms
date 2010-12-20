@@ -58,6 +58,10 @@ action goto_orders::get_action()
 {
 	if(finished())
 		return action(action_none);
+	if(tgtx == u->xpos && tgty == u->ypos) {
+		path.clear();
+		return action(action_none);
+	}
 	int chx = path.front().x - u->xpos;
 	int chy = path.front().y - u->ypos;
 	return move_unit_action(u, chx, chy);
