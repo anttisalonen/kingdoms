@@ -8,6 +8,8 @@
 #include "coord.h"
 
 struct city_production {
+	city_production(bool u, int i) 
+		: producing_unit(u), current_production_id(i) { }
 	bool producing_unit;
 	int current_production_id;
 };

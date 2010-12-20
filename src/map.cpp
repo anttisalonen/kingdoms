@@ -562,8 +562,17 @@ bool map::can_found_city_on(int x, int y) const
 {
 	x = wrap_x(x);
 	y = wrap_y(y);
-	return city_on_spot(x, y) == NULL &&
-		resconf.can_found_city_on(get_data(x, y));
+	if(city_on_spot(x, y) != NULL)
+		return false;
+	if(!resconf.can_found_city_on(get_data(x, y)))
+		return false;
+	for(int i = -1; i <= 1; i++) {
+		for(int j = -1; j <= 1; j++) {
+			if(city_on_spot(x + i, y + j))
+				return false;
+		}
+	}
+	return true;
 }
 
 bool map::can_improve_terrain(int x, int y, unsigned int civ_id, 

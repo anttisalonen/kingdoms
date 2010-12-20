@@ -8,7 +8,7 @@
 class unit
 {
 	public:
-		unit(int uid, int x, int y, int civid, 
+		unit(int uid, int uconfid, int x, int y, int civid, 
 				const unit_configuration& uconf_, 
 				unsigned int def_road_moves_);
 		~unit();
@@ -35,6 +35,7 @@ class unit
 		bool carrying() const;
 		bool is_land_unit() const;
 		const int unit_id;
+		const int uconf_id;
 		const int civ_id;
 		int xpos;
 		int ypos;

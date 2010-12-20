@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <algorithm>
+#include <sstream>
 #include <cmath>
 #include <boost/bind.hpp>
 #include <boost/lambda/lambda.hpp>
@@ -58,6 +59,43 @@ void combat(unit* u1, unit* u2)
 action::action(action_type t)
 	: type(t)
 {
+}
+
+std::string action::to_string() const
+{
+	switch(type) {
+		case action_give_up:
+			return std::string("give up");
+		case action_eot:
+			return std::string("end of turn");
+		case action_unit_action:
+			switch(data.unit_data.uatype) {
+				case action_move_unit:
+					{
+						std::stringstream ss;
+						ss << "unit move: (" << data.unit_data.unit_action_data.move_pos.chx 
+							<< ", " << data.unit_data.unit_action_data.move_pos.chy << ")";
+						return ss.str();
+					}
+				case action_found_city:
+					return std::string("unit found city");
+				case action_skip:
+					return std::string("unit skip");
+				case action_fortify:
+					return std::string("unit fortify");
+				case action_improvement:
+					return std::string("unit improvement");
+				case action_load:
+					return std::string("unit load");
+				case action_unload:
+					return std::string("unit unload");
+			}
+		case action_city_action:
+			return std::string("city action");
+		case action_none:
+			return std::string("none");
+	}
+	return std::string("");
 }
 
 action unit_action(unit_action_type t, unit* u)
@@ -342,10 +380,16 @@ void round::check_civ_elimination(int civ_id)
 {
 	civilization* civ = civs[civ_id];
 	if(civ->cities.size() == 0) {
-		int num_settlers = std::count_if(civ->units.begin(),
-				civ->units.end(),
-				boost::bind(&unit::is_settler, boost::lambda::_1));
-		if(num_settlers == 0) {
+		bool no_settlers = true;
+		for(std::map<unsigned int, unit*>::const_iterator uit = civ->units.begin();
+				uit != civ->units.end();
+				++uit) {
+			if(uit->second->is_settler()) {
+				no_settlers = false;
+				break;
+			}
+		}
+		if(no_settlers) {
 			civ->eliminate();
 		}
 	}

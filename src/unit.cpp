@@ -3,10 +3,11 @@
 #include <stdio.h>
 #include "unit.h"
 
-unit::unit(int uid, int x, int y, int civid, 
+unit::unit(int uid, int uconfid, int x, int y, int civid, 
 		const unit_configuration& uconf_,
 		unsigned int def_road_moves_)
 	: unit_id(uid),
+	uconf_id(uconfid),
 	civ_id(civid),
 	xpos(x),
 	ypos(y),

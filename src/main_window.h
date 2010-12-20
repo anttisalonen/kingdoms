@@ -27,7 +27,7 @@ class main_window : public window {
 		void get_next_free_unit();
 		int draw_main_map();
 		int draw_sidebar() const;
-		int draw_unit(const unit& u);
+		int draw_unit(const unit* u);
 		color get_minimap_color(int x, int y) const;
 		int draw_minimap() const;
 		int draw_civ_info() const;
@@ -66,7 +66,7 @@ class main_window : public window {
 		const int cam_total_tiles_y;
 		const int sidebar_size;
 		camera cam;
-		std::list<unit*>::const_iterator current_unit;
+		std::map<unsigned int, unit*>::const_iterator current_unit;
 		bool blink_unit;
 		int timer;
 		civilization* myciv;

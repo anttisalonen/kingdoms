@@ -28,12 +28,12 @@ main_window::~main_window()
 
 void main_window::get_next_free_unit()
 {
-	std::list<unit*>::const_iterator uit = current_unit;
+	std::map<unsigned int, unit*>::const_iterator uit = current_unit;
 	for(++current_unit;
 			current_unit != myciv->units.end();
 			++current_unit) {
-		if((*current_unit)->idle()) {
-			try_center_camera_to_unit(*current_unit);
+		if(current_unit->second->idle()) {
+			try_center_camera_to_unit(current_unit->second);
 			return;
 		}
 	}
@@ -42,8 +42,8 @@ void main_window::get_next_free_unit()
 	for(current_unit = myciv->units.begin();
 			current_unit != uit;
 			++current_unit) {
-		if((*current_unit)->idle()) {
-			try_center_camera_to_unit(*current_unit);
+		if(current_unit->second->idle()) {
+			try_center_camera_to_unit(current_unit->second);
 			return;
 		}
 	}
@@ -147,23 +147,23 @@ int main_window::draw_unit_info() const
 {
 	if(current_unit == myciv->units.end())
 		return 0;
-	const unit_configuration* uconf = data.r.get_unit_configuration((*current_unit)->unit_id);
+	const unit_configuration* uconf = data.r.get_unit_configuration((current_unit->second)->uconf_id);
 	if(!uconf)
 		return 1;
 	draw_text(screen, &res.font, uconf->unit_name.c_str(), 10, sidebar_size * tile_h / 2 + 100, 255, 255, 255);
 	char buf[256];
 	buf[255] = '\0';
-	snprintf(buf, 255, "Moves: %-2d/%2d", (*current_unit)->num_moves(), uconf->max_moves);
+	snprintf(buf, 255, "Moves: %-2d/%2d", current_unit->second->num_moves(), uconf->max_moves);
 	draw_text(screen, &res.font, buf, 10, sidebar_size * tile_h / 2 + 120, 255, 255, 255);
-	if((*current_unit)->strength) {
+	if(current_unit->second->strength) {
 		snprintf(buf, 255, "Unit strength:");
 		draw_text(screen, &res.font, buf, 10, sidebar_size * tile_h / 2 + 140, 255, 255, 255);
-		if((*current_unit)->strength % 10) {
-			snprintf(buf, 255, "%d.%d/%d", (*current_unit)->strength / 10, (*current_unit)->strength % 10,
+		if(current_unit->second->strength % 10) {
+			snprintf(buf, 255, "%d.%d/%d", current_unit->second->strength / 10, current_unit->second->strength % 10,
 					uconf->max_strength);
 		}
 		else {
-			snprintf(buf, 255, "%d/%d", (*current_unit)->strength / 10,
+			snprintf(buf, 255, "%d/%d", current_unit->second->strength / 10,
 					uconf->max_strength);
 		}
 		draw_text(screen, &res.font, buf, 10, sidebar_size * tile_h / 2 + 160, 255, 255, 255);
@@ -236,15 +236,15 @@ int main_window::draw_line_by_sq(const coord& c1, const coord& c2, int r, int g,
 	return 0;
 }
 
-int main_window::draw_unit(const unit& u)
+int main_window::draw_unit(const unit* u)
 {
-	if(!tile_visible(u.xpos, u.ypos)) {
+	if(!tile_visible(u->xpos, u->ypos)) {
 		return 0;
 	}
-	if(u.carried() && (current_unit == myciv->units.end() || *current_unit != &u))
+	if(u->carried() && (current_unit == myciv->units.end() || current_unit->second != u))
 		return 0;
-	SDL_Surface* surf = res.get_unit_tile(u, data.r.civs[u.civ_id]->col);
-	return draw_tile(surf, u.xpos, u.ypos);
+	SDL_Surface* surf = res.get_unit_tile(*u, data.r.civs[u->civ_id]->col);
+	return draw_tile(surf, u->xpos, u->ypos);
 }
 
 int main_window::draw_main_map()
@@ -269,17 +269,17 @@ int main_window::draw_main_map()
 	for(std::vector<civilization*>::iterator cit = data.r.civs.begin();
 			cit != data.r.civs.end();
 			++cit) {
-		for(std::list<unit*>::const_iterator it = (*cit)->units.begin(); 
+		for(std::map<unsigned int, unit*>::const_iterator it = (*cit)->units.begin(); 
 				it != (*cit)->units.end();
 				++it) {
 			if(it == current_unit)
 				continue;
 			if(current_unit != myciv->units.end())
-				if((*it)->xpos == (*current_unit)->xpos &&
-				   (*it)->ypos == (*current_unit)->ypos)
+				if(it->second->xpos == current_unit->second->xpos &&
+				   it->second->ypos == current_unit->second->ypos)
 					continue;
-			if(internal_ai || myciv->fog_at((*it)->xpos, (*it)->ypos) == 2) {
-				if(draw_unit(**it)) {
+			if(internal_ai || myciv->fog_at(it->second->xpos, it->second->ypos) == 2) {
+				if(draw_unit(it->second)) {
 					return 1;
 				}
 			}
@@ -296,7 +296,7 @@ int main_window::draw_main_map()
 		}
 	}
 	if(!internal_ai && current_unit != myciv->units.end() && !blink_unit) {
-		if(draw_unit(**current_unit))
+		if(draw_unit(current_unit->second))
 			return 1;
 	}
 	if(!path_to_draw.empty()) {
@@ -480,10 +480,10 @@ int main_window::check_line_drawing(int x, int y)
 		if(curr_sqx != mouse_down_sqx || curr_sqy != mouse_down_sqy) {
 			if(path_to_draw.empty() || 
 					path_to_draw.back() != curr) {
-				path_to_draw = map_astar(*myciv, **current_unit, 
+				path_to_draw = map_astar(*myciv, *current_unit->second, 
 						false,
-						coord((*current_unit)->xpos,
-							(*current_unit)->ypos),
+						coord(current_unit->second->xpos,
+							current_unit->second->ypos),
 						curr);
 				mouse_down_sqx = curr_sqx;
 				mouse_down_sqy = curr_sqy;
@@ -546,34 +546,34 @@ action main_window::input_to_action(const SDL_Event& ev)
 				}
 				else if(current_unit != myciv->units.end()) {
 					if(k == SDLK_b) {
-						return unit_action(action_found_city, *current_unit);
+						return unit_action(action_found_city, current_unit->second);
 					}
 					else if(k == SDLK_SPACE) {
-						return unit_action(action_skip, *current_unit);
+						return unit_action(action_skip, current_unit->second);
 					}
 					else if(k == SDLK_i) {
-						return improve_unit_action(*current_unit, improv_irrigation);
+						return improve_unit_action(current_unit->second, improv_irrigation);
 					}
 					else if(k == SDLK_m) {
-						return improve_unit_action(*current_unit, improv_mine);
+						return improve_unit_action(current_unit->second, improv_mine);
 					}
 					else if(k == SDLK_r) {
-						return improve_unit_action(*current_unit, improv_road);
+						return improve_unit_action(current_unit->second, improv_road);
 					}
 					else if(k == SDLK_f) {
-						return unit_action(action_fortify, *current_unit);
+						return unit_action(action_fortify, current_unit->second);
 					}
 					else if(k == SDLK_l) {
-						return unit_action(action_load, *current_unit);
+						return unit_action(action_load, current_unit->second);
 					}
 					else if(k == SDLK_u) {
-						return unit_action(action_unload, *current_unit);
+						return unit_action(action_unload, current_unit->second);
 					}
 					else {
 						int chx, chy;
 						numpad_to_move(k, &chx, &chy);
 						if(chx || chy) {
-							return move_unit_action(*current_unit, chx, chy);
+							return move_unit_action(current_unit->second, chx, chy);
 						}
 					}
 				}
@@ -616,8 +616,8 @@ void main_window::handle_successful_action(const action& a, city** c)
 			switch(a.data.unit_data.uatype) {
 				case action_move_unit:
 					if(current_unit != myciv->units.end()) {
-						if((*current_unit)->num_moves() == 0 && 
-								(*current_unit)->num_road_moves() == 0) {
+						if(current_unit->second->num_moves() == 0 && 
+								current_unit->second->num_road_moves() == 0) {
 							current_unit = myciv->units.end();
 						}
 					}
@@ -652,10 +652,10 @@ void main_window::handle_input_gui_mod(const SDL_Event& ev, city** c)
 				}
 				if(!internal_ai && current_unit != myciv->units.end()) {
 					if(k == SDLK_c) {
-						center_camera_to_unit(*current_unit);
+						center_camera_to_unit(current_unit->second);
 					}
 					else if(k == SDLK_w) {
-						std::list<unit*>::const_iterator old_it = current_unit;
+						std::map<unsigned int, unit*>::const_iterator old_it = current_unit;
 						get_next_free_unit();
 						if(current_unit == myciv->units.end())
 							current_unit = old_it;
@@ -821,12 +821,13 @@ int main_window::try_choose_with_mouse(city** c)
 
 	// if no city chosen, choose unit
 	if(!*c && !internal_ai) {
-		for(std::list<unit*>::iterator it = myciv->units.begin();
+		for(std::map<unsigned int, unit*>::iterator it = myciv->units.begin();
 				it != myciv->units.end();
 				++it) {
-			if((*it)->xpos == mouse_down_sqx && (*it)->ypos == mouse_down_sqy) {
-				(*it)->wake_up();
-				if((*it)->num_moves() > 0 || (*it)->num_road_moves() > 0) {
+			unit* u = it->second;
+			if(u->xpos == mouse_down_sqx && u->ypos == mouse_down_sqy) {
+				u->wake_up();
+				if(u->num_moves() > 0 || u->num_road_moves() > 0) {
 					current_unit = it;
 					blink_unit = false;
 				}
@@ -841,7 +842,7 @@ void main_window::init_turn()
 	draw_window();
 	if(internal_ai) {
 		if(data.r.get_round_number() == 0 && myciv->units.begin() != myciv->units.end())
-			try_center_camera_to_unit(*(myciv->units.begin()));
+			try_center_camera_to_unit(myciv->units.begin()->second);
 		return;
 	}
 	get_next_free_unit();

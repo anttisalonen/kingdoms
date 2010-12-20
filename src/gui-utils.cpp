@@ -226,16 +226,16 @@ tileset::tileset(int w, int h)
 
 SDL_Surface* gui_resources::get_unit_tile(const unit& u, const color& c)
 {
-	if(u.unit_id < 0 || u.unit_id >= (int)plain_unit_images.size()) {
-		fprintf(stderr, "Image for Unit ID %d not loaded\n", u.unit_id);
+	if(u.uconf_id < 0 || u.uconf_id >= (int)plain_unit_images.size()) {
+		fprintf(stderr, "Image for Unit ID %d not loaded\n", u.uconf_id);
 		return NULL;
 	}
 	SDL_Surface* surf;
-	UnitImageMap::const_iterator it = unit_images.find(std::make_pair(u.unit_id,
+	UnitImageMap::const_iterator it = unit_images.find(std::make_pair(u.uconf_id,
 			       c));
 	if(it == unit_images.end()) {
 		// load image
-		SDL_Surface* plain = plain_unit_images[u.unit_id];
+		SDL_Surface* plain = plain_unit_images[u.uconf_id];
 		if(!plain) {
 			fprintf(stderr, "%s: could not load image file for unit '%s'.\n",
 					__func__, u.uconf.unit_name.c_str());
@@ -243,7 +243,7 @@ SDL_Surface* gui_resources::get_unit_tile(const unit& u, const color& c)
 		}
 		SDL_Surface* result = SDL_DisplayFormatAlpha(plain);
 		sdl_change_pixel_color(result, color(0, 255, 255), c);
-		unit_images.insert(std::make_pair(std::make_pair(u.unit_id, c),
+		unit_images.insert(std::make_pair(std::make_pair(u.uconf_id, c),
 					result));
 		surf = result;
 	}

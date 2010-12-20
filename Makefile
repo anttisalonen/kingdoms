@@ -12,7 +12,10 @@ SRCFILES = color.cpp sdl-utils.cpp utils.cpp rect.cpp \
 	   city.cpp map.cpp fog_of_war.cpp \
 	   government.cpp civ.cpp \
 	   round.cpp \
-	   astar.cpp map-astar.cpp ai.cpp ai-orders.cpp \
+	   astar.cpp map-astar.cpp ai-orders.cpp ai-objective.cpp \
+	   ai-debug.cpp ai-exploration.cpp ai-expansion.cpp \
+	   ai-defense.cpp ai-offense.cpp ai-commerce.cpp \
+	   ai.cpp \
 	   gui-utils.cpp main_window.cpp city_window.cpp \
 	   diplomacy_window.cpp gui.cpp \
 	   main.cpp

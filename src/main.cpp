@@ -289,17 +289,21 @@ int run(bool observer, bool use_gui)
 
 	bool running = true;
 
-	TTF_Font* font;
-	font = TTF_OpenFont("share/DejaVuSans.ttf", 12);
-	if(!font) {
-		fprintf(stderr, "Could not open font: %s\n", TTF_GetError());
+	TTF_Font* font = NULL;
+	if(use_gui) {
+		font = TTF_OpenFont("share/DejaVuSans.ttf", 12);
+		if(!font) {
+			fprintf(stderr, "Could not open font: %s\n", TTF_GetError());
+		}
 	}
 
 	std::map<unsigned int, ai> ais;
-	if(observer)
-		ais.insert(std::make_pair(0, ai(m, r, r.civs[0], true)));
+	if(observer) {
+		ais.insert(std::make_pair(0, ai(m, r, r.civs[0])));
+		set_ai_debug_civ(0);
+	}
 	for(unsigned int i = 1; i < starting_places.size(); i++)
-		ais.insert(std::make_pair(i, ai(m, r, r.civs[i], false)));
+		ais.insert(std::make_pair(i, ai(m, r, r.civs[i])));
 	if(use_gui) {
 		std::vector<const char*> road_images;
 		road_images.push_back("share/road_nw.png");
@@ -364,7 +368,8 @@ int run(bool observer, bool use_gui)
 			}
 		}
 	}
-	TTF_CloseFont(font);
+	if(use_gui)
+		TTF_CloseFont(font);
 	for(unsigned int i = 0; i < civs.size(); i++) {
 		delete civs[i];
 	}
@@ -406,22 +411,20 @@ int main(int argc, char **argv)
 		printf("Seed: %d\n", seed);
 		srand(seed);
 	}
-	int sdl_flags = SDL_INIT_EVERYTHING;
-	if(!gui)
-		sdl_flags |= SDL_INIT_NOPARACHUTE;
-	if (SDL_Init(sdl_flags) < 0) {
-		fprintf(stderr, "Unable to init SDL: %s\n", SDL_GetError());
-		exit(1);
+	if(gui) {
+		int sdl_flags = SDL_INIT_EVERYTHING;
+		if (SDL_Init(sdl_flags) < 0) {
+			fprintf(stderr, "Unable to init SDL: %s\n", SDL_GetError());
+			exit(1);
+		}
+		if(!IMG_Init(IMG_INIT_PNG)) {
+			fprintf(stderr, "Unable to init SDL_image: %s\n", IMG_GetError());
+		}
+		if(!TTF_Init()) {
+			fprintf(stderr, "Unable to init SDL_ttf: %s\n", TTF_GetError());
+		}
+		SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
 	}
-	if(!gui)
-		signal(SIGINT, SIG_DFL);
-	if(!IMG_Init(IMG_INIT_PNG)) {
-		fprintf(stderr, "Unable to init SDL_image: %s\n", IMG_GetError());
-	}
-	if(!TTF_Init()) {
-		fprintf(stderr, "Unable to init SDL_ttf: %s\n", TTF_GetError());
-	}
-	SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
 	try {
 		run(observer, gui);
 	}
@@ -432,8 +435,10 @@ int main(int argc, char **argv)
 		printf("Unknown exception.\n");
 	}
 
-	TTF_Quit();
-	SDL_Quit();
+	if(gui) {
+		TTF_Quit();
+		SDL_Quit();
+	}
 	return 0;
 }
 

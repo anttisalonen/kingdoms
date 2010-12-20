@@ -24,16 +24,17 @@ city_window::city_window(SDL_Surface* screen_, int x, int y, gui_data& data_, gu
 	int unit_x = unit_box.x;
 	int unit_y = unit_box.y;
 	rect unit_coord = rect(unit_x, unit_y, res.terrains.tile_w, res.terrains.tile_h);
-	for(std::list<unit*>::const_iterator uit = data.r.civs[c->civ_id]->units.begin();
+	for(std::map<unsigned int, unit*>::const_iterator uit = data.r.civs[c->civ_id]->units.begin();
 			uit != data.r.civs[c->civ_id]->units.end();
 			++uit) {
-		if((*uit)->xpos == c->xpos && (*uit)->ypos == c->ypos) {
-			SDL_Surface* unit_tile = res.get_unit_tile(**uit,
-					data.r.civs[(*uit)->civ_id]->col);
+		unit* u = uit->second;
+		if(u->xpos == c->xpos && u->ypos == c->ypos) {
+			SDL_Surface* unit_tile = res.get_unit_tile(*u,
+					data.r.civs[u->civ_id]->col);
 
 			buttons.push_back(new texture_button(unit_coord, 
 						unit_tile,
-						boost::bind(&city_window::on_unit, this, *uit)));
+						boost::bind(&city_window::on_unit, this, u)));
 			unit_coord.x += unit_coord.w;
 			if(unit_coord.x + unit_coord.w >= unit_box.w + unit_box.w) {
 				unit_coord.x = unit_box.x;

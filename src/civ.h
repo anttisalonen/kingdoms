@@ -35,6 +35,7 @@ struct msg {
 		struct {
 			int building_city_id;
 			int prod_id;
+			int unit_id;
 		} city_prod_data;
 		int discovered_civ_id;
 		unsigned int new_advance_id;
@@ -94,7 +95,7 @@ class civilization {
 		std::string civname;
 		const unsigned int civ_id;
 		color col;
-		std::list<unit*> units;
+		std::map<unsigned int, unit*> units;
 		std::map<unsigned int, city*> cities;
 		map* m;
 		fog_of_war fog;
@@ -117,6 +118,7 @@ class civilization {
 		std::vector<std::string> city_names;
 		unsigned int curr_city_name_index;
 		unsigned int next_city_id;
+		unsigned int next_unit_id;
 		const government* gov;
 		int national_income;
 		int military_expenses;

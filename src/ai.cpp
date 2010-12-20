@@ -1,13 +1,9 @@
 #include <utility>
 #include <stdio.h>
 
-// man 3p round
-namespace math {
-#include <math.h>
-}
-
 #include "map-astar.h"
 #include "ai.h"
+#include "ai-debug.h"
 
 ai_tunable_parameters::ai_tunable_parameters()
 	: max_defense_prio(1000),
@@ -29,12 +25,16 @@ ai_tunable_parameters::ai_tunable_parameters()
 {
 }
 
-ai::ai(map& m_, round& r_, civilization* c, bool debug_)
+ai::ai(map& m_, round& r_, civilization* c)
 	: m(m_),
 	r(r_),
-	myciv(c),
-	debug(debug_)
+	myciv(c)
 {
+	objectives.push_back(std::make_pair(new defense_objective(&r, myciv, "defense"), 1200));
+	objectives.push_back(std::make_pair(new offense_objective(&r, myciv, "offense"), 1100));
+	objectives.push_back(std::make_pair(new expansion_objective(&r, myciv, "expansion"), 1000));
+	objectives.push_back(std::make_pair(new exploration_objective(&r, myciv, "exploration"), 900));
+	objectives.push_back(std::make_pair(new commerce_objective(&r, myciv, "commerce"), 800));
 }
 
 bool ai::play()
@@ -70,82 +70,57 @@ bool ai::play()
 			++it) {
 		city* c = it->second;
 		if(!c->producing_something()) {
-			cityordersmap[c] = create_city_orders(c);
+			create_city_orders(c);
 		}
 	}
 
-	// perform city orders
-	for(cityordersmap_t::iterator oit = cityordersmap.begin();
-			oit != cityordersmap.end();
-			++oit) {
-		oit->first->set_production(*oit->second);
-		delete oit->second;
+	// check for new units
+	for(std::map<unsigned int, unit*>::iterator it = myciv->units.begin();
+			it != myciv->units.end();
+			++it) {
+		if(handled_units.find(it->second->unit_id) == handled_units.end()) {
+			handled_units.insert(it->second->unit_id);
+			ai_debug_printf(myciv->civ_id, "adding unhandled unit %s (%d) as free.\n",
+					it->second->uconf.unit_name.c_str(), it->second->unit_id);
+			free_units.insert(it->second->unit_id);
+		}
 	}
-	cityordersmap.clear();
 
-	// assign orders to units and clean up the orders map for
-	// lost units
+	// assign free units to objectives
 	{
-		ordersmap_t::iterator oit = ordersmap.begin();
-
-		// copy the unit pointers for sorting - if the performace
-		// suffers too much, maybe rather use std::set<unit*> as a
-		// civ member variable instead
-		std::list<unit*> units(myciv->units.begin(), myciv->units.end());
-		units.sort();
-		for(std::list<unit*>::iterator it = units.begin();
-				it != units.end();
-				++it) {
-			while(oit != ordersmap.end() && *it > oit->first) {
-				// orders given for a unit that doesn't exist
-				// (anymore) - delete orders
-				delete oit->second;
-				ordersmap.erase(oit++);
+		std::set<unsigned int>::iterator it = free_units.begin();
+		while(it != free_units.end()) {
+			std::map<unsigned int, unit*>::iterator uit = myciv->units.find(*it);
+			if(uit == myciv->units.end()) {
+				free_units.erase(it++);
 			}
-			if(oit != ordersmap.end() && *it == oit->first) {
-				// orders already given
-				if(oit->second->finished()) {
-					delete oit->second;
-					ordersmap.erase(oit);
+			else {
+				ai_debug_printf(myciv->civ_id, "assigning free unit %s (%d).\n",
+						uit->second->uconf.unit_name.c_str(),
+						uit->second->unit_id);
+				bool succ = assign_free_unit(uit->second);
+				if(succ) {
+					free_units.erase(it++);
 				}
 				else {
-					++oit;
-					continue;
+					ai_debug_printf(myciv->civ_id,
+							"could not assign free unit.\n");
+					++it;
 				}
 			}
-			// no orders given
-			orderprio_t o = create_orders(*it);
-			oit = ordersmap.insert(std::make_pair(*it, o.second)).first;
-			++oit;
-		}
-		// delete orders of the units that don't exist anymore
-		// (address greater than the last element in the unit list)
-		while(oit != ordersmap.end()) {
-			delete oit->second;
-			ordersmap.erase(oit++);
 		}
 	}
 
 	// perform unit orders
-	for(ordersmap_t::iterator oit = ordersmap.begin();
-			oit != ordersmap.end();
-			++oit) {
-		action a = oit->second->get_action();
-		int success = r.perform_action(myciv->civ_id, a);
-		if(!success) {
-			if(debug)
-				printf("AI error: could not perform action.\n");
-			oit->second->replan();
-			action a = oit->second->get_action();
-			success = r.perform_action(myciv->civ_id, a);
-			if(!success) {
-				if(debug)
-					printf("AI error: still could not perform action.\n");
-				oit->second->clear();
-			}
-		}
-		else {
-			oit->second->drop_action();
+	for(std::list<std::pair<objective*, int> >::iterator it = objectives.begin();
+			it != objectives.end();
+			++it) {
+		std::set<unsigned int> freed_units;
+		it->first->process(&freed_units);
+		for(std::set<unsigned int>::const_iterator fit = freed_units.begin();
+				fit != freed_units.end();
+				++fit) {
+			free_units.insert(*fit);
 		}
 	}
 
@@ -154,51 +129,142 @@ bool ai::play()
 	return !success;
 }
 
-city_production* ai::create_city_orders(city* c)
+void ai::create_city_orders(city* c)
 {
-	city_production* cp = new city_production();
+	int max_points = -1;
+	objective* chosen = NULL;
+	ai_debug_printf(myciv->civ_id, "===\ndeciding what to build in %s...\n", 
+			c->cityname.c_str());
+	city_production cp(false, 0);
 
-	if(debug)
-		printf("===\nAI: deciding what to build in %s...\n", c->cityname.c_str());
-	std::pair<int, int> unitpr = create_city_unit_orders(c);
-	std::pair<int, int> improvpr = create_city_improv_orders(c);
-	if(unitpr.first >= improvpr.first) {
-		cp->producing_unit = true;
-		cp->current_production_id = unitpr.second;
-		if(debug)
-			printf("Building unit (priority: %d; ID %d).\n===\n", 
-					unitpr.first, unitpr.second);
-	}
-	else {
-		cp->producing_unit = false;
-		cp->current_production_id = improvpr.second;
-		if(debug)
-			printf("Building improvement (priority: %d; ID %d).\n===\n", 
-					improvpr.first, improvpr.second);
-	}
-	return cp;
-}
-
-std::pair<int, int> ai::create_city_unit_orders(city* c)
-{
-	std::pair<int, int> top = std::make_pair(-1, -1);
-	for(unit_configuration_map::const_iterator it = r.uconfmap.begin();
-			it != r.uconfmap.end();
+	for(std::list<std::pair<objective*, int> >::const_iterator it = objectives.begin();
+			it != objectives.end();
 			++it) {
-		if(!myciv->can_build_unit(it->second, *c))
-			continue;
-		unit dummy(0, c->xpos, c->ypos, myciv->civ_id,
-				it->second, r.get_num_road_moves());
-		orderprio_t o = create_orders(&dummy);
-		int pr = o.first - param.unit_prodcost_prio_coeff * it->second.production_cost;
-		if(pr > top.first) {
-			top.first = pr;
-			top.second = it->first;
+		int points = 0;
+		city_production cp2 = it->first->get_city_production(*c, &points);
+		if(cp.current_production_id != -1) {
+			int tot_points = points * it->second;
+			if(tot_points > max_points) {
+				max_points = tot_points;
+				chosen = it->first;
+				cp = cp2;
+			}
 		}
 	}
-	return top;
+	if(chosen) {
+		c->set_production(cp);
+		building_cities[c->city_id] = chosen;
+		ai_debug_printf(myciv->civ_id, "building %s ID %d for objective '%s'.\n",
+				cp.producing_unit ? "unit" : "improvement",
+				cp.current_production_id, chosen->get_name().c_str());
+	}
+	else {
+		ai_debug_printf(myciv->civ_id, "AI: could not find any production at %s.\n",
+				c->cityname.c_str());
+	}
 }
 
+bool ai::assign_free_unit(unit* u)
+{
+	int max_points = -1;
+	objective* chosen = NULL;
+	ai_debug_printf(myciv->civ_id, "assigning unit %s...\n", u->uconf.unit_name.c_str());
+	for(std::list<std::pair<objective*, int> >::const_iterator it = objectives.begin();
+			it != objectives.end();
+			++it) {
+		int points = it->first->get_unit_points(*u);
+		ai_debug_printf(myciv->civ_id, "%s: %s: %d\n",
+				it->first->get_name().c_str(),
+				u->uconf.unit_name.c_str(), points);
+		if(points > 0) {
+			int tot_points = points * it->second;
+			if(tot_points > max_points) {
+				max_points = tot_points;
+				chosen = it->first;
+			}
+		}
+	}
+	if(chosen) {
+		return chosen->add_unit(u);
+	}
+	else {
+		return false;
+	}
+}
+
+void ai::handle_new_advance(unsigned int adv_id)
+{
+}
+
+void ai::handle_civ_discovery(int civ_id)
+{
+	r.declare_war_between(myciv->civ_id, civ_id);
+}
+
+void ai::handle_new_improv(const msg& m)
+{
+}
+
+void ai::handle_new_unit(const msg& m)
+{
+	// allocate new unit to an objective.
+	std::map<unsigned int, unit*>::iterator uit = myciv->units.find(m.msg_data.city_prod_data.unit_id);
+	if(uit != myciv->units.end()) {
+		bool unit_added = false;
+		std::map<unsigned int, objective*>::iterator oit = 
+			building_cities.find(m.msg_data.city_prod_data.building_city_id);
+
+		// destination objective predefined.
+		if(oit != building_cities.end()) {
+			bool succ = oit->second->add_unit(uit->second);
+			ai_debug_printf(myciv->civ_id, "adding %s to %s.\n",
+					uit->second->uconf.unit_name.c_str(),
+					oit->second->get_name().c_str());
+			if(!succ) {
+				ai_debug_printf(myciv->civ_id, "could not add unit.\n");
+			}
+			building_cities.erase(oit);
+			if(succ) {
+				ai_debug_printf(myciv->civ_id, "adding handled unit %s (%d).\n",
+						uit->second->uconf.unit_name.c_str(), 
+						uit->second->unit_id);
+				handled_units.insert(uit->second->unit_id);
+				unit_added = true;
+			}
+		}
+		if(!unit_added) {
+			// unit could not be added to the predefined 
+			// objective - try best fit.
+			if(assign_free_unit(uit->second)) {
+				ai_debug_printf(myciv->civ_id, "adding handled unit %s (%d).\n",
+						uit->second->uconf.unit_name.c_str(), 
+						uit->second->unit_id);
+				handled_units.insert(uit->second->unit_id);
+			}
+			else {
+				// could not assign - play() will add the
+				// unit to free units.
+				ai_debug_printf(myciv->civ_id, "could not assign free unit.\n");
+			}
+		}
+	}
+
+	// find a new build objective for the city.
+	std::map<unsigned int, city*>::iterator cit = myciv->cities.find(m.msg_data.city_prod_data.building_city_id);
+	if(cit != myciv->cities.end()) {
+		ai_debug_printf(myciv->civ_id, "new unit %s built in %s.\n",
+				uit->second->uconf.unit_name.c_str(),
+				cit->second->cityname.c_str());
+		create_city_orders(cit->second);
+	}
+}
+
+void ai::handle_unit_disbanded(const msg& m)
+{
+	ai_debug_printf(myciv->civ_id, "unit disbanded.\n");
+}
+
+#if 0
 std::pair<int, int> ai::create_city_improv_orders(city* c)
 {
 	std::pair<int, int> top = std::make_pair(-1, -1);
@@ -236,121 +302,6 @@ int ai::get_city_improv_value(const city_improvement& ci) const
 	return val;
 }
 
-ai::orderprio_t ai::create_orders(unit* u)
-{
-	if(u->is_land_unit()) {
-		if(u->uconf.settler) {
-			orderprio_t found = found_new_city(u);
-			if(debug) {
-				printf("Settler: %d\n", found.first);
-			}
-			if(found.first <= 0) {
-				return get_defense_orders(u);
-			}
-			else {
-				return found;
-			}
-		}
-		else if(u->uconf.worker) {
-			orderprio_t work = workers_orders(u);
-			if(debug) {
-				printf("Worker: %d\n", work.first);
-			}
-			if(work.first <= 0) {
-				return get_defense_orders(u);
-			}
-			else {
-				return work;
-			}
-		}
-		else {
-			return military_unit_orders(u);
-		}
-	}
-	else {
-		return sea_unit_orders(u);
-	}
-}
-
-class worker_searcher {
-	private:
-		const civilization* myciv;
-		int maxrange;
-		unit* found_unit;
-		const unit* self;
-	public:
-		worker_searcher(const civilization* myciv_, const unit* self_, int maxrange_) : 
-			myciv(myciv_), maxrange(maxrange_), found_unit(NULL), self(self_) { }
-		const unit* get_found_unit() const { return found_unit; }
-		bool operator()(const coord& co) {
-			const std::list<unit*>& units = myciv->m->units_on_spot(co.x, co.y);
-			for(std::list<unit*>::const_iterator it = units.begin();
-					it != units.end();
-					++it) {
-				if((*it)->uconf.worker && (*it) != self) {
-					found_unit = *it;
-					return true;
-				}
-			}
-			maxrange--;
-			if(maxrange < 0) {
-				return true;
-			}
-			return false;
-		}
-};
-
-ai::orderprio_t ai::workers_orders(unit* u)
-{
-	int prio = param.worker_prio;
-	worker_searcher searcher(myciv, u, 25);
-	boost::function<bool(const coord& a)> testfunc = boost::ref(searcher);
-	map_path_to_nearest(*myciv, 
-			*u, 
-			false,
-			coord(u->xpos, u->ypos), 
-			testfunc);
-	if(searcher.get_found_unit() != NULL) {
-		prio = -1;
-	}
-	orders* o = new improve_orders(myciv, u);
-	if(o->finished())
-		prio = -1;
-	return std::make_pair(prio, o);
-}
-
-ai::orderprio_t ai::military_unit_orders(unit* u)
-{
-	if(debug)
-		printf("%s: ", u->uconf.unit_name.c_str());
-	std::vector<orderfunc_t> funcs;
-	funcs.push_back(&ai::get_exploration_prio);
-	funcs.push_back(&ai::get_defense_orders);
-	funcs.push_back(&ai::get_offense_prio);
-	orderprio_t best = get_best_option(u, funcs);
-	if(debug)
-		printf("\n");
-	return best;
-}
-
-ai::orderprio_t ai::get_best_option(unit* u, std::vector<ai::orderfunc_t> funcs)
-{
-	if(funcs.empty())
-		return std::make_pair(-1, 
-				new primitive_orders(unit_action(action_skip, u)));
-	ordersqueue_t ordersq;
-	for(unsigned int i = 0; i < funcs.size(); i++) {
-		ordersq.push(CALL_MEMBER_FUN(*this, funcs[i])(u));
-	}
-	orderprio_t best = ordersq.top();
-	ordersq.pop();
-	while(!ordersq.empty()) {
-		delete ordersq.top().second;
-		ordersq.pop();
-	}
-	return best;
-}
-
 ai::orderprio_t ai::get_exploration_prio(unit* u)
 {
 	explore_orders* e = new explore_orders(myciv, u, false);
@@ -369,141 +320,6 @@ ai::orderprio_t ai::get_exploration_prio(unit* u)
 	return std::make_pair(prio, e);
 }
 
-ai::orderprio_t ai::get_defense_orders(unit* u)
-{
-	int tgtx, tgty;
-	int prio = 1;
-	tgtx = u->xpos;
-	tgty = u->ypos;
-	if(myciv->cities.size() != 0) {
-		city* c = find_nearest_city(myciv, u, true);
-		if(c) {
-			tgtx = c->xpos;
-			tgty = c->ypos;
-			const std::list<unit*>& units = m.units_on_spot(tgtx, tgty);
-			int num_units = std::count_if(units.begin(),
-					units.end(),
-					std::mem_fun(&unit::is_military_unit));
-			if(tgtx == u->xpos && tgty == u->ypos)
-				num_units--;
-			prio = clamp<int>(1, param.max_defense_prio + 
-					param.unit_strength_prio_coeff * math::pow(u->uconf.max_strength, 2) - 
-					param.defense_units_prio_coeff * num_units,
-					param.max_defense_prio);
-		}
-	}
-	orders* o = new defend_orders(myciv, u, tgtx, tgty, 50);
-	if(u->uconf.max_strength < 1)
-		prio = -1;
-	if(debug && prio > -1)
-		printf("defense: %d; ", prio);
-	return std::make_pair(prio, o);
-}
+#endif
 
-ai::orderprio_t ai::get_offense_prio(unit* u)
-{
-	int tgtx, tgty;
-	int prio = -1;
-	tgtx = u->xpos;
-	tgty = u->ypos;
-	if(find_nearest_enemy(u, &tgtx, &tgty)) {
-		prio = std::max<int>(0, param.max_offense_prio + 
-				param.unit_strength_prio_coeff * math::pow(u->uconf.max_strength, 2) - 
-				param.offense_dist_prio_coeff * (abs(tgtx - u->xpos) + abs(tgty - u->ypos)));
-	}
-	attack_orders* o = new attack_orders(myciv, u, tgtx, tgty);
-	if(debug)
-		printf("offense: %d; ", prio);
-	return std::make_pair(prio, o);
-}
 
-ai::orderprio_t ai::found_new_city(unit* u)
-{
-	int tgtx, tgty;
-	int prio;
-	if(myciv->cities.size() == 0) {
-		prio = 1000;
-		tgtx = u->xpos;
-		tgty = u->ypos;
-	}
-	else {
-		if(!find_best_city_pos(myciv, param.found_city, u, &tgtx, &tgty, &prio)) {
-			return std::make_pair(-1, new primitive_orders(unit_action(action_skip, u)));
-		}
-	}
-	orders* o = new found_city_orders(myciv, u, param.found_city, tgtx, tgty);
-	return std::make_pair(prio, o);
-}
-
-class enemy_picker {
-	private:
-		const civilization* myciv;
-	public:
-		enemy_picker(const civilization* myciv_) : 
-			myciv(myciv_) { }
-		bool operator()(const coord& co) {
-			const city* c = myciv->m->city_on_spot(co.x, co.y);
-			const std::list<unit*>& units = myciv->m->units_on_spot(co.x, co.y);
-			int civid = -1;
-			if(c)
-				civid = c->civ_id;
-			else if(!units.empty())
-				civid = units.front()->civ_id;
-			return civid != -1 && civid != (int)myciv->civ_id &&
-				 myciv->get_relationship_to_civ(civid) == relationship_war;
-		}
-};
-
-bool ai::find_nearest_enemy(const unit* u, int* tgtx, int* tgty) const
-{
-	enemy_picker picker(myciv);
-	std::list<coord> found_path = map_path_to_nearest(*myciv, 
-			*u, 
-			true,
-			coord(u->xpos, u->ypos), 
-			picker);
-	if(found_path.empty()) {
-		return false;
-	}
-	else {
-		*tgtx = found_path.back().x;
-		*tgty = found_path.back().y;
-		return true;
-	}
-}
-
-ai::orderprio_t ai::sea_unit_orders(unit* u)
-{
-	return military_unit_orders(u);
-}
-
-void ai::handle_new_advance(unsigned int adv_id)
-{
-}
-
-void ai::handle_civ_discovery(int civ_id)
-{
-	r.declare_war_between(myciv->civ_id, civ_id);
-}
-
-void ai::handle_new_improv(const msg& m)
-{
-	std::map<unsigned int, city*>::iterator cit = myciv->cities.find(m.msg_data.city_prod_data.building_city_id);
-	if(cit != myciv->cities.end()) {
-		city* c = cit->second;
-		cityordersmap[c] = create_city_orders(c);
-	}
-}
-
-void ai::handle_new_unit(const msg& m)
-{
-	std::map<unsigned int, city*>::iterator cit = myciv->cities.find(m.msg_data.city_prod_data.building_city_id);
-	if(cit != myciv->cities.end())
-		cityordersmap[cit->second] = create_city_orders(cit->second);
-}
-
-void ai::handle_unit_disbanded(const msg& m)
-{
-	if(debug)
-		printf("AI: unit disbanded.\n");
-}

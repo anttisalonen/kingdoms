@@ -90,6 +90,7 @@ civilization::civilization(std::string name, unsigned int civid,
 	known_land_map(buf2d<int>(0, 0, -1)),
 	curr_city_name_index(0),
 	next_city_id(1),
+	next_unit_id(1),
 	gov(gov_)
 {
 	for(std::vector<std::string>::const_iterator it = names_start;
@@ -107,9 +108,10 @@ civilization::civilization(std::string name, unsigned int civid,
 
 civilization::~civilization()
 {
-	while(!units.empty()) {
-		delete units.back();
-		units.pop_back();
+	for(std::map<unsigned int, unit*>::iterator it = units.begin();
+			it != units.end();
+			++it) {
+		delete it->second;
 	}
 	for(std::map<unsigned int, city*>::iterator cit = cities.begin();
 			cit != cities.end();
@@ -133,8 +135,8 @@ unit* civilization::add_unit(int uid, int x, int y,
 		const unit_configuration& uconf,
 		unsigned int road_moves)
 {
-	unit* u = new unit(uid, x, y, civ_id, uconf, road_moves);
-	units.push_back(u);
+	unit* u = new unit(next_unit_id, uid, x, y, civ_id, uconf, road_moves);
+	units.insert(std::make_pair(next_unit_id++, u));
 	m->add_unit(u);
 	fog.reveal(x, y, 1);
 	reveal_land(x, y, 1);
@@ -143,43 +145,47 @@ unit* civilization::add_unit(int uid, int x, int y,
 
 void civilization::remove_unit(unit* u)
 {
-	if(u->carried()) {
-		u->unload(u->xpos, u->ypos);
+	std::map<unsigned int, unit*>::iterator uit = units.find(u->unit_id);
+	if(uit != units.end()) {
+		if(u->carried()) {
+			u->unload(u->xpos, u->ypos);
+		}
+		for(std::vector<unit*>::iterator it = u->carried_units.begin();
+				it != u->carried_units.end();
+				++it) {
+			remove_unit(*it);
+		}
+		fog.shade(u->xpos, u->ypos, 1);
+		m->remove_unit(u);
+		units.erase(uit);
+		delete u;
 	}
-	for(std::vector<unit*>::iterator it = u->carried_units.begin();
-			it != u->carried_units.end();
-			++it) {
-		remove_unit(*it);
-	}
-	fog.shade(u->xpos, u->ypos, 1);
-	m->remove_unit(u);
-	units.remove(u);
-	delete u;
 }
 
 void civilization::eliminate()
 {
-	while(!units.empty()) {
-		remove_unit(units.back());
+	std::map<unsigned int, unit*>::iterator uit;
+	while((uit = units.begin()) != units.end()) {
+		remove_unit(uit->second);
 	}
-	for(std::map<unsigned int, city*>::iterator cit = cities.begin();
-			cit != cities.end();
-			++cit) {
-		delete cit->second;
+	std::map<unsigned int, city*>::iterator cit;
+	while((cit = cities.begin()) != cities.end()) {
+		remove_city(cit->second, true);
 	}
 	m->remove_civ_land(civ_id);
 }
 
 void civilization::refill_moves(const unit_configuration_map& uconfmap)
 {
-	for(std::list<unit*>::iterator uit = units.begin();
+	for(std::map<unsigned int, unit*>::iterator uit = units.begin();
 		uit != units.end();
 		++uit) {
 		improvement_type i = improv_none;
-		(*uit)->new_round(i);
+		unit* u = uit->second;
+		u->new_round(i);
 		if(i != improv_none) {
-			m->try_improve_terrain((*uit)->xpos,
-					(*uit)->ypos, civ_id, i);
+			m->try_improve_terrain(u->xpos,
+					u->ypos, civ_id, i);
 		}
 	}
 }
@@ -194,7 +200,8 @@ msg new_unit_msg(unit* u, city* c)
 	msg m;
 	m.type = msg_new_unit;
 	m.msg_data.city_prod_data.building_city_id = c->city_id;
-	m.msg_data.city_prod_data.prod_id = u->unit_id;
+	m.msg_data.city_prod_data.prod_id = u->uconf_id;
+	m.msg_data.city_prod_data.unit_id = u->unit_id;
 	return m;
 }
 
@@ -248,9 +255,9 @@ void civilization::update_military_expenses()
 {
 	military_expenses = 0;
 	int free_units_togo = gov->free_units;
-	for(std::list<unit*>::const_iterator it = units.begin();
+	for(std::map<unsigned int, unit*>::const_iterator it = units.begin();
 			it != units.end(); ++it) {
-		if((*it)->uconf.max_strength > 0) {
+		if(it->second->uconf.max_strength > 0) {
 			if(free_units_togo > 0)
 				free_units_togo--;
 			else
@@ -331,13 +338,13 @@ void civilization::increment_resources(const unit_configuration_map& uconfmap,
 	update_military_expenses();
 	gold += national_income - military_expenses;
 	{
-		std::list<unit*>::iterator uit = units.begin();
+		std::map<unsigned int, unit*>::iterator uit = units.begin();
 		while(uit != units.end() && gold < 0) {
-			std::list<unit*>::iterator uit2(uit);
+			std::map<unsigned int, unit*>::iterator uit2(uit);
 			uit++;
-			if((*uit2)->uconf.max_strength > 0) {
+			if(uit2->second->uconf.max_strength > 0) {
 				gold += gov->unit_cost;
-				remove_unit(*uit2);
+				remove_unit(uit2->second);
 				add_message(unit_disbanded());
 			}
 		}

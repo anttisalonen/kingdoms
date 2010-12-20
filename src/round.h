@@ -29,6 +29,7 @@ enum unit_action_type {
 
 struct action {
 	action(action_type t);
+	std::string to_string() const;
 	action_type type;
 	union {
 		struct {
