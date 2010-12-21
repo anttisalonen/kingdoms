@@ -32,7 +32,7 @@ city_production objective::best_unit_production(const city& c, int* points) cons
 		unit dummy(0, chosen->first, c.xpos, c.ypos, myciv->civ_id,
 				chosen->second, r->get_num_road_moves());
 		*points = get_unit_points(dummy);
-		ai_debug_printf(myciv->civ_id, "%s: %s: %d\n",
+		ai_debug_printf(myciv->civ_id, "%-12s: %-12s: %4d\n",
 				obj_name.c_str(),
 				chosen->second.unit_name.c_str(), *points);
 		return city_production(true, chosen->first);

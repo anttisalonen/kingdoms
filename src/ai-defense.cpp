@@ -3,6 +3,27 @@
 #include "ai-defense.h"
 #include "ai-debug.h"
 
+bool compare_defense_units(const unit_configuration& lhs,
+		const unit_configuration& rhs)
+{
+	if(lhs.is_water_unit())
+		return false;
+	if(lhs.max_strength > rhs.max_strength)
+		return true;
+	if(lhs.max_strength < lhs.max_strength)
+		return false;
+	if(lhs.production_cost < lhs.production_cost)
+		return true;
+	if(lhs.production_cost > lhs.production_cost)
+		return false;
+	return lhs.max_moves > lhs.max_moves;
+}
+
+bool usable_defense_unit(const unit_configuration& uc)
+{
+	return uc.max_strength > 0 && uc.is_land_unit();
+}
+
 defense_objective::defense_objective(round* r_, civilization* myciv_,
 		const std::string& n)
 	: objective(r_, myciv_, n)
@@ -59,17 +80,7 @@ bool defense_objective::add_unit(unit* u)
 bool defense_objective::compare_units(const unit_configuration& lhs,
 		const unit_configuration& rhs) const
 {
-	if(lhs.is_water_unit())
-		return false;
-	if(lhs.max_strength > rhs.max_strength)
-		return true;
-	if(lhs.max_strength < lhs.max_strength)
-		return false;
-	if(lhs.production_cost < lhs.production_cost)
-		return true;
-	if(lhs.production_cost > lhs.production_cost)
-		return false;
-	return lhs.max_moves > lhs.max_moves;
+	return compare_defense_units(lhs, rhs);
 }
 
 int defense_objective::improvement_value(const city_improvement& ci) const
@@ -79,7 +90,7 @@ int defense_objective::improvement_value(const city_improvement& ci) const
 
 bool defense_objective::usable_unit(const unit_configuration& uc) const
 {
-	return uc.max_strength > 0 && uc.is_land_unit();
+	return usable_defense_unit(uc);
 }
 
 defend_orders::defend_orders(const civilization* civ_, unit* u_, 

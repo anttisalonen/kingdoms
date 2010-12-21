@@ -18,7 +18,7 @@ class objective {
 		objective(round* r_, civilization* myciv_, const std::string& obj_name_);
 		virtual ~objective() { }
 		virtual int get_unit_points(const unit& u) const = 0;
-		city_production get_city_production(const city& c, int* points) const;
+		virtual city_production get_city_production(const city& c, int* points) const;
 		virtual bool add_unit(unit* u) = 0;
 		virtual void process(std::set<unsigned int>* freed_units);
 		const std::string& get_name() const;

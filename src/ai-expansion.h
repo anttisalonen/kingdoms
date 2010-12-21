@@ -27,6 +27,7 @@ class expansion_objective : public objective {
 		expansion_objective(round* r_, civilization* myciv_, const std::string& n);
 		int get_unit_points(const unit& u) const;
 		bool add_unit(unit* u);
+		city_production get_city_production(const city& c, int* points) const;
 		void process(std::set<unsigned int>* freed_units);
 	protected:
 		bool compare_units(const unit_configuration& lhs,
@@ -36,6 +37,22 @@ class expansion_objective : public objective {
 	private:
 		ai_tunables_found_city found_city;
 		city_plan_map_t planned_cities;
+		std::map<coord, unsigned int> escorters;
+		mutable bool need_settler;
+};
+
+class escort_orders : public goto_orders {
+	public:
+		escort_orders(const civilization* civ_, unit* u_, 
+				unsigned int escortee_id_);
+		action get_action();
+		void drop_action();
+		bool finished();
+		bool replan();
+		void clear();
+	private:
+		unsigned int escortee_id;
+		bool failed;
 };
 
 class found_city_orders : public goto_orders {

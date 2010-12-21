@@ -173,7 +173,7 @@ bool ai::assign_free_unit(unit* u)
 			it != objectives.end();
 			++it) {
 		int points = it->first->get_unit_points(*u);
-		ai_debug_printf(myciv->civ_id, "%s: %s: %d\n",
+		ai_debug_printf(myciv->civ_id, "%-12s: %-12s: %4d\n",
 				it->first->get_name().c_str(),
 				u->uconf.unit_name.c_str(), points);
 		if(points > 0) {

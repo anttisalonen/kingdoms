@@ -3,6 +3,7 @@
 #include "map-astar.h"
 #include "ai-expansion.h"
 #include "ai-debug.h"
+#include "ai-defense.h"
 
 int points_for_city_founding(const civilization* civ,
 		const ai_tunables_found_city& found_city,
@@ -144,27 +145,38 @@ int found_new_city(const unit* u, civilization* myciv,
 
 expansion_objective::expansion_objective(round* r_, civilization* myciv_,
 		const std::string& n)
-	: objective(r_, myciv_, n)
+	: objective(r_, myciv_, n),
+	need_settler(false)
 {
 }
 
 bool expansion_objective::compare_units(const unit_configuration& lhs,
 		const unit_configuration& rhs) const
 {
-	if(lhs.max_moves > rhs.max_moves)
-		return true;
-	if(lhs.max_moves < lhs.max_moves)
-		return false;
-	if(lhs.production_cost < lhs.production_cost)
-		return true;
-	if(lhs.production_cost > lhs.production_cost)
-		return false;
-	return lhs.max_strength > lhs.max_strength;
+	if(need_settler) {
+		if(lhs.max_moves > rhs.max_moves)
+			return true;
+		if(lhs.max_moves < lhs.max_moves)
+			return false;
+		if(lhs.production_cost < lhs.production_cost)
+			return true;
+		if(lhs.production_cost > lhs.production_cost)
+			return false;
+		return lhs.max_strength > lhs.max_strength;
+	}
+	else {
+		return compare_defense_units(lhs, rhs);
+	}
 }
 
 bool expansion_objective::usable_unit(const unit_configuration& uc) const
 {
-	return uc.settler;
+	if(need_settler) {
+		return uc.settler;
+	}
+	else {
+		return usable_defense_unit(uc);
+	}
 }
 
 int expansion_objective::improvement_value(const city_improvement& ci) const
@@ -172,18 +184,21 @@ int expansion_objective::improvement_value(const city_improvement& ci) const
 	return -1;
 }
 
+city_production expansion_objective::get_city_production(const city& c, int* points) const
+{
+	need_settler = escorters.find(coord(c.xpos, c.ypos)) != escorters.end();
+	city_production cp = objective::get_city_production(c, points);
+	need_settler = false;
+	return cp;
+}
+
 int expansion_objective::get_unit_points(const unit& u) const
 {
-	if(!usable_unit(u.uconf))
-		return -1;
-	int val = found_new_city(&u, myciv, planned_cities, found_city);
-	return val;
+	return found_new_city(&u, myciv, planned_cities, found_city);
 }
 
 bool expansion_objective::add_unit(unit* u)
 {
-	if(!usable_unit(u->uconf))
-		return false;
 	int tgtx, tgty, prio;
 	if(!find_best_city_pos(myciv, found_city, planned_cities, 
 				u, &tgtx, &tgty, &prio)) {
@@ -191,9 +206,34 @@ bool expansion_objective::add_unit(unit* u)
 	}
 	if(prio < 0)
 		return false;
-	found_city_orders* o = new found_city_orders(myciv, u, planned_cities, found_city, tgtx, tgty);
-	planned_cities[u->unit_id] = o->get_target_position();
-	ordersmap.insert(std::make_pair(u->unit_id, o));
+	if(u->uconf.settler) {
+		found_city_orders* o = new found_city_orders(myciv, u, planned_cities, found_city, tgtx, tgty);
+		planned_cities[u->unit_id] = o->get_target_position();
+		ordersmap.insert(std::make_pair(u->unit_id, o));
+		std::map<coord, unsigned int>::iterator eit = escorters.find(coord(u->xpos, u->ypos));
+		if(eit != escorters.end()) {
+			ordersmap_t::iterator oit = ordersmap.find(eit->second);
+			if(oit != ordersmap.end()) {
+				// orders for the designated escorter found
+				delete oit->second;
+				std::map<unsigned int, unit*>::iterator uit = myciv->units.find(eit->second);
+				if(uit != myciv->units.end()) {
+					// designated escorter still exists
+					ordersmap[eit->second] = new escort_orders(myciv, uit->second, u->unit_id);
+				}
+				else {
+					// designated escorter lost
+					ordersmap.erase(oit);
+				}
+			}
+			escorters.erase(eit);
+		}
+	}
+	else {
+		escorters.insert(std::make_pair(coord(u->xpos, u->ypos), u->unit_id));
+		wait_orders* o = new wait_orders(u, 20);
+		ordersmap.insert(std::make_pair(u->unit_id, o));
+	}
 	return true;
 }
 
@@ -202,10 +242,14 @@ void expansion_objective::process(std::set<unsigned int>* freed_units)
 	objective::process(freed_units);
 	for(city_plan_map_t::iterator it = planned_cities.begin();
 			it != planned_cities.end();) {
-		if(ordersmap.find(it->first) == ordersmap.end())
+		if(ordersmap.find(it->first) == ordersmap.end()) {
+			ai_debug_printf(myciv->civ_id, "Planned city has been found at (%d, %d).\n",
+					it->second.x, it->second.y);
 			planned_cities.erase(it++);
-		else
+		}
+		else {
 			++it;
+		}
 	}
 }
 
@@ -284,4 +328,52 @@ void found_city_orders::clear()
 	goto_orders::clear();
 }
 
+escort_orders::escort_orders(const civilization* civ_, unit* u_, 
+		unsigned int escortee_id_)
+	: goto_orders(civ_, u_, false, u_->xpos, u_->ypos),
+	escortee_id(escortee_id_),
+	failed(false)
+{
+	replan();
+}
+
+action escort_orders::get_action()
+{
+	if(!replan()) {
+		return action_none;
+	}
+	else {
+		return goto_orders::get_action();
+	}
+}
+
+void escort_orders::drop_action()
+{
+	goto_orders::drop_action();
+}
+
+bool escort_orders::finished()
+{
+	return failed;
+}
+
+bool escort_orders::replan()
+{
+	std::map<unsigned int, unit*>::const_iterator uit = civ->units.find(escortee_id);
+	if(uit != civ->units.end()) {
+		tgtx = uit->second->xpos;
+		tgty = uit->second->ypos;
+		return goto_orders::replan();
+	}
+	else {
+		failed = true;
+		return false;
+	}
+}
+
+void escort_orders::clear()
+{
+	goto_orders::clear();
+	failed = true;
+}
 

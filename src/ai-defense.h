@@ -35,4 +35,8 @@ class defend_orders : public goto_orders {
 		int max_waittime;
 };
 
+bool compare_defense_units(const unit_configuration& lhs,
+		const unit_configuration& rhs);
+bool usable_defense_unit(const unit_configuration& uc);
+
 #endif

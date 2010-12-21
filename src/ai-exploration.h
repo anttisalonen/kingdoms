@@ -10,7 +10,6 @@ class exploration_objective : public objective {
 	public:
 		exploration_objective(round* r_, civilization* myciv_, const std::string& n);
 		int get_unit_points(const unit& u) const;
-		city_production get_city_production(const city& c, int* points) const;
 		bool add_unit(unit* u);
 	protected:
 		bool compare_units(const unit_configuration& lhs,

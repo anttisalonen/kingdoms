@@ -82,7 +82,6 @@ int exploration_objective::get_unit_points(const unit& u) const
 	unsigned int dist = exploration_path(*myciv, u).size();
 	int val = exploration_distance_to_points(dist, 
 			std::max(myciv->m->size_x(), myciv->m->size_y()));
-	ai_debug_printf(myciv->civ_id, "exploration: %d\n", val);
 	return val;
 }
 
