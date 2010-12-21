@@ -92,6 +92,8 @@ class civilization {
 		bool can_build_improvement(const city_improvement& ci, const city& c) const;
 		bool load_unit(unit* loadee, unit* loader);
 		bool unload_unit(unit* loadee, int x, int y);
+		const std::map<unsigned int, int>& get_built_units() const;
+		const std::map<unsigned int, int>& get_lost_units() const;
 		std::string civname;
 		const unsigned int civ_id;
 		color col;
@@ -122,6 +124,8 @@ class civilization {
 		const government* gov;
 		int national_income;
 		int military_expenses;
+		std::map<unsigned int, int> built_units;
+		std::map<unsigned int, int> lost_units;
 };
 
 

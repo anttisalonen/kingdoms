@@ -24,6 +24,13 @@
 #include "SDL/SDL_image.h"
 #include "SDL/SDL_ttf.h"
 
+static bool signal_received = false;
+
+void signal_handler(int sig)
+{
+	signal_received = true;
+}
+
 std::vector<std::vector<std::string> > parser(const std::string& filepath, 
 		unsigned int num_fields, bool vararg = false)
 {
@@ -361,12 +368,31 @@ int run(bool observer, bool use_gui)
 		}
 	}
 	else {
-		while(1) {
+		while(!signal_received) {
 			std::map<unsigned int, ai>::iterator ait = ais.find(r.current_civ_id());
 			if(ait != ais.end()) {
 				ait->second.play();
 			}
 		}
+	}
+	for(unsigned int i = 0; i < civs.size(); i++) {
+		const std::map<unsigned int, int>& m1 = civs[i]->get_built_units();
+		const std::map<unsigned int, int>& m2 = civs[i]->get_lost_units();
+		printf("%-20s\n%-20s%-6s%-6s\n", civs[i]->civname.c_str(),
+				"Unit", "Built", "Lost");
+		for(std::map<unsigned int, int>::const_iterator mit = m1.begin();
+				mit != m1.end();
+				++mit) {
+			unsigned int key = mit->first;
+			unit_configuration_map::iterator uit = uconfmap.find(key);
+			std::map<unsigned int, int>::const_iterator mit2 = m2.find(mit->first);
+			if(uit != uconfmap.end()) {
+				printf("%-20s%-6d%-6d\n", uit->second.unit_name.c_str(),
+						mit->second,
+						mit2 == m2.end() ? 0 : mit2->second);
+			}
+		}
+		printf("\n");
 	}
 	if(use_gui)
 		TTF_CloseFont(font);
@@ -424,6 +450,9 @@ int main(int argc, char **argv)
 			fprintf(stderr, "Unable to init SDL_ttf: %s\n", TTF_GetError());
 		}
 		SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
+	}
+	else {
+		signal(SIGINT, signal_handler);
 	}
 	try {
 		run(observer, gui);

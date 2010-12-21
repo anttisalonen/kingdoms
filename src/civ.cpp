@@ -137,6 +137,7 @@ unit* civilization::add_unit(int uid, int x, int y,
 {
 	unit* u = new unit(next_unit_id, uid, x, y, civ_id, uconf, road_moves);
 	units.insert(std::make_pair(next_unit_id++, u));
+	built_units[uid]++;
 	m->add_unit(u);
 	fog.reveal(x, y, 1);
 	reveal_land(x, y, 1);
@@ -158,6 +159,7 @@ void civilization::remove_unit(unit* u)
 		fog.shade(u->xpos, u->ypos, 1);
 		m->remove_unit(u);
 		units.erase(uit);
+		lost_units[uit->second->uconf_id]++;
 		delete u;
 	}
 }
@@ -660,4 +662,15 @@ bool civilization::unload_unit(unit* unloadee, int x, int y)
 	printf("unloaded unit\n");
 	return true;
 }
+
+const std::map<unsigned int, int>& civilization::get_built_units() const
+{
+	return built_units;
+}
+
+const std::map<unsigned int, int>& civilization::get_lost_units() const
+{
+	return lost_units;
+}
+
 
