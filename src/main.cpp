@@ -251,11 +251,12 @@ government_map parse_government_config(const std::string& fp)
 	return govmap;
 }
 
-int run(bool observer, bool use_gui)
+int run(bool observer, bool use_gui, bool ai_debug)
 {
 	const int map_x = 140;
 	const int map_y = 120;
 	const int road_moves = 3;
+	const int num_turns = 400;
 
 	if(!use_gui)
 		observer = true;
@@ -307,7 +308,8 @@ int run(bool observer, bool use_gui)
 	std::map<unsigned int, ai> ais;
 	if(observer) {
 		ais.insert(std::make_pair(0, ai(m, r, r.civs[0])));
-		set_ai_debug_civ(0);
+		if(ai_debug)
+			set_ai_debug_civ(0);
 	}
 	for(unsigned int i = 1; i < starting_places.size(); i++)
 		ais.insert(std::make_pair(i, ai(m, r, r.civs[i])));
@@ -333,7 +335,7 @@ int run(bool observer, bool use_gui)
 				observer ? &ais.find(0)->second : NULL, civs[0]);
 		g.display();
 		g.init_turn();
-		while(running) {
+		while(running && r.get_round_number() <= num_turns) {
 			if(r.current_civ_id() == (int)civs[0]->civ_id) {
 				SDL_Event event;
 				while(SDL_PollEvent(&event)) {
@@ -368,18 +370,19 @@ int run(bool observer, bool use_gui)
 		}
 	}
 	else {
-		while(!signal_received) {
+		while(!signal_received && r.get_round_number() <= num_turns) {
 			std::map<unsigned int, ai>::iterator ait = ais.find(r.current_civ_id());
 			if(ait != ais.end()) {
 				ait->second.play();
 			}
 		}
 	}
-	for(unsigned int i = 0; i < civs.size(); i++) {
+	for(unsigned int i = 0; i < starting_places.size(); i++) {
 		const std::map<unsigned int, int>& m1 = civs[i]->get_built_units();
 		const std::map<unsigned int, int>& m2 = civs[i]->get_lost_units();
-		printf("%-20s%d points\n%-20s%-6s%-6s\n", civs[i]->civname.c_str(),
-				civs[i]->get_points(), "Unit", "Built", "Lost");
+		printf("%-20s%-6d points    %4d cities\n%-20s%-6s%-6s\n", civs[i]->civname.c_str(),
+				civs[i]->get_points(), civs[i]->cities.size(),
+			       	"Unit", "Built", "Lost");
 		for(std::map<unsigned int, int>::const_iterator mit = m1.begin();
 				mit != m1.end();
 				++mit) {
@@ -409,8 +412,12 @@ int main(int argc, char **argv)
 	int seed = 0;
 	int c;
 	bool succ = true;
-	while((c = getopt(argc, argv, "oxs:")) != -1) {
+	bool ai_debug = false;
+	while((c = getopt(argc, argv, "doxs:")) != -1) {
 		switch(c) {
+			case 'd':
+				ai_debug = true;
+				break;
 			case 'o':
 				observer = true;
 				break;
@@ -455,7 +462,7 @@ int main(int argc, char **argv)
 		signal(SIGINT, signal_handler);
 	}
 	try {
-		run(observer, gui);
+		run(observer, gui, ai_debug);
 	}
 	catch (std::exception& e) {
 		printf("std::exception: %s\n", e.what());
