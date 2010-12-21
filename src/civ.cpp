@@ -91,7 +91,8 @@ civilization::civilization(std::string name, unsigned int civid,
 	curr_city_name_index(0),
 	next_city_id(1),
 	next_unit_id(1),
-	gov(gov_)
+	gov(gov_),
+	points(0)
 {
 	for(std::vector<std::string>::const_iterator it = names_start;
 			it != names_end;
@@ -673,4 +674,18 @@ const std::map<unsigned int, int>& civilization::get_lost_units() const
 	return lost_units;
 }
 
+void civilization::add_points(unsigned int num)
+{
+	points += num;
+}
+
+void civilization::reset_points()
+{
+	points = 0;
+}
+
+int civilization::get_points() const
+{
+	return points;
+}
 

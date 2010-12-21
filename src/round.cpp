@@ -172,10 +172,27 @@ bool round::next_civ()
 		current_civ = civs.begin();
 		increment_resources();
 		check_for_city_updates();
+		update_civ_points();
 		refill_moves();
 		return true;
 	}
 	return false;
+}
+
+void round::update_civ_points()
+{
+	for(std::vector<civilization*>::iterator it = civs.begin();
+	    it != civs.end();
+	    ++it) {
+		unsigned int added = 0;
+		for(std::map<unsigned int, city*>::iterator cit = (*it)->cities.begin();
+				cit != (*it)->cities.end();
+				++cit) {
+			added += cit->second->get_city_size();
+			added += cit->second->culture_level;
+		}
+		(*it)->add_points(added);
+	}
 }
 
 int round::needed_food_for_growth(int city_size) const

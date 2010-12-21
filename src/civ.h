@@ -94,6 +94,9 @@ class civilization {
 		bool unload_unit(unit* loadee, int x, int y);
 		const std::map<unsigned int, int>& get_built_units() const;
 		const std::map<unsigned int, int>& get_lost_units() const;
+		void add_points(unsigned int num);
+		void reset_points();
+		int get_points() const;
 		std::string civname;
 		const unsigned int civ_id;
 		color col;
@@ -126,6 +129,7 @@ class civilization {
 		int military_expenses;
 		std::map<unsigned int, int> built_units;
 		std::map<unsigned int, int> lost_units;
+		unsigned int points;
 };
 
 

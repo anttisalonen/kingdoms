@@ -86,6 +86,7 @@ class round
 		bool try_load_unit(unit* u, int x, int y);
 		bool try_unload_units(unit* u, int x, int y);
 		bool try_wakeup_loaded(unit* u);
+		void update_civ_points();
 		std::vector<civilization*>::iterator current_civ;
 		map& m;
 		int round_number;

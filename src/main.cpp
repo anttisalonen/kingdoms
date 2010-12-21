@@ -378,8 +378,8 @@ int run(bool observer, bool use_gui)
 	for(unsigned int i = 0; i < civs.size(); i++) {
 		const std::map<unsigned int, int>& m1 = civs[i]->get_built_units();
 		const std::map<unsigned int, int>& m2 = civs[i]->get_lost_units();
-		printf("%-20s\n%-20s%-6s%-6s\n", civs[i]->civname.c_str(),
-				"Unit", "Built", "Lost");
+		printf("%-20s%d points\n%-20s%-6s%-6s\n", civs[i]->civname.c_str(),
+				civs[i]->get_points(), "Unit", "Built", "Lost");
 		for(std::map<unsigned int, int>::const_iterator mit = m1.begin();
 				mit != m1.end();
 				++mit) {
