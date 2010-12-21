@@ -34,8 +34,10 @@ defense_objective::defense_objective(round* r_, civilization* myciv_,
 
 int defense_objective::get_unit_points(const unit& u) const
 {
+	// if not usable, return 1 instead of -1 - a unit should return to
+	// a city if it has nothing better to do
 	if(!usable_unit(u.uconf))
-		return -1;
+		return 1;
 	int tgtx, tgty;
 	int prio = 1;
 	tgtx = u.xpos;
@@ -62,8 +64,6 @@ int defense_objective::get_unit_points(const unit& u) const
 
 bool defense_objective::add_unit(unit* u)
 {
-	if(!usable_unit(u->uconf))
-		return false;
 	int tgtx, tgty;
 	tgtx = u->xpos;
 	tgty = u->ypos;

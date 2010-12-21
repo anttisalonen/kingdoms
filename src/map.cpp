@@ -636,6 +636,11 @@ bool map::connected_to_sea(int x, int y) const
 }
 int map::manhattan_distance(int x1, int y1, int x2, int y2) const
 {
+	return manhattan_distance_x(x1, x2) + manhattan_distance_y(y1, y2);
+}
+
+int map::manhattan_distance_x(int x1, int x2) const
+{
 	if(x_wrap) {
 		x1 = wrap_x(x1);
 		x2 = wrap_x(x2);
@@ -646,6 +651,11 @@ int map::manhattan_distance(int x1, int y1, int x2, int y2) const
 			x1 += data.size_x;
 		}
 	}
+	return abs(x2 - x1);
+}
+
+int map::manhattan_distance_y(int y1, int y2) const
+{
 	if(y_wrap) {
 		y1 = wrap_y(y1);
 		y2 = wrap_y(y2);
@@ -656,7 +666,6 @@ int map::manhattan_distance(int x1, int y1, int x2, int y2) const
 			y1 += data.size_y;
 		}
 	}
-	return abs(x2 - x1) + abs(y2 - y1);
+	return abs(y2 - y1);
 }
-
 

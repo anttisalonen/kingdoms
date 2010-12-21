@@ -36,8 +36,9 @@ int points_for_city_founding(const civilization* civ,
 			++it) {
 		if(it->first == unit_id)
 			continue;
-		int manh_diff = civ->m->manhattan_distance(it->second.x, it->second.y, co.x, co.y);
-		if(manh_diff < found_city.min_dist_to_friendly_city)
+		if(civ->m->manhattan_distance_x(it->second.x, co.x) +
+		   civ->m->manhattan_distance_y(it->second.y, co.y)
+			<= found_city.min_dist_to_friendly_city)
 			return -1;
 	}
 
@@ -200,12 +201,23 @@ int expansion_objective::get_unit_points(const unit& u) const
 bool expansion_objective::add_unit(unit* u)
 {
 	int tgtx, tgty, prio;
-	if(!find_best_city_pos(myciv, found_city, planned_cities, 
-				u, &tgtx, &tgty, &prio)) {
+	bool found_pos;
+	if(u->uconf.settler && myciv->cities.size() == 0) {
+		tgtx = u->xpos;
+		tgty = u->ypos;
+		found_pos = true;
+		prio = 1000;
+	}
+	else {
+		found_pos = find_best_city_pos(myciv, found_city, planned_cities, 
+				u, &tgtx, &tgty, &prio);
+	}
+	if(!found_pos) {
 		return false;
 	}
-	if(prio < 0)
+	if(prio < 0) {
 		return false;
+	}
 	if(u->uconf.settler) {
 		found_city_orders* o = new found_city_orders(myciv, u, planned_cities, found_city, tgtx, tgty);
 		planned_cities[u->unit_id] = o->get_target_position();
@@ -219,7 +231,8 @@ bool expansion_objective::add_unit(unit* u)
 				std::map<unsigned int, unit*>::iterator uit = myciv->units.find(eit->second);
 				if(uit != myciv->units.end()) {
 					// designated escorter still exists
-					ordersmap[eit->second] = new escort_orders(myciv, uit->second, u->unit_id);
+					ordersmap[eit->second] = new escort_orders(myciv, uit->second, u->unit_id,
+							tgtx, tgty);
 				}
 				else {
 					// designated escorter lost
@@ -287,10 +300,13 @@ action found_city_orders::get_action()
 		int new_city_points = points_for_city_founding(civ,
 				found_city, planned, u->unit_id, 1, coord(u->xpos, u->ypos));
 		if(new_city_points < 1 || new_city_points < city_points) {
-			if(replan())
+			if(replan()) {
 				return get_action();
-			else
+			}
+			else {
+				failed = true;
 				return action_none;
+			}
 		}
 		else {
 			return unit_action(action_found_city, u);
@@ -329,10 +345,11 @@ void found_city_orders::clear()
 }
 
 escort_orders::escort_orders(const civilization* civ_, unit* u_, 
-		unsigned int escortee_id_)
+		unsigned int escortee_id_, int etgtx_, int etgty_)
 	: goto_orders(civ_, u_, false, u_->xpos, u_->ypos),
 	escortee_id(escortee_id_),
-	failed(false)
+	failed(false), etgtx(etgtx_),
+	etgty(etgty_)
 {
 	replan();
 }
@@ -363,6 +380,10 @@ bool escort_orders::replan()
 	if(uit != civ->units.end()) {
 		tgtx = uit->second->xpos;
 		tgty = uit->second->ypos;
+		if(tgtx == u->xpos && tgty == u->ypos) {
+			tgtx = etgtx;
+			tgty = etgty;
+		}
 		return goto_orders::replan();
 	}
 	else {

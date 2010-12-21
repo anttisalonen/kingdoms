@@ -44,7 +44,7 @@ class expansion_objective : public objective {
 class escort_orders : public goto_orders {
 	public:
 		escort_orders(const civilization* civ_, unit* u_, 
-				unsigned int escortee_id_);
+				unsigned int escortee_id_, int etgtx_, int etgty_);
 		action get_action();
 		void drop_action();
 		bool finished();
@@ -53,6 +53,8 @@ class escort_orders : public goto_orders {
 	private:
 		unsigned int escortee_id;
 		bool failed;
+		int etgtx;
+		int etgty;
 };
 
 class found_city_orders : public goto_orders {

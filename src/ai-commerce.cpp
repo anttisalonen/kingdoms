@@ -110,6 +110,8 @@ bool get_next_improv_spot(int startx, int starty, const civilization* civ,
 
 int commerce_objective::get_unit_points(const unit& u) const
 {
+	if(!usable_unit(u.uconf))
+		return -1;
 	int prio = worker_prio;
 	worker_searcher searcher(myciv, &u, 25);
 	boost::function<bool(const coord& a)> testfunc = boost::ref(searcher);
