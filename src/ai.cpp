@@ -133,7 +133,7 @@ void ai::create_city_orders(city* c)
 {
 	int max_points = -1;
 	objective* chosen = NULL;
-	ai_debug_printf(myciv->civ_id, "===\ndeciding what to build in %s...\n", 
+	ai_debug_printf(myciv->civ_id, "deciding what to build in %s...\n", 
 			c->cityname.c_str());
 	city_production cp(false, 0);
 
