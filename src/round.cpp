@@ -32,14 +32,14 @@ void combat(unit* u1, unit* u2)
 	}
 	unsigned int s1 = u1->strength;
 	unsigned int s2 = u2->strength;
-	if(u1->veteran)
-		s1 *= 1.5f;
-	if(u2->veteran)
-		s2 *= 1.5f;
-	if(u2->is_fortified())
-		s2 *= 2;
 	unsigned int u1chance = s1 * s1;
 	unsigned int u2chance = s2 * s2;
+	if(u1->veteran)
+		u1chance *= 1.5f;
+	if(u2->veteran)
+		u2chance *= 1.5f;
+	if(u2->is_fortified())
+		u2chance *= 2;
 	unsigned int val = rand() % (u1chance + u2chance);
 	printf("Combat on (%d, %d) - chances: (%d vs %d - %3.2f) - ",
 			u2->xpos, u2->ypos, u1chance, u2chance,
