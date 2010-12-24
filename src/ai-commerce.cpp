@@ -203,7 +203,11 @@ bool improve_orders::replan()
 		return false;
 	if(get_next_improv_spot(base_city->xpos, base_city->ypos, civ,
 				&tgtx, &tgty, &tgt_imp)) {
-		bool succ = goto_orders::replan();
+		bool succ;
+		if(tgtx == u->xpos && tgty == u->ypos)
+			succ = true;
+		else
+			succ = goto_orders::replan();
 		ai_debug_printf(civ->civ_id, "target: (%d, %d) - path: %d - succ: %d\n",
 				tgtx, tgty, path.size(), succ);
 		return succ;
