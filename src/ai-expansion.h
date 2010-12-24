@@ -38,41 +38,9 @@ class expansion_objective : public objective {
 		ai_tunables_found_city found_city;
 		city_plan_map_t planned_cities;
 		std::map<coord, unsigned int> escorters;
+		std::map<coord, std::list<std::pair<coord, unsigned int> > > transportees;
 		mutable bool need_settler;
-};
-
-class escort_orders : public goto_orders {
-	public:
-		escort_orders(const civilization* civ_, unit* u_, 
-				unsigned int escortee_id_, int etgtx_, int etgty_);
-		action get_action();
-		void drop_action();
-		bool finished();
-		bool replan();
-		void clear();
-	private:
-		unsigned int escortee_id;
-		bool failed;
-		int etgtx;
-		int etgty;
-};
-
-class found_city_orders : public goto_orders {
-	public:
-		found_city_orders(const civilization* civ_, unit* u_, 
-				const city_plan_map_t& planned_,
-				const ai_tunables_found_city& found_city_, 
-				int x_, int y_);
-		action get_action();
-		void drop_action();
-		bool finished();
-		bool replan();
-		void clear();
-	private:
-		const ai_tunables_found_city& found_city;
-		int city_points;
-		bool failed;
-		const city_plan_map_t& planned;
+		mutable bool need_transporter;
 };
 
 #endif

@@ -5,16 +5,78 @@
 #include "ai-debug.h"
 #include "ai-defense.h"
 
+class escort_orders : public goto_orders {
+	public:
+		escort_orders(const civilization* civ_, unit* u_, 
+				unsigned int escortee_id_, int etgtx_, int etgty_);
+		action get_action();
+		void drop_action();
+		bool finished();
+		bool replan();
+		void clear();
+	private:
+		unsigned int escortee_id;
+		bool failed;
+		int etgtx;
+		int etgty;
+};
+
+class found_city_orders : public goto_orders {
+	public:
+		found_city_orders(const civilization* civ_, unit* u_, 
+				const city_plan_map_t& planned_,
+				const ai_tunables_found_city& found_city_, 
+				int x_, int y_);
+		action get_action();
+		void drop_action();
+		bool finished();
+		bool replan();
+		void clear();
+	private:
+		const ai_tunables_found_city& found_city;
+		int city_points;
+		bool failed;
+		const city_plan_map_t& planned;
+};
+
+class transport_orders : public goto_orders {
+	public:
+		transport_orders(const civilization* civ_, unit* u_, 
+				int tgtx_, int tgty_);
+		action get_action();
+		bool finished();
+		void add_transportee_id(unsigned int i);
+	private:
+		std::list<unsigned int> transportee_ids;
+};
+
+class transported_orders : public goto_orders {
+	public:
+		transported_orders(const civilization* civ_, unit* u_, 
+				unsigned int transporter_id_,
+				int unloadx_, int unloady_);
+		action get_action();
+		bool finished();
+		bool replan();
+	private:
+		unsigned int transporter_id;
+		bool done;
+		int unloadx;
+		int unloady;
+};
+
 int points_for_city_founding(const civilization* civ,
 		const ai_tunables_found_city& found_city,
 		const city_plan_map_t& planned,
 		unsigned int unit_id, int counter, const coord& co)
 {
-	if(counter <= 0)
+	if(counter <= 0) {
 		return -1;
+	}
 
-	if(!civ->m->can_found_city_on(co.x, co.y))
+	if(!civ->m->can_found_city_on(co.x, co.y)) {
 		return -1;
+	}
 
 	// do not found a city nearer than N squares to a friendly city
 	for(int i = -found_city.min_dist_to_friendly_city; 
@@ -47,7 +109,6 @@ int points_for_city_founding(const civilization* civ,
 	int comm_points = 0;
 	civ->m->get_total_city_resources(co.x, co.y, &food_points,
 			&prod_points, &comm_points);
-
 	food_points *= found_city.food_coeff;
 	prod_points *= found_city.prod_coeff;
 	comm_points *= found_city.comm_coeff;
@@ -55,13 +116,44 @@ int points_for_city_founding(const civilization* civ,
 	// filter out very bad locations
 	if(food_points < found_city.min_food_points || 
 			prod_points < found_city.min_prod_points || 
-			comm_points < found_city.min_comm_points)
+			comm_points < found_city.min_comm_points) {
 		return -1;
+	}
 
 	return clamp<int>(0,
 			found_city.found_city_coeff * 
 			(food_points + prod_points + comm_points),
 			found_city.max_found_city_prio);
+}
+
+int find_overseas_city_spot(const civilization* civ,
+		const ai_tunables_found_city& found_city,
+		const city_plan_map_t& planned, const unit* u,
+		int* tgtx, int* tgty)
+{
+	int best_val = -1;
+	*tgtx = -1;
+	*tgty = -1;
+	for(int i = 0; i < civ->m->size_x(); i++) {
+		for(int j = 0; j < civ->m->size_y(); j++) {
+			if(civ->fog_at(i, j)) {
+				if(civ->m->connected_to_sea(i, j)) {
+					int this_val = points_for_city_founding(civ,
+							found_city, planned,
+							u->unit_id, 1,
+							coord(i, j));
+					if(this_val > best_val) {
+						best_val = this_val;
+						*tgtx = i;
+						*tgty = j;
+					}
+				}
+			}
+		}
+	}
+	ai_debug_printf(civ->civ_id, "found overseas spot: (%d, %d) (%d).\n",
+			*tgtx, *tgty, best_val);
+	return best_val;
 }
 
 class found_city_picker {
@@ -100,16 +192,33 @@ bool found_city_picker::operator()(const coord& co)
 bool find_best_city_pos(const civilization* myciv,
 		const ai_tunables_found_city& found_city,
 		const city_plan_map_t& planned,
-		const unit* u, int* tgtx, int* tgty, int* prio)
+		bool also_overseas,
+		const unit* u, int* tgtx, int* tgty, int* prio,
+		bool* overseas)
 {
 	found_city_picker picker(myciv, found_city, planned, u);
 	boost::function<bool(const coord& a)> testfunc = boost::ref(picker);
+	if(overseas)
+		*overseas = false;
 	map_path_to_nearest(*myciv, 
 			*u, 
 			false,
 			coord(u->xpos, u->ypos), 
 			testfunc);
-	if(picker.pq.empty()) {
+	if(picker.pq.empty() || picker.pq.top().first < 1) {
+		if(also_overseas && myciv->can_cross_oceans()) {
+			int overseas_points = find_overseas_city_spot(myciv,
+					found_city, planned, u,
+					tgtx, tgty);
+			if(overseas_points > 0) {
+				if(prio) {
+					*prio = overseas_points;
+				}
+				if(overseas)
+					*overseas = true;
+				return true;
+			}
+		}
 		*tgtx = u->xpos;
 		*tgty = u->ypos;
 		if(prio) 
@@ -124,37 +233,28 @@ bool find_best_city_pos(const civilization* myciv,
 	return true;
 }
 
-int found_new_city(const unit* u, civilization* myciv, 
-		const city_plan_map_t& planned,
-		const ai_tunables_found_city& found_city)
-{
-	if(myciv->cities.size() == 0) {
-		return 1000;
-	}
-	else {
-		int tgtx, tgty;
-		int prio;
-		if(!find_best_city_pos(myciv, found_city, 
-					planned, u, &tgtx, &tgty, &prio)) {
-			return -1;
-		}
-		else {
-			return prio;
-		}
-	}
-}
-
 expansion_objective::expansion_objective(round* r_, civilization* myciv_,
 		const std::string& n)
 	: objective(r_, myciv_, n),
-	need_settler(false)
+	need_settler(false),
+	need_transporter(false)
 {
 }
 
 bool expansion_objective::compare_units(const unit_configuration& lhs,
 		const unit_configuration& rhs) const
 {
-	if(need_settler) {
+	if(need_transporter) {
+		if(lhs.ocean_unit && rhs.is_land_unit())
+			return true;
+		if(lhs.is_land_unit() && rhs.ocean_unit)
+			return false;
+		if(lhs.carry_units >= 2 && rhs.carry_units < 2)
+			return true;
+		if(lhs.carry_units < 2 && rhs.carry_units >= 2)
+			return false;
+	}
+	if(need_transporter || need_settler) {
 		if(lhs.max_moves > rhs.max_moves)
 			return true;
 		if(lhs.max_moves < lhs.max_moves)
@@ -172,7 +272,10 @@ bool expansion_objective::compare_units(const unit_configuration& lhs,
 
 bool expansion_objective::usable_unit(const unit_configuration& uc) const
 {
-	if(need_settler) {
+	if(need_transporter) {
+		return uc.ocean_unit && uc.carry_units >= 2;
+	}
+	else if(need_settler) {
 		return uc.settler;
 	}
 	else {
@@ -187,64 +290,190 @@ int expansion_objective::improvement_value(const city_improvement& ci) const
 
 city_production expansion_objective::get_city_production(const city& c, int* points) const
 {
-	need_settler = escorters.find(coord(c.xpos, c.ypos)) != escorters.end();
+	need_transporter = transportees.find(coord(c.xpos, c.ypos)) != transportees.end();
+	need_settler = !need_transporter && escorters.find(coord(c.xpos, c.ypos)) != escorters.end();
 	city_production cp = objective::get_city_production(c, points);
 	need_settler = false;
+	need_transporter = false;
 	return cp;
 }
 
 int expansion_objective::get_unit_points(const unit& u) const
 {
-	return found_new_city(&u, myciv, planned_cities, found_city);
+	if(myciv->cities.size() == 0) {
+		return 1000;
+	}
+	else {
+		int tgtx, tgty;
+		int prio;
+		if(!find_best_city_pos(myciv, found_city, 
+					planned_cities,
+					myciv->m->connected_to_sea(u.xpos, u.ypos),
+					&u,
+					&tgtx, &tgty, &prio, NULL)) {
+			return -1;
+		}
+		else {
+			return prio;
+		}
+	}
 }
 
 bool expansion_objective::add_unit(unit* u)
 {
 	int tgtx, tgty, prio;
 	bool found_pos;
+	bool overseas;
+	ai_debug_printf(myciv->civ_id, "settler: %d\n",
+			u->uconf.settler);
 	if(u->uconf.settler && myciv->cities.size() == 0) {
 		tgtx = u->xpos;
 		tgty = u->ypos;
 		found_pos = true;
 		prio = 1000;
+		overseas = false;
 	}
-	else {
+	else if(!u->uconf.ocean_unit) {
 		found_pos = find_best_city_pos(myciv, found_city, planned_cities, 
-				u, &tgtx, &tgty, &prio);
-	}
-	if(!found_pos) {
-		return false;
-	}
-	if(prio < 0) {
-		return false;
+				myciv->m->connected_to_sea(u->xpos, u->ypos),
+				u, &tgtx, &tgty, &prio, &overseas);
+		if(!found_pos) {
+			return false;
+		}
+		if(prio < 1) {
+			return false;
+		}
 	}
 	if(u->uconf.settler) {
-		found_city_orders* o = new found_city_orders(myciv, u, planned_cities, found_city, tgtx, tgty);
-		planned_cities[u->unit_id] = o->get_target_position();
-		ordersmap.insert(std::make_pair(u->unit_id, o));
+		orders* o;
 		std::map<coord, unsigned int>::iterator eit = escorters.find(coord(u->xpos, u->ypos));
-		if(eit != escorters.end()) {
-			ordersmap_t::iterator oit = ordersmap.find(eit->second);
-			if(oit != ordersmap.end()) {
-				// orders for the designated escorter found
-				delete oit->second;
-				std::map<unsigned int, unit*>::iterator uit = myciv->units.find(eit->second);
-				if(uit != myciv->units.end()) {
-					// designated escorter still exists
-					ordersmap[eit->second] = new escort_orders(myciv, uit->second, u->unit_id,
-							tgtx, tgty);
+		if(!overseas) {
+			ai_debug_printf(myciv->civ_id, "not overseas\n");
+			o = new found_city_orders(myciv, u, planned_cities, found_city, tgtx, tgty);
+
+			// set up escorter
+			if(eit != escorters.end()) {
+				ordersmap_t::iterator oit = ordersmap.find(eit->second);
+				if(oit != ordersmap.end()) {
+					// orders for the designated escorter found
+					delete oit->second;
+					std::map<unsigned int, unit*>::iterator uit = myciv->units.find(eit->second);
+					if(uit != myciv->units.end()) {
+						// designated escorter still exists
+						ordersmap[eit->second] = new escort_orders(myciv,
+								uit->second, u->unit_id,
+								tgtx, tgty);
+					}
+					else {
+						// designated escorter lost
+						ordersmap.erase(oit);
+					}
 				}
-				else {
-					// designated escorter lost
-					ordersmap.erase(oit);
+				escorters.erase(eit);
+			}
+		}
+		else {
+			// take the sea route
+			city* c = myciv->m->city_on_spot(u->xpos, u->ypos);
+			if(!c) {
+				return false;
+			}
+			o = new wait_orders(u, 200);
+			std::list<std::pair<coord, unsigned int> > transportees_here;
+			transportees_here.push_back(std::make_pair(coord(tgtx, tgty), u->unit_id));
+			// set up escorter
+			if(eit != escorters.end()) {
+				transportees_here.push_back(std::make_pair(coord(tgtx, tgty), eit->second));
+			}
+			transportees.insert(std::make_pair(coord(c->xpos, c->ypos),
+						transportees_here));
+		}
+		planned_cities[u->unit_id] = coord(tgtx, tgty);
+		ai_debug_printf(myciv->civ_id, "Adding planned city at (%d, %d) by %d.\n",
+				tgtx, tgty, u->unit_id);
+		ordersmap.insert(std::make_pair(u->unit_id, o));
+	}
+	else if(u->uconf.ocean_unit) {
+		// transporter
+		std::map<coord, std::list<std::pair<coord, unsigned int> > >::iterator trit = transportees.find(coord(u->xpos, u->ypos));
+		if(trit == transportees.end()) {
+			// no transportees?
+			ai_debug_printf(myciv->civ_id, "No transportees for %d at (%d, %d).\n",
+					u->unit_id, u->xpos, u->ypos);
+			return false;
+		}
+		tgtx = -1;
+		tgty = -1;
+		transport_orders* o = NULL;
+		std::list<unsigned int> transportee_ids;
+		ai_debug_printf(myciv->civ_id, "Checking %d potential transportees at (%d, %d).\n",
+				trit->second.size(), u->xpos, u->ypos);
+		for(std::list<std::pair<coord, unsigned int> >::iterator it = trit->second.begin();
+				it != trit->second.end();) {
+			ai_debug_printf(myciv->civ_id, "Checking potential transportee %d going to (%d, %d).\n",
+					it->second, it->first.x, it->first.y);
+			ordersmap_t::iterator oit = ordersmap.find(it->second);
+			if(oit != ordersmap.end()) {
+				// delete transportee's previous orders (wait_orders)
+				delete oit->second;
+			}
+			std::map<unsigned int, unit*>::iterator transportee_it = myciv->units.find(it->second);
+			if(transportee_it == myciv->units.end()) {
+				// transportee's gone missing - oh hell, 
+				// transport the rest anyway.
+				ai_debug_printf(myciv->civ_id, "transportee %d not found.\n", it->second);
+				trit->second.erase(it++);
+				continue;
+			}
+			if(!o) {
+				tgtx = it->first.x;
+				tgty = it->first.y;
+				o = new transport_orders(myciv, u, tgtx, tgty);
+				ai_debug_printf(myciv->civ_id, "First transportee for %d going to (%d, %d).\n",
+						u->unit_id, tgtx, tgty);
+			}
+			else {
+				if(it->first.x != tgtx || it->first.y != tgty) {
+					ai_debug_printf(myciv->civ_id, "Transportee for %d going to (%d, %d) instead.\n",
+							u->unit_id, it->first.x, it->first.y);
+					++it;
+					continue;
 				}
 			}
-			escorters.erase(eit);
+			ai_debug_printf(myciv->civ_id, "transportee %d (%d, %d) at transporter %d (%d, %d) for (%d, %d).\n",
+					transportee_it->second->unit_id, 
+					transportee_it->second->xpos,
+					transportee_it->second->ypos,
+					u->unit_id, u->xpos, u->ypos, tgtx, tgty);
+			transported_orders* tro = new transported_orders(myciv, 
+					transportee_it->second,
+					u->unit_id, tgtx, tgty);
+			if(oit != ordersmap.end()) {
+				oit->second = tro;
+			}
+			else {
+				ordersmap.insert(std::make_pair(it->second, tro));
+			}
+			o->add_transportee_id(it->second);
+			trit->second.erase(it++);
+		}
+		if(trit->second.empty()) {
+			transportees.erase(trit);
+		}
+		if(o) {
+			ai_debug_printf(myciv->civ_id, "Transporter %d ready.\n",
+					u->unit_id);
+			ordersmap.insert(std::make_pair(u->unit_id, o));
+		}
+		else {
+			ai_debug_printf(myciv->civ_id, "No transportees for transporter %d.\n",
+					u->unit_id);
+			return false;
 		}
 	}
 	else {
 		escorters.insert(std::make_pair(coord(u->xpos, u->ypos), u->unit_id));
-		wait_orders* o = new wait_orders(u, 20);
+		wait_orders* o = new wait_orders(u, 200);
 		ordersmap.insert(std::make_pair(u->unit_id, o));
 	}
 	return true;
@@ -292,15 +521,20 @@ found_city_orders::found_city_orders(const civilization* civ_,
 {
 	city_points = points_for_city_founding(civ, found_city,
 			planned, u->unit_id, 1, coord(tgtx, tgty));
+	ai_debug_printf(civ->civ_id, "constructor: %d (%d, %d)\n",
+			city_points, tgtx, tgty);
 }
 
 action found_city_orders::get_action()
 {
+	ai_debug_printf(civ->civ_id, "action at path size: %d\n", path.size());
 	if(path.empty()) {
 		int new_city_points = points_for_city_founding(civ,
 				found_city, planned, u->unit_id, 1, coord(u->xpos, u->ypos));
+		ai_debug_printf(civ->civ_id, "new: %d; old: %d; coord: (%d, %d)\n",
+				new_city_points, city_points, u->xpos, u->ypos);
 		if(new_city_points < 1 || new_city_points < city_points) {
-			if(replan()) {
+			if(replan() && !path.empty()) {
 				return get_action();
 			}
 			else {
@@ -329,13 +563,19 @@ bool found_city_orders::finished()
 
 bool found_city_orders::replan()
 {
+	ai_debug_printf(civ->civ_id, "replanning as %d.\n",
+			u->unit_id);
 	bool succ = find_best_city_pos(civ, found_city,
-			planned, u, &tgtx, &tgty, NULL);
+			planned, false, u, &tgtx, &tgty, NULL, NULL);
 	if(succ)
 		city_points = points_for_city_founding(civ, found_city,
-				planned, u->unit_id, 0, coord(tgtx, tgty));
+				planned, u->unit_id, 1, coord(tgtx, tgty));
 	if(!(succ && city_points > 0))
 		failed = true;
+	else
+		goto_orders::replan();
+	ai_debug_printf(civ->civ_id, "replan: %d (%d, %d) - path %d\n",
+			city_points, tgtx, tgty, path.size());
 	return !failed;
 }
 
@@ -396,5 +636,130 @@ void escort_orders::clear()
 {
 	goto_orders::clear();
 	failed = true;
+}
+
+transport_orders::transport_orders(const civilization* civ_, unit* u_, 
+		int tgtx_, int tgty_)
+	: goto_orders(civ_, u_, false, tgtx_, tgty_, true)
+{
+}
+
+action transport_orders::get_action()
+{
+	for(std::list<unsigned int>::iterator trit = transportee_ids.begin();
+			trit != transportee_ids.end();) {
+		bool found = false;
+		for(std::list<unit*>::iterator it = u->carried_units.begin();
+				it != u->carried_units.end();
+				++it) {
+			if((*it)->unit_id == (int)*trit) {
+				found = true;
+				break;
+			}
+		}
+		if(!found) {
+			ai_debug_printf(civ->civ_id, "Transporter %d: still missing %d.\n",
+					u->unit_id, *trit);
+			if(civ->units.find(*trit) == civ->units.end()) {
+				ai_debug_printf(civ->civ_id, "Transporter %d: transportee %d gone AWOL.\n",
+						u->unit_id, *trit);
+				transportee_ids.erase(trit++);
+			}
+			else {
+				// wait for transportee arrival
+				return action_none;
+			}
+		}
+		else {
+			// this transportee is loaded, check the next one.
+			++trit;
+		}
+	}
+	ai_debug_printf(civ->civ_id, "Transporter %d: off to (%d, %d) (Now at (%d, %d)): %s (%d)\n",
+			u->unit_id, tgtx, tgty, u->xpos, u->ypos, goto_orders::get_action().to_string().c_str(),
+			path.size());
+	return goto_orders::get_action();
+}
+
+bool transport_orders::finished()
+{
+	return path.size() <= 1 && u->carried_units.size() == 0;
+}
+
+void transport_orders::add_transportee_id(unsigned int i)
+{
+	transportee_ids.push_back(i);
+}
+
+transported_orders::transported_orders(const civilization* civ_, unit* u_, 
+		unsigned int transporter_id_, int unloadx_,
+		int unloady_)
+	: goto_orders(civ_, u_, false, u_->xpos, u_->ypos),
+	transporter_id(transporter_id_),
+	done(false),
+	unloadx(unloadx_),
+	unloady(unloady_)
+{
+	replan();
+}
+
+action transported_orders::get_action()
+{
+	ai_debug_printf(civ->civ_id, "transportee: (%d, %d) => (%d, %d) => (%d, %d) - carried: %d; done: %d.\n",
+			u->xpos, u->ypos, tgtx, tgty, unloadx, unloady, u->carried(), done);
+	// check for unload
+	if(civ->m->manhattan_distance_x(u->xpos, unloadx) <= 1 &&
+			civ->m->manhattan_distance_y(u->ypos, unloady) <= 1) {
+		int chx = unloadx - u->xpos;
+		int chy = unloady - u->ypos;
+		done = true;
+		return move_unit_action(u, chx, chy);
+	}
+	else if(!u->carried()) {
+		if(u->xpos == tgtx && u->ypos && tgty) {
+			// at the transporter
+			return unit_action(action_load, u);
+		}
+		else {
+			// going to the transporter
+			return goto_orders::get_action();
+		}
+	}
+	else {
+		// carried, not at destination => be transported
+		return action_none;
+	}
+}
+
+bool transported_orders::finished()
+{
+	return done;
+}
+
+bool transported_orders::replan()
+{
+	if(done)
+		return false;
+	std::map<unsigned int, unit*>::const_iterator it = civ->units.find(transporter_id);
+	if(it == civ->units.end()) {
+		// no transporter
+		done = true;
+		return false;
+	}
+	else {
+		// NOTE: only works when the transporter is on a terrain valid
+		// for the transportee (coastal city)
+		tgtx = it->second->xpos;
+		tgty = it->second->ypos;
+		if(tgtx == u->xpos && tgty == u->ypos)
+			return true;
+		if(!goto_orders::replan()) {
+			done = true;
+			return false;
+		}
+		else {
+			return true;
+		}
+	}
 }
 

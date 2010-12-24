@@ -156,7 +156,21 @@ action improve_orders::get_action()
 	if(u->is_improving())
 		return action_none;
 	if(path.empty()) {
-		return improve_unit_action(u, tgt_imp);
+		if(!civ->m->can_improve_terrain(u->xpos, u->ypos,
+					civ->civ_id, tgt_imp)) {
+			if(replan() && 
+				(civ->m->can_improve_terrain(tgtx, tgty,
+					civ->civ_id, tgt_imp)))
+				return get_action();
+			else
+				return action_none;
+				 
+		}
+		else {
+			ai_debug_printf(civ->civ_id, "improving at (%d, %d)\n",
+					u->xpos, u->ypos);
+			return improve_unit_action(u, tgt_imp);
+		}
 	}
 	else {
 		return goto_orders::get_action();
@@ -165,8 +179,9 @@ action improve_orders::get_action()
 
 void improve_orders::drop_action()
 {
-	if(u->is_improving())
+	if(u->is_improving()) {
 		return;
+	}
 	if(path.empty()) {
 		tgt_imp = improv_none;
 	}
@@ -187,10 +202,15 @@ bool improve_orders::replan()
 	if(!base_city)
 		return false;
 	if(get_next_improv_spot(base_city->xpos, base_city->ypos, civ,
-				&tgtx, &tgty, &tgt_imp))
-		return goto_orders::replan();
-	else
+				&tgtx, &tgty, &tgt_imp)) {
+		bool succ = goto_orders::replan();
+		ai_debug_printf(civ->civ_id, "target: (%d, %d) - path: %d - succ: %d\n",
+				tgtx, tgty, path.size(), succ);
+		return succ;
+	}
+	else {
 		return false;
+	}
 }
 
 void improve_orders::clear()

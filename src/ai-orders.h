@@ -31,7 +31,8 @@ class primitive_orders : public orders {
 class goto_orders : public orders {
 	public:
 		goto_orders(const civilization* civ_, unit* u_, 
-				bool ignore_enemy_, int x_, int y_);
+				bool ignore_enemy_, int x_, int y_,
+				bool coastal_ = false);
 		virtual ~goto_orders() { }
 		virtual action get_action();
 		virtual void drop_action();
@@ -48,6 +49,7 @@ class goto_orders : public orders {
 		unit* u;
 		std::list<coord> path;
 		bool ignore_enemy;
+		bool coastal;
 };
 
 class wait_orders : public orders {

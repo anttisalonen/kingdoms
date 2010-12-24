@@ -2,6 +2,7 @@
 #include <stdio.h>
 
 #include "ai-orders.h"
+#include "ai-debug.h"
 #include "map-astar.h"
 
 primitive_orders::primitive_orders(const action& a_)
@@ -37,26 +38,28 @@ void primitive_orders::clear()
 }
 
 goto_orders::goto_orders(const civilization* civ_, unit* u_, 
-		bool ignore_enemy_, int x_, int y_)
+		bool ignore_enemy_, int x_, int y_, bool coastal_)
 	: tgtx(x_),
 	tgty(y_),
 	civ(civ_),
 	u(u_),
-	ignore_enemy(ignore_enemy_)
+	ignore_enemy(ignore_enemy_),
+	coastal(coastal_)
 {
 	get_new_path();
 }
 
 void goto_orders::get_new_path()
 {
-	path = map_astar(*civ, *u, ignore_enemy, coord(u->xpos, u->ypos), coord(tgtx, tgty));
+	path = map_astar(*civ, *u, ignore_enemy, coord(u->xpos, u->ypos), 
+			coord(tgtx, tgty), coastal);
 	if(!path.empty())
 		path.pop_front();
 }
 
 action goto_orders::get_action()
 {
-	if(finished())
+	if(goto_orders::finished())
 		return action(action_none);
 	if(tgtx == u->xpos && tgty == u->ypos) {
 		path.clear();
@@ -64,6 +67,17 @@ action goto_orders::get_action()
 	}
 	int chx = path.front().x - u->xpos;
 	int chy = path.front().y - u->ypos;
+	if(abs(chx) > 1 || abs(chy) > 1) {
+		ai_debug_printf(civ->civ_id, "error when planning goto route: (%d, %d) => (%d, %d) - tgt: (%d, %d).\n",
+				u->xpos, u->ypos, path.front().x, path.front().y, tgtx, tgty);
+		if(!replan()) {
+			return action_none;
+		}
+		else {
+			ai_debug_printf(civ->civ_id, "after replan: (%d, %d) - size: %d..\n",
+					path.front().x, path.front().y, path.size());
+		}
+	}
 	return move_unit_action(u, chx, chy);
 }
 

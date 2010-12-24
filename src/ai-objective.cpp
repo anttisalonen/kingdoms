@@ -75,10 +75,25 @@ void objective::process(std::set<unsigned int>* freed_units)
 			ordersmap.erase(oit++);
 		}
 		else {
+			if(uit->second->num_moves() == 0 && uit->second->num_road_moves() == 0) {
+				++oit;
+				continue;
+			}
 			if(oit->second->finished()) {
-				oit->second->replan();
+				if(!oit->second->replan()) {
+					ai_debug_printf(myciv->civ_id, 
+							"replan failed - freeing unit.\n");
+					freed_units->insert(oit->first);
+					ordersmap.erase(oit++);
+					continue;
+				}
 			}
 			action a = oit->second->get_action();
+#if 0
+			ai_debug_printf(myciv->civ_id, "%s - %s - %d: %s.\n",
+						obj_name.c_str(), uit->second->uconf.unit_name.c_str(),
+						uit->second->unit_id, a.to_string().c_str());
+#endif
 			int success = r->perform_action(myciv->civ_id, a);
 			if(!success) {
 				ai_debug_printf(myciv->civ_id, "%s - %s - %d: could not perform action: %s.\n", 
@@ -99,7 +114,10 @@ void objective::process(std::set<unsigned int>* freed_units)
 			}
 			else {
 				oit->second->drop_action();
-				++oit;
+				if(!(a.type == action_unit_action && 
+				     a.data.unit_data.uatype == action_move_unit)) {
+					++oit;
+				}
 			}
 		}
 	}
