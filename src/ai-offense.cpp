@@ -84,15 +84,15 @@ bool offense_objective::add_unit(unit* u)
 
 attack_orders::attack_orders(const civilization* civ_, unit* u_, int x_, int y_)
 	: goto_orders(civ_, u_, true, x_, y_),
-	att_x(-1),
-	att_y(-1)
+	att_x(0),
+	att_y(0)
 {
 }
 
 void attack_orders::check_for_enemies()
 {
-	att_x = -1;
-	att_y = -1;
+	att_x = 0;
+	att_y = 0;
 	for(int i = -1; i <= 1; i++) {
 		for(int j = -1; j <= 1; j++) {
 			if(i == 0 && j == 0)
@@ -102,8 +102,8 @@ void attack_orders::check_for_enemies()
 			int owner = civ->m->get_spot_resident(xp, yp);
 			if(owner >= 0 && owner != (int)civ->civ_id &&
 					civ->get_relationship_to_civ(owner) == relationship_war) {
-				att_x = xp;
-				att_y = yp;
+				att_x = i;
+				att_y = j;
 				return;
 			}
 		}
@@ -113,9 +113,8 @@ void attack_orders::check_for_enemies()
 action attack_orders::get_action()
 {
 	check_for_enemies();
-	if(att_x != -1 && att_y != -1) {
-		return move_unit_action(u, civ->m->wrap_x(att_x - u->xpos),
-			civ->m->wrap_y(att_y - u->ypos));
+	if(att_x != 0 && att_y != 0) {
+		return move_unit_action(u, att_x, att_y);
 	}
 	else {
 		return goto_orders::get_action();
@@ -124,17 +123,17 @@ action attack_orders::get_action()
 
 void attack_orders::drop_action()
 {
-	if(att_x == -1 || att_y == -1)
+	if(att_x == 0 || att_y == 0)
 		goto_orders::drop_action();
 	else {
-		att_x = -1;
-		att_y = -1;
+		att_x = 0;
+		att_y = 0;
 	}
 }
 
 bool attack_orders::finished()
 {
-	if(att_x == -1 || att_y == -1)
+	if(att_x == 0 || att_y == 0)
 		return goto_orders::finished();
 	else
 		return false;
