@@ -39,6 +39,7 @@ struct msg {
 		} city_prod_data;
 		int discovered_civ_id;
 		unsigned int new_advance_id;
+		unsigned int disbanded_unit_id;
 	} msg_data;
 };
 
@@ -97,6 +98,7 @@ class civilization {
 		void add_points(unsigned int num);
 		void reset_points();
 		int get_points() const;
+		bool can_cross_oceans() const;
 		std::string civname;
 		const unsigned int civ_id;
 		color col;
@@ -118,6 +120,8 @@ class civilization {
 		void update_military_expenses();
 		void setup_default_research_goal(const advance_map& amap);
 		void destroy_old_palace(const city* c, const city_improv_map& cimap);
+		void update_ocean_crossing(const unit_configuration_map& uconfmap,
+				const advance_map& amap, int adv_id);
 		std::vector<relationship> relationships;
 		buf2d<int> known_land_map;
 		std::vector<std::string> city_names;
@@ -130,6 +134,7 @@ class civilization {
 		std::map<unsigned int, int> built_units;
 		std::map<unsigned int, int> lost_units;
 		unsigned int points;
+		bool cross_oceans;
 };
 
 

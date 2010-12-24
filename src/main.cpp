@@ -2,6 +2,8 @@
 #include <unistd.h>
 #include <signal.h>
 
+#include <execinfo.h>
+
 #include <list>
 #include <vector>
 #include <map>
@@ -25,6 +27,20 @@
 #include "SDL/SDL_ttf.h"
 
 static bool signal_received = false;
+
+void segv_handler(int sig)
+{
+	void* array[10];
+	size_t size;
+
+	// get void*'s for all entries on the stack
+	size = backtrace(array, 10);
+
+	// print out all the frames to stderr
+	fprintf(stderr, "Signal %d:\n", sig);
+	backtrace_symbols_fd(array, size, 2);
+	exit(EXIT_FAILURE);
+}
 
 void signal_handler(int sig)
 {
@@ -251,7 +267,17 @@ government_map parse_government_config(const std::string& fp)
 	return govmap;
 }
 
-int run(bool observer, bool use_gui, bool ai_debug)
+void automatic_play_until(round& r, std::map<unsigned int, ai>& ais, int num_turns)
+{
+	while(!signal_received && r.get_round_number() <= num_turns) {
+		std::map<unsigned int, ai>::iterator ait = ais.find(r.current_civ_id());
+		if(ait != ais.end()) {
+			ait->second.play();
+		}
+	}
+}
+
+int run(bool observer, bool use_gui, bool ai_debug, int skip_rounds)
 {
 	const int map_x = 140;
 	const int map_y = 120;
@@ -272,7 +298,7 @@ int run(bool observer, bool use_gui, bool ai_debug)
 		civs[i]->set_map(&m);
 		civs[i]->set_government(&govmap.begin()->second);
 	}
-	round r(uconfmap, amap, cimap, m, road_moves);
+	round r(uconfmap, amap, cimap, m, road_moves, num_turns);
 
 	std::vector<coord> starting_places = m.get_starting_places(civs.size());
 	if(starting_places.size() != civs.size()) {
@@ -335,7 +361,9 @@ int run(bool observer, bool use_gui, bool ai_debug)
 				observer ? &ais.find(0)->second : NULL, civs[0]);
 		g.display();
 		g.init_turn();
-		while(running && r.get_round_number() <= num_turns) {
+		if(observer && skip_rounds > 0)
+			automatic_play_until(r, ais, skip_rounds);
+		while(running) {
 			if(r.current_civ_id() == (int)civs[0]->civ_id) {
 				SDL_Event event;
 				while(SDL_PollEvent(&event)) {
@@ -370,12 +398,7 @@ int run(bool observer, bool use_gui, bool ai_debug)
 		}
 	}
 	else {
-		while(!signal_received && r.get_round_number() <= num_turns) {
-			std::map<unsigned int, ai>::iterator ait = ais.find(r.current_civ_id());
-			if(ait != ais.end()) {
-				ait->second.play();
-			}
-		}
+		automatic_play_until(r, ais, num_turns);
 	}
 	for(unsigned int i = 0; i < starting_places.size(); i++) {
 		const std::map<unsigned int, int>& m1 = civs[i]->get_built_units();
@@ -413,8 +436,12 @@ int main(int argc, char **argv)
 	int c;
 	bool succ = true;
 	bool ai_debug = false;
-	while((c = getopt(argc, argv, "doxs:")) != -1) {
+	int skip_rounds = 0;
+	while((c = getopt(argc, argv, "adoxS:s:")) != -1) {
 		switch(c) {
+			case 'S':
+				skip_rounds = atoi(optarg);
+				break;
 			case 'd':
 				ai_debug = true;
 				break;
@@ -461,8 +488,11 @@ int main(int argc, char **argv)
 	else {
 		signal(SIGINT, signal_handler);
 	}
+
+	signal(SIGSEGV, segv_handler);
+
 	try {
-		run(observer, gui, ai_debug);
+		run(observer, gui, ai_debug, skip_rounds);
 	}
 	catch (std::exception& e) {
 		printf("std::exception: %s\n", e.what());

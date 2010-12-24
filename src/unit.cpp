@@ -41,19 +41,19 @@ void unit::new_round(improvement_type& i)
 			improving = improv_none;
 		}
 	}
-	moves = uconf.max_moves;
-	road_moves = 0;
 	if(fortifying) {
 		fortifying = false;
 		fortified = true;
 	}
-	if(resting || fortified) {
+	if(resting || fortified || (moves == uconf.max_moves)) {
 		int strdiff = 10 * uconf.max_strength - strength;
 		if(strdiff > (int)uconf.max_strength)
 			strength += strdiff / 2;
 		else if(strdiff > 0)
 			strength = 10 * uconf.max_strength;
 	}
+	moves = uconf.max_moves;
+	road_moves = 0;
 	resting = false;
 }
 
@@ -194,9 +194,13 @@ bool unit::unload(int x, int y)
 {
 	if(!carrying_unit)
 		return false;
-	carrying_unit->carried_units.erase(std::remove(carrying_unit->carried_units.begin(),
-				carrying_unit->carried_units.end(),
-				this), carrying_unit->carried_units.end());
+	for(std::list<unit*>::iterator it = carrying_unit->carried_units.begin();
+			it != carrying_unit->carried_units.end();
+			++it) {
+		if(*it == this) {
+			it = carrying_unit->carried_units.erase(it);
+		}
+	}
 	xpos = x;
 	ypos = y;
 	decrement_moves();

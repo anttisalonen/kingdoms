@@ -124,13 +124,15 @@ action improve_unit_action(unit* u, improvement_type i)
 round::round(const unit_configuration_map& uconfmap_,
 		const advance_map& amap_,
 		const city_improv_map& cimap_,
-		map& m_, unsigned int road_moves_)
+		map& m_, unsigned int road_moves_,
+		int num_turns_)
 	: uconfmap(uconfmap_),
 	amap(amap_),
 	cimap(cimap_),
 	m(m_),
 	round_number(0),
-	road_moves(road_moves_)
+	road_moves(road_moves_),
+	num_turns(num_turns_)
 {
 	current_civ = civs.begin();
 }
@@ -168,7 +170,7 @@ bool round::next_civ()
 	current_civ++;
 	if(current_civ == civs.end()) {
 		round_number++;
-		fprintf(stderr, "Round: %d\n", round_number);
+		fprintf(stdout, "Round: %d\n", round_number);
 		current_civ = civs.begin();
 		increment_resources();
 		check_for_city_updates();
@@ -261,6 +263,10 @@ bool round::perform_action(int civid, const action& a)
 {
 	if(civid < 0 || civid != current_civ_id()) {
 		return false;
+	}
+
+	if(round_number >= num_turns) {
+		return a.type == action_eot;
 	}
 
 	switch(a.type) {
@@ -414,6 +420,9 @@ void round::check_civ_elimination(int civ_id)
 
 bool round::try_move_unit(unit* u, int chx, int chy)
 {
+	if(abs(chx) > 1 || abs(chy) > 1)
+		return false;
+
 	int tgtxpos = u->xpos + chx;
 	int tgtypos = u->ypos + chy;
 
@@ -545,11 +554,15 @@ bool round::try_unload_units(unit* u, int x, int y)
 {
 	if(!u->carrying())
 		return false;
-	for(int i = u->carried_units.size() - 1; i >= 0; i--) {
-		if(u->carried_units[i]->num_moves() || 
-				u->carried_units[i]->num_road_moves()) {
-			if(!civs[u->civ_id]->unload_unit(u->carried_units[i], x, y))
+	for(std::list<unit*>::iterator it = u->carried_units.begin();
+			it != u->carried_units.end();) {
+		if((*it)->num_moves() || 
+  		   (*it)->num_road_moves()) {
+			std::list<unit*>::iterator it2(it);
+			++it2;
+			if(!civs[u->civ_id]->unload_unit(*it, x, y))
 				return false;
+			it = it2;
 		}
 	}
 	return true;
@@ -559,8 +572,11 @@ bool round::try_wakeup_loaded(unit* u)
 {
 	if(!u->carrying())
 		return false;
-	for(unsigned int i = 0; i < u->carried_units.size(); i++)
-		u->carried_units[i]->wake_up();
+	for(std::list<unit*>::iterator it = u->carried_units.begin();
+			it != u->carried_units.end();
+			++it) {
+		(*it)->wake_up();
+	}
 	return true;
 }
 

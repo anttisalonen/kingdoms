@@ -57,7 +57,8 @@ class round
 				const advance_map& amap_, 
 				const city_improv_map& cimap_,
 				map& m_,
-				unsigned int road_moves_);
+				unsigned int road_moves_,
+				int num_turns_);
 		void add_civilization(civilization* civ);
 		bool perform_action(int civid, const action& a);
 		const unit_configuration* get_unit_configuration(int uid) const;
@@ -91,6 +92,7 @@ class round
 		map& m;
 		int round_number;
 		const unsigned int road_moves;
+		int num_turns;
 };
 
 #endif

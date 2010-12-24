@@ -92,7 +92,8 @@ civilization::civilization(std::string name, unsigned int civid,
 	next_city_id(1),
 	next_unit_id(1),
 	gov(gov_),
-	points(0)
+	points(0),
+	cross_oceans(false)
 {
 	for(std::vector<std::string>::const_iterator it = names_start;
 			it != names_end;
@@ -152,15 +153,15 @@ void civilization::remove_unit(unit* u)
 		if(u->carried()) {
 			u->unload(u->xpos, u->ypos);
 		}
-		for(std::vector<unit*>::iterator it = u->carried_units.begin();
-				it != u->carried_units.end();
-				++it) {
+		std::list<unit*>::iterator it = u->carried_units.begin();
+		while(it != u->carried_units.end()) {
 			remove_unit(*it);
+			it = u->carried_units.begin();
 		}
 		fog.shade(u->xpos, u->ypos, 1);
 		m->remove_unit(u);
-		units.erase(uit);
 		lost_units[uit->second->uconf_id]++;
+		units.erase(uit);
 		delete u;
 	}
 }
@@ -233,10 +234,11 @@ msg new_improv_msg(city* c, unsigned int ciid)
 	return m;
 }
 
-msg unit_disbanded()
+msg unit_disbanded(unsigned int uit)
 {
 	msg m;
 	m.type = msg_unit_disbanded;
+	m.msg_data.disbanded_unit_id = uit;
 	return m;
 }
 
@@ -347,8 +349,8 @@ void civilization::increment_resources(const unit_configuration_map& uconfmap,
 			uit++;
 			if(uit2->second->uconf.max_strength > 0) {
 				gold += gov->unit_cost;
+				add_message(unit_disbanded(uit2->second->unit_id));
 				remove_unit(uit2->second);
-				add_message(unit_disbanded());
 			}
 		}
 	}
@@ -356,12 +358,14 @@ void civilization::increment_resources(const unit_configuration_map& uconfmap,
 	advance_map::const_iterator adv = amap.find(research_goal_id);
 	if(adv == amap.end()) {
 		add_message(new_advance_discovered(0));
+		update_ocean_crossing(uconfmap, amap, 0);
 		setup_default_research_goal(amap);
 	}
 	else if(adv->second.cost <= science) {
 		science -= adv->second.cost;
 		add_message(new_advance_discovered(research_goal_id));
 		researched_advances.insert(research_goal_id);
+		update_ocean_crossing(uconfmap, amap, research_goal_id);
 		setup_default_research_goal(amap);
 	}
 }
@@ -406,7 +410,7 @@ int civilization::try_move_unit(unit* u, int chx, int chy)
 			fog.reveal(u->xpos, u->ypos, 1);
 		reveal_land(u->xpos, u->ypos, 1);
 		m->add_unit(u);
-		for(std::vector<unit*>::iterator it = u->carried_units.begin();
+		for(std::list<unit*>::iterator it = u->carried_units.begin();
 				it != u->carried_units.end();
 				++it) {
 			(*it)->xpos = u->xpos;
@@ -687,5 +691,27 @@ void civilization::reset_points()
 int civilization::get_points() const
 {
 	return points;
+}
+
+void civilization::update_ocean_crossing(const unit_configuration_map& uconfmap,
+		const advance_map& amap, int adv_id)
+{
+	// NOTE: if units are ever obsoleted, it has to be checked here too.
+	if(!cross_oceans) {
+		for(unit_configuration_map::const_iterator uit = uconfmap.begin();
+				uit != uconfmap.end();
+				++uit) {
+			if((int)uit->second.needed_advance == adv_id && 
+				uit->second.ocean_unit) {
+				cross_oceans = true;
+				return;
+			}
+		}
+	}
+}
+
+bool civilization::can_cross_oceans() const
+{
+	return cross_oceans;
 }
 

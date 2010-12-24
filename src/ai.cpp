@@ -261,7 +261,8 @@ void ai::handle_new_unit(const msg& m)
 
 void ai::handle_unit_disbanded(const msg& m)
 {
-	ai_debug_printf(myciv->civ_id, "unit disbanded.\n");
+	ai_debug_printf(myciv->civ_id, "unit %d disbanded.\n",
+			m.msg_data.disbanded_unit_id);
 }
 
 #if 0

@@ -1,7 +1,7 @@
 #ifndef UNIT_H
 #define UNIT_H
 
-#include <vector>
+#include <list>
 #include "unit_configuration.h"
 #include "resource_configuration.h"
 
@@ -42,7 +42,7 @@ class unit
 		const unit_configuration& uconf;
 		unsigned int strength;
 		bool veteran;
-		std::vector<unit*> carried_units;
+		std::list<unit*> carried_units;
 	private:
 		bool fortifying;
 		bool fortified;
