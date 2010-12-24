@@ -525,7 +525,7 @@ std::vector<coord> map::get_starting_places(int num) const
 			for(std::vector<coord>::const_iterator it = retval.begin();
 					it != retval.end();
 					++it) {
-				int manh = abs(it->x - xp) + abs(it->y - yp);
+				int manh = manhattan_distance(it->x, it->y, xp, yp);
 				if(manh < 10) {
 					too_close = true;
 					break;
