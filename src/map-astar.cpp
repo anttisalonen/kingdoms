@@ -31,14 +31,22 @@ void check_insert(std::set<coord>& s, const civilization& civ,
 }
 
 std::set<coord> map_graph(const civilization& civ, const unit& u, 
-		bool ignore_enemy, const coord& a)
+		bool ignore_enemy, const coord& a, const coord* coastal_goal)
 {
 	std::set<coord> ret;
 	for(int i = -1; i <= 1; i++) {
 		for(int j = -1; j <= 1; j++) {
 			if(i || j) {
-				check_insert(ret, civ, u, ignore_enemy,
-						a.x + i, a.y + j);
+				int ax = a.x + i;
+				int ay = a.y + j;
+				if(coastal_goal && coastal_goal->x == ax &&
+					coastal_goal->y == ay) {
+					ret.insert(coord(ax, ay));
+				}
+				else {
+					check_insert(ret, civ, u, ignore_enemy,
+							ax, ay);
+				}
 			}
 		}
 	}
@@ -62,6 +70,8 @@ int map_cost(const map& m, const unit& u, const coord& a, const coord& b)
 {
 	bool road;
 	int cost = m.get_move_cost(u, a.x, a.y, b.x, b.y, &road);
+	if(cost < 0) // for the coastal case
+		cost = 100000000;
 	if(!road)
 		return cost * 10;
 	else
@@ -80,13 +90,16 @@ bool map_goaltest(const coord& b, const coord& a)
 
 std::list<coord> map_astar(const civilization& civ,
 		const unit& u, bool ignore_enemy,
-		const coord& start, const coord& goal)
+		const coord& start, const coord& goal,
+		bool coastal)
 {
 	using boost::bind;
 	using boost::lambda::_1;
 	using boost::lambda::_2;
 	using boost::ref;
-	return astar(bind(map_graph, ref(civ), ref(u), ignore_enemy, _1),
+	const coord* coastal_goal = coastal ? &goal : NULL;
+	return astar(bind(map_graph, ref(civ), ref(u), ignore_enemy, _1, 
+				coastal_goal),
 			bind(map_cost, ref(*civ.m), ref(u), _1, _2),
 			bind(map_heur, ref(goal), _1),
 			bind(map_goaltest, ref(goal), _1), start);
@@ -101,7 +114,9 @@ std::list<coord> map_path_to_nearest(const civilization& civ,
 	using boost::lambda::_1;
 	using boost::lambda::_2;
 	using boost::ref;
-	return astar(bind(map_graph, ref(civ), ref(u), ignore_enemy, _1),
+	const coord* coastal_goal = NULL;
+	return astar(bind(map_graph, ref(civ), ref(u), ignore_enemy, 
+				_1, coastal_goal),
 			boost::lambda::constant(1),
 			boost::lambda::constant(0),
 			goaltestfunc, start);
