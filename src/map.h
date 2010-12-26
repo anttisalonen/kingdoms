@@ -51,16 +51,19 @@ class map {
 		int manhattan_distance(int x1, int y1, int x2, int y2) const;
 		int manhattan_distance_x(int x1, int x2) const;
 		int manhattan_distance_y(int y1, int y2) const;
+		int vector_from_to_x(int x1, int x2) const;
+		int vector_from_to_y(int y1, int y2) const;
 	private:
 		int get_index(int x, int y) const;
 		void create_mountains(int x, int y, int width);
-		int get_temperature(int n) const;
+		int get_temperature(int x, int y) const;
 		std::vector<int> get_types_by_temperature(int temp) const;
 		int get_humidity_at(int x, int y) const;
 		std::vector<int> get_terrain_candidates(const std::vector<int>& types, 
 				int humidity) const;
 		float get_latitude(int y) const;
 		void sea_around_land(int x, int y, int sea_tile);
+		int dist_to_sea_incl_mountains(int x, int y) const;
 		buf2d<int> data;
 		buf2d<std::list<unit*> > unit_map;
 		buf2d<city*> city_map;

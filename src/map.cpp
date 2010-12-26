@@ -651,6 +651,16 @@ int map::manhattan_distance(int x1, int y1, int x2, int y2) const
 
 int map::manhattan_distance_x(int x1, int x2) const
 {
+	return abs(vector_from_to_x(x1, x2));
+}
+
+int map::manhattan_distance_y(int y1, int y2) const
+{
+	return abs(vector_from_to_y(y1, y2));
+}
+
+int map::vector_from_to_x(int x1, int x2) const
+{
 	if(x_wrap) {
 		x1 = wrap_x(x1);
 		x2 = wrap_x(x2);
@@ -661,10 +671,10 @@ int map::manhattan_distance_x(int x1, int x2) const
 			x1 += data.size_x;
 		}
 	}
-	return abs(x2 - x1);
+	return x1 - x2;
 }
 
-int map::manhattan_distance_y(int y1, int y2) const
+int map::vector_from_to_y(int y1, int y2) const
 {
 	if(y_wrap) {
 		y1 = wrap_y(y1);
@@ -676,6 +686,6 @@ int map::manhattan_distance_y(int y1, int y2) const
 			y1 += data.size_y;
 		}
 	}
-	return abs(y2 - y1);
+	return y1 - y2;
 }
 

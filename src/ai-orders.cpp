@@ -65,8 +65,8 @@ action goto_orders::get_action()
 		path.clear();
 		return action(action_none);
 	}
-	int chx = path.front().x - u->xpos;
-	int chy = path.front().y - u->ypos;
+	int chx = civ->m->vector_from_to_x(path.front().x, u->xpos);
+	int chy = civ->m->vector_from_to_y(path.front().y, u->ypos);
 	if(abs(chx) > 1 || abs(chy) > 1) {
 		ai_debug_printf(civ->civ_id, "error when planning goto route: (%d, %d) => (%d, %d) - tgt: (%d, %d).\n",
 				u->xpos, u->ypos, path.front().x, path.front().y, tgtx, tgty);
@@ -74,7 +74,7 @@ action goto_orders::get_action()
 			return action_none;
 		}
 		else {
-			ai_debug_printf(civ->civ_id, "after replan: (%d, %d) - size: %d..\n",
+			ai_debug_printf(civ->civ_id, "after replan: (%d, %d) - size: %d.\n",
 					path.front().x, path.front().y, path.size());
 		}
 	}
