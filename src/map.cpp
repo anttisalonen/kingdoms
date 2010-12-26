@@ -29,8 +29,8 @@ map::map(int x, int y, const resource_configuration& resconf_)
 	}
 
 	// create continents
-	int num_continents = 10;
-	int max_continent_size = x * y / num_continents; // in tiles
+	int num_continents = x * y / 800;
+	int max_continent_size = x * y / 10; // in tiles
 	for(int i = 0; i < num_continents; i++) {
 		int cont_x = rand() % x;
 		int cont_y = 10 + rand() % (y - 20);
@@ -90,13 +90,13 @@ map::map(int x, int y, const resource_configuration& resconf_)
 
 	// create terrain types
 	for(int j = 0; j < y; j++) {
-		int temp = get_temperature(j);
-		std::vector<int> types = get_types_by_temperature(temp);
 		for(int i = 0; i < x; i++) {
 			int this_data = get_data(i, j);
 			if(resconf.is_water_tile(this_data) ||
 			   resconf.is_mountain_tile(this_data))
 				continue;
+			int temp = get_temperature(i, j);
+			std::vector<int> types = get_types_by_temperature(temp);
 			if(resconf.is_hill_tile(this_data) &&
 			   temp > 3 && temp < 7)
 				continue;
@@ -121,10 +121,18 @@ void map::sea_around_land(int x, int y, int sea_tile)
 	}
 }
 
-int map::get_temperature(int n) const
+int map::get_temperature(int x, int y) const
 {
-	float dist_to_eq = fabsf(get_latitude(n));
-	return 10 - clamp(1, (int)(dist_to_eq * 10.0f), 9);
+	float dist_to_eq = fabsf(get_latitude(y));
+	int dist_to_sea = dist_to_sea_incl_mountains(x, y);
+	int t1 = 10 - clamp(1, (int)(dist_to_eq * 10.0f), 9);
+	if(dist_to_sea <= 2) {
+		if(t1 <= 3)
+			t1 += dist_to_sea;
+		else if(t1 >= 7)
+			t1 -= dist_to_sea;
+	}
+	return clamp(1, t1, 9);
 }
 
 std::vector<int> map::get_types_by_temperature(int temp) const
@@ -191,13 +199,15 @@ class sea_picker {
 int map::get_humidity_at(int x, int y) const
 {
 	float lat = fabsf(get_latitude(y));
-	if(lat > 0.4f)
-		return 5;
+	int lat_bonus = lat < 0.10f ? 3 : 0;
+	int dist_coeff = lat > 0.40f ? 3 : lat > 0.25f ? 2 : 1;
 
-	// tropical
-	if(lat < 0.15f)
-		return 9;
+	int dist_to_sea = dist_to_sea_incl_mountains(x, y);
+	return clamp(1, lat_bonus + dist_to_sea * dist_coeff - 2, 9);
+}
 
+int map::dist_to_sea_incl_mountains(int x, int y) const
+{
 	std::list<coord> path_to_sea = map_birds_path_to_nearest(coord(x, y),
 			sea_picker(*this));
 	int dist_to_sea = path_to_sea.size();
@@ -207,7 +217,7 @@ int map::get_humidity_at(int x, int y) const
 		if(resconf.is_mountain_tile(get_data(it->x, it->y)))
 			dist_to_sea += 2;
 	}
-	return clamp(1, dist_to_sea * 2 - 3, 9);
+	return dist_to_sea;
 }
 
 void map::create_mountains(int x, int y, int width)
