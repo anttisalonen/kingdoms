@@ -5,7 +5,7 @@
 #include <boost/bind.hpp>
 #include <boost/lambda/lambda.hpp>
 
-#include "round.h"
+#include "pompelmous.h"
 
 void set_default_city_production(city* c, const unit_configuration_map& uconfmap)
 {
@@ -121,7 +121,7 @@ action improve_unit_action(unit* u, improvement_type i)
 	return a;
 }
 
-round::round(const unit_configuration_map& uconfmap_,
+pompelmous::pompelmous(const unit_configuration_map& uconfmap_,
 		const advance_map& amap_,
 		const city_improv_map& cimap_,
 		map& m_, unsigned int road_moves_,
@@ -137,14 +137,14 @@ round::round(const unit_configuration_map& uconfmap_,
 	current_civ = civs.begin();
 }
 
-void round::add_civilization(civilization* civ)
+void pompelmous::add_civilization(civilization* civ)
 {
 	civs.push_back(civ);
 	current_civ = civs.begin();
 	refill_moves();
 }
 
-void round::refill_moves()
+void pompelmous::refill_moves()
 {
 	for(std::vector<civilization*>::iterator it = civs.begin();
 	    it != civs.end();
@@ -153,7 +153,7 @@ void round::refill_moves()
 	}
 }
 
-void round::increment_resources()
+void pompelmous::increment_resources()
 {
 	for(std::vector<civilization*>::iterator it = civs.begin();
 	    it != civs.end();
@@ -163,7 +163,7 @@ void round::increment_resources()
 	}
 }
 
-bool round::next_civ()
+bool pompelmous::next_civ()
 {
 	if(civs.empty())
 		return false;
@@ -181,7 +181,7 @@ bool round::next_civ()
 	return false;
 }
 
-void round::update_civ_points()
+void pompelmous::update_civ_points()
 {
 	for(std::vector<civilization*>::iterator it = civs.begin();
 	    it != civs.end();
@@ -197,17 +197,17 @@ void round::update_civ_points()
 	}
 }
 
-int round::needed_food_for_growth(int city_size) const
+int pompelmous::needed_food_for_growth(int city_size) const
 {
 	return city_size * 10;
 }
 
-int round::needed_culture_for_growth(int culture_level) const
+int pompelmous::needed_culture_for_growth(int culture_level) const
 {
 	return std::pow(10, culture_level);
 }
 
-void round::check_for_city_updates()
+void pompelmous::check_for_city_updates()
 {
 	bool update_land = false;
 	for(std::vector<civilization*>::iterator it = civs.begin();
@@ -251,7 +251,7 @@ void round::check_for_city_updates()
 		update_land_owners();
 }
 
-const unit_configuration* round::get_unit_configuration(int uid) const
+const unit_configuration* pompelmous::get_unit_configuration(int uid) const
 {
 	unit_configuration_map::const_iterator it = uconfmap.find(uid);
 	if(it == uconfmap.end())
@@ -259,7 +259,7 @@ const unit_configuration* round::get_unit_configuration(int uid) const
 	return &it->second;
 }
 
-bool round::perform_action(int civid, const action& a)
+bool pompelmous::perform_action(int civid, const action& a)
 {
 	if(civid < 0 || civid != current_civ_id()) {
 		return false;
@@ -346,7 +346,7 @@ bool round::perform_action(int civid, const action& a)
 	return true;
 }
 
-void round::check_city_conquer(int tgtxpos, int tgtypos, int conquering_civid)
+void pompelmous::check_city_conquer(int tgtxpos, int tgtypos, int conquering_civid)
 {
 	city* c = m.city_on_spot(tgtxpos, tgtypos);
 	if(c && c->civ_id != (unsigned int)conquering_civid) {
@@ -368,7 +368,7 @@ void round::check_city_conquer(int tgtxpos, int tgtypos, int conquering_civid)
 	}
 }
 
-void round::destroy_improvements(city* c)
+void pompelmous::destroy_improvements(city* c)
 {
 	for(std::set<unsigned int>::iterator it = c->built_improvements.begin();
 			it != c->built_improvements.end();) {
@@ -382,7 +382,7 @@ void round::destroy_improvements(city* c)
 	}
 }
 
-void round::update_land_owners()
+void pompelmous::update_land_owners()
 {
 	for(int i = 0; i < m.size_x(); i++)
 		for(int j = 0; j < m.size_y(); j++)
@@ -399,7 +399,7 @@ void round::update_land_owners()
 	}
 }
 
-void round::check_civ_elimination(int civ_id)
+void pompelmous::check_civ_elimination(int civ_id)
 {
 	civilization* civ = civs[civ_id];
 	if(civ->cities.size() == 0) {
@@ -418,7 +418,7 @@ void round::check_civ_elimination(int civ_id)
 	}
 }
 
-bool round::try_move_unit(unit* u, int chx, int chy)
+bool pompelmous::try_move_unit(unit* u, int chx, int chy)
 {
 	if(abs(chx) > 1 || abs(chy) > 1)
 		return false;
@@ -500,41 +500,41 @@ bool round::try_move_unit(unit* u, int chx, int chy)
 	}
 }
 
-int round::current_civ_id() const
+int pompelmous::current_civ_id() const
 {
 	if(current_civ == civs.end())
 		return -1;
 	return (*current_civ)->civ_id;
 }
 
-void round::declare_war_between(unsigned int civ1, unsigned int civ2)
+void pompelmous::declare_war_between(unsigned int civ1, unsigned int civ2)
 {
 	civs[civ1]->set_war(civ2);
 	civs[civ2]->set_war(civ1);
 }
 
-void round::peace_between(unsigned int civ1, unsigned int civ2)
+void pompelmous::peace_between(unsigned int civ1, unsigned int civ2)
 {
 	civs[civ1]->set_peace(civ2);
 	civs[civ2]->set_peace(civ1);
 }
 
-bool round::in_war(unsigned int civ1, unsigned int civ2) const
+bool pompelmous::in_war(unsigned int civ1, unsigned int civ2) const
 {
 	return civs[civ1]->get_relationship_to_civ(civ2) == relationship_war;
 }
 
-int round::get_round_number() const
+int pompelmous::get_round_number() const
 {
 	return round_number;
 }
 
-unsigned int round::get_num_road_moves() const
+unsigned int pompelmous::get_num_road_moves() const
 {
 	return road_moves;
 }
 
-bool round::try_load_unit(unit* u, int x, int y)
+bool pompelmous::try_load_unit(unit* u, int x, int y)
 {
 	const std::list<unit*>& units = m.units_on_spot(x, y);
 	for(std::list<unit*>::const_iterator it = units.begin();
@@ -550,7 +550,7 @@ bool round::try_load_unit(unit* u, int x, int y)
 	return false;
 }
 
-bool round::try_unload_units(unit* u, int x, int y)
+bool pompelmous::try_unload_units(unit* u, int x, int y)
 {
 	if(!u->carrying())
 		return false;
@@ -568,7 +568,7 @@ bool round::try_unload_units(unit* u, int x, int y)
 	return true;
 }
 
-bool round::try_wakeup_loaded(unit* u)
+bool pompelmous::try_wakeup_loaded(unit* u)
 {
 	if(!u->carrying())
 		return false;

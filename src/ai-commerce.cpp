@@ -30,7 +30,7 @@ class worker_searcher {
 		}
 };
 
-commerce_objective::commerce_objective(round* r_, civilization* myciv_,
+commerce_objective::commerce_objective(pompelmous* r_, civilization* myciv_,
 		const std::string& n)
 	: objective(r_, myciv_, n)
 {

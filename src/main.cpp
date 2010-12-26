@@ -267,7 +267,7 @@ government_map parse_government_config(const std::string& fp)
 	return govmap;
 }
 
-void automatic_play_until(round& r, std::map<unsigned int, ai>& ais, int num_turns)
+void automatic_play_until(pompelmous& r, std::map<unsigned int, ai>& ais, int num_turns)
 {
 	while(!signal_received && r.get_round_number() <= num_turns) {
 		std::map<unsigned int, ai>::iterator ait = ais.find(r.current_civ_id());
@@ -298,7 +298,7 @@ int run(bool observer, bool use_gui, bool ai_debug, int skip_rounds)
 		civs[i]->set_map(&m);
 		civs[i]->set_government(&govmap.begin()->second);
 	}
-	round r(uconfmap, amap, cimap, m, road_moves, num_turns);
+	pompelmous r(uconfmap, amap, cimap, m, road_moves, num_turns);
 
 	std::vector<coord> starting_places = m.get_starting_places(civs.size());
 	if(starting_places.size() != civs.size()) {

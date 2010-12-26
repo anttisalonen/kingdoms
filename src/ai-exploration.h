@@ -1,14 +1,14 @@
 #ifndef AI_EXPLORATION_H
 #define AI_EXPLORATION_H
 
-#include "round.h"
+#include "pompelmous.h"
 #include "ai-debug.h"
 #include "ai-orders.h"
 #include "ai-objective.h"
 
 class exploration_objective : public objective {
 	public:
-		exploration_objective(round* r_, civilization* myciv_, const std::string& n);
+		exploration_objective(pompelmous* r_, civilization* myciv_, const std::string& n);
 		int get_unit_points(const unit& u) const;
 		bool add_unit(unit* u);
 	protected:

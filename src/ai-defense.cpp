@@ -24,7 +24,7 @@ bool usable_defense_unit(const unit_configuration& uc)
 	return uc.max_strength > 0 && uc.is_land_unit();
 }
 
-defense_objective::defense_objective(round* r_, civilization* myciv_,
+defense_objective::defense_objective(pompelmous* r_, civilization* myciv_,
 		const std::string& n)
 	: objective(r_, myciv_, n)
 {

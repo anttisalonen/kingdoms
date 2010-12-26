@@ -1,5 +1,5 @@
-#ifndef ROUND_H
-#define ROUND_H
+#ifndef POMPELMOUS_H
+#define POMPELMOUS_H
 
 #include <vector>
 
@@ -50,10 +50,10 @@ action unit_action(unit_action_type t, unit* u);
 action move_unit_action(unit* u, int chx, int chy);
 action improve_unit_action(unit* u, improvement_type i);
 
-class round
+class pompelmous
 {
 	public:
-		round(const unit_configuration_map& uconfmap_, 
+		pompelmous(const unit_configuration_map& uconfmap_, 
 				const advance_map& amap_, 
 				const city_improv_map& cimap_,
 				map& m_,

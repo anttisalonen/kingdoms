@@ -3,7 +3,7 @@
 #include "ai-objective.h"
 #include "ai-debug.h"
 
-objective::objective(round* r_, civilization* myciv_, const std::string& obj_name_)
+objective::objective(pompelmous* r_, civilization* myciv_, const std::string& obj_name_)
 	: r(r_), myciv(myciv_), obj_name(obj_name_)
 {
 }
@@ -128,7 +128,7 @@ const std::string& objective::get_name() const
 	return obj_name;
 }
 
-unit_configuration_map::const_iterator objective::choose_best_unit(const round& r, 
+unit_configuration_map::const_iterator objective::choose_best_unit(const pompelmous& r, 
 		const civilization& myciv, const city& c) const
 {
 	unit_configuration_map::const_iterator chosen = r.uconfmap.end();

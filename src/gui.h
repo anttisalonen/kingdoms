@@ -22,7 +22,7 @@
 class gui
 {
 	public:
-		gui(int x, int y, map& mm, round& rr,
+		gui(int x, int y, map& mm, pompelmous& rr,
 				const std::vector<std::string>& terrain_files,
 				const std::vector<std::string>& unit_files,
 				const char* default_unit_file,

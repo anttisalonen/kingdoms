@@ -41,7 +41,7 @@ bool find_nearest_enemy(const civilization* myciv, const unit* u, int* tgtx, int
 	}
 }
 
-offense_objective::offense_objective(round* r_, civilization* myciv_,
+offense_objective::offense_objective(pompelmous* r_, civilization* myciv_,
 		const std::string& n)
 	: defense_objective(r_, myciv_, n)
 {

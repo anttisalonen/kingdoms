@@ -70,7 +70,7 @@ int exploration_objective::improvement_value(const city_improvement& ci) const
 	return -1;
 }
 
-exploration_objective::exploration_objective(round* r_, civilization* myciv_, const std::string& n)
+exploration_objective::exploration_objective(pompelmous* r_, civilization* myciv_, const std::string& n)
 	: objective(r_, myciv_, n)
 {
 }

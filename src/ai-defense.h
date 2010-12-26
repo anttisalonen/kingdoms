@@ -3,12 +3,12 @@
 
 #include "ai-orders.h"
 #include "ai-objective.h"
-#include "round.h"
+#include "pompelmous.h"
 
 class defense_objective : public objective {
 	public:
 		virtual ~defense_objective() {}
-		defense_objective(round* r_, civilization* myciv_, const std::string& n);
+		defense_objective(pompelmous* r_, civilization* myciv_, const std::string& n);
 		virtual int get_unit_points(const unit& u) const;
 		virtual bool add_unit(unit* u);
 	protected:

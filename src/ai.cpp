@@ -25,7 +25,7 @@ ai_tunable_parameters::ai_tunable_parameters()
 {
 }
 
-ai::ai(map& m_, round& r_, civilization* c)
+ai::ai(map& m_, pompelmous& r_, civilization* c)
 	: m(m_),
 	r(r_),
 	myciv(c)

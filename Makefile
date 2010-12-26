@@ -11,7 +11,7 @@ SRCFILES = color.cpp sdl-utils.cpp utils.cpp rect.cpp \
 	   city_improvement.cpp unit.cpp \
 	   city.cpp map.cpp fog_of_war.cpp \
 	   government.cpp civ.cpp \
-	   round.cpp \
+	   pompelmous.cpp \
 	   astar.cpp map-astar.cpp ai-orders.cpp ai-objective.cpp \
 	   ai-debug.cpp ai-exploration.cpp ai-expansion.cpp \
 	   ai-defense.cpp ai-offense.cpp ai-commerce.cpp \

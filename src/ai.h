@@ -3,7 +3,7 @@
 
 #include <utility>
 #include <queue>
-#include "round.h"
+#include "pompelmous.h"
 #include "utils.h"
 
 #include "ai-objective.h"
@@ -37,7 +37,7 @@ struct ai_tunable_parameters {
 
 class ai {
 	public:
-		ai(map& m_, round& r_, civilization* c);
+		ai(map& m_, pompelmous& r_, civilization* c);
 		bool play();
 	private:
 		void create_city_orders(city* c);
@@ -52,7 +52,7 @@ class ai {
 		std::set<unsigned int> handled_units;
 		std::map<unsigned int, objective*> building_cities;
 		map& m;
-		round& r;
+		pompelmous& r;
 		civilization* myciv;
 };
 

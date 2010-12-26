@@ -212,7 +212,7 @@ gui_resources::~gui_resources()
 	}
 }
 
-gui_data::gui_data(map& mm, round& rr)
+gui_data::gui_data(map& mm, pompelmous& rr)
 	: m(mm),
 	r(rr)
 {

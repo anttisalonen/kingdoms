@@ -233,7 +233,7 @@ bool find_best_city_pos(const civilization* myciv,
 	return true;
 }
 
-expansion_objective::expansion_objective(round* r_, civilization* myciv_,
+expansion_objective::expansion_objective(pompelmous* r_, civilization* myciv_,
 		const std::string& n)
 	: objective(r_, myciv_, n),
 	need_settler(false),

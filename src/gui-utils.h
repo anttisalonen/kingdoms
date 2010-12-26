@@ -11,7 +11,7 @@
 #include "color.h"
 #include "sdl-utils.h"
 #include "rect.h"
-#include "round.h"
+#include "pompelmous.h"
 
 struct tileset {
 	tileset(int w, int h);
@@ -43,9 +43,9 @@ struct gui_resources {
 
 class gui_data {
 	public:
-		gui_data(map& mm, round& rr);
+		gui_data(map& mm, pompelmous& rr);
 		map& m;
-		round& r;
+		pompelmous& r;
 };
 
 class button {
