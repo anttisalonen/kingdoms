@@ -14,7 +14,7 @@ main = do
   firsts <- forM (zip [(1 :: Int)..] ns) $ \(num, (lbl, deps)) -> do
     forM_ deps $ \d -> do
       printf "  n%d -> n%d;\n" d num
-    printf "  n%d [label = \"%s\"];\n" num lbl
+    printf "  n%d [label = \"%s (ID: %d)\"];\n" num lbl num
     return $ if null deps then Just num else Nothing
 
   putStr "  { rank = same; "
