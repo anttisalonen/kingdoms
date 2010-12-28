@@ -6,6 +6,7 @@ LDFLAGS  ?= -lSDL -lSDL_image -lSDL_ttf -lboost_serialization
 BINDIR = bin
 TARGET = $(BINDIR)/main
 SRCDIR = src
+TMPDIR = tmp
 SRCFILES = color.cpp sdl-utils.cpp utils.cpp rect.cpp \
 	   resource_configuration.cpp advance.cpp \
 	   city_improvement.cpp unit.cpp \
@@ -43,6 +44,12 @@ $(TARGET): $(OBJS)
 	@$(CC) -MM $(CPPFLAGS) $< > $@.P
 	@sed 's,\($(notdir $*)\)\.o[ :]*,$(dir $*)\1.o $@ : ,g' < $@.P > $@
 	@rm -f $@.P
+
+$(TMPDIR):
+	mkdir -p $(TMPDIR)
+
+discoveries: $(TMPDIR)
+	cat share/discoveries.txt | runhaskell utils/dot.hs | dot -Tpng > $(TMPDIR)/graph.png
 
 clean:
 	rm -f $(OBJS) $(DEPS) $(TARGET)
