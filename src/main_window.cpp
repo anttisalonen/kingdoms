@@ -418,8 +418,10 @@ int main_window::try_move_camera(bool left, bool right, bool up, bool down)
 
 void main_window::center_camera_to_unit(unit* u)
 {
-	cam.cam_x = clamp(0, data.m.wrap_x(u->xpos - (-sidebar_size + cam_total_tiles_x) / 2), data.m.size_x());
-	cam.cam_y = clamp(0, data.m.wrap_y(u->ypos - cam_total_tiles_y / 2), data.m.size_y());
+	cam.cam_x = clamp(0, data.m.wrap_x(u->xpos - (-sidebar_size + cam_total_tiles_x) / 2), 
+			data.m.size_x() - (data.m.x_wrapped() ? 0 : cam_total_tiles_x));
+	cam.cam_y = clamp(0, data.m.wrap_y(u->ypos - cam_total_tiles_y / 2), 
+			data.m.size_y() - (data.m.y_wrapped() ? 0 : cam_total_tiles_y));
 }
 
 int main_window::try_center_camera_to_unit(unit* u)
