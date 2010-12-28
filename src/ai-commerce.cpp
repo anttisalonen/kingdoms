@@ -17,7 +17,7 @@ class worker_searcher {
 			for(std::list<unit*>::const_iterator it = units.begin();
 					it != units.end();
 					++it) {
-				if((*it)->uconf.worker && (*it) != self) {
+				if((*it)->uconf->worker && (*it) != self) {
 					found_unit = *it;
 					return true;
 				}
@@ -76,7 +76,7 @@ bool get_next_improv_spot(int startx, int starty, const civilization* civ,
 				for(std::list<unit*>::const_iterator it = units.begin();
 						it != units.end(); ++it) {
 					if((*it)->civ_id == (int)civ->civ_id &&
-						(*it)->uconf.worker)
+						(*it)->uconf->worker)
 						continue;
 				}
 				if((civ->m->get_improvements_on(xp, yp) & ~improv_road) == 0) {
@@ -110,7 +110,7 @@ bool get_next_improv_spot(int startx, int starty, const civilization* civ,
 
 int commerce_objective::get_unit_points(const unit& u) const
 {
-	if(!usable_unit(u.uconf))
+	if(!usable_unit(*u.uconf))
 		return -1;
 	int prio = worker_prio;
 	worker_searcher searcher(myciv, &u, 25);
@@ -134,7 +134,7 @@ int commerce_objective::get_unit_points(const unit& u) const
 
 bool commerce_objective::add_unit(unit* u)
 {
-	if(!usable_unit(u->uconf))
+	if(!usable_unit(*u->uconf))
 		return false;
 	orders* o = new improve_orders(myciv, u);
 	if(o->finished())

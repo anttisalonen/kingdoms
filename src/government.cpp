@@ -10,3 +10,7 @@ government::government(unsigned int gov_id_,
 {
 }
 
+government::government()
+{
+}
+

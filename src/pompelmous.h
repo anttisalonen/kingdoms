@@ -1,7 +1,10 @@
 #ifndef POMPELMOUS_H
 #define POMPELMOUS_H
 
-#include <vector>
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/serialization/vector.hpp>
+#include <boost/serialization/split_member.hpp>
 
 #include "unit_configuration.h"
 #include "advance.h"
@@ -42,8 +45,40 @@ struct action {
 				} move_pos;
 				improvement_type improv;
 			} unit_action_data;
+
+			template<class Archive>
+			void serialize(Archive& ar, const unsigned int version)
+			{
+				ar & uatype;
+				switch(uatype) {
+					case action_move_unit:
+						ar & unit_action_data.move_pos.chx;
+						ar & unit_action_data.move_pos.chy;
+						break;
+					case action_improvement:
+						ar & unit_action_data.improv;
+						break;
+					default:
+						break;
+				}
+				ar & u;
+			}
 		} unit_data;
 	} data;
+
+	friend class boost::serialization::access;
+	template<class Archive>
+	void serialize(Archive& ar, const unsigned int version)
+	{
+		ar & type;
+		switch(type) {
+			case action_unit_action:
+				ar & data.unit_data;
+				break;
+			default:
+				break;
+		}
+	}
 };
 
 action unit_action(unit_action_type t, unit* u);
@@ -56,9 +91,10 @@ class pompelmous
 		pompelmous(const unit_configuration_map& uconfmap_, 
 				const advance_map& amap_, 
 				const city_improv_map& cimap_,
-				map& m_,
+				map* m_,
 				unsigned int road_moves_,
 				int num_turns_);
+		pompelmous(); // for serialization
 		void add_civilization(civilization* civ);
 		bool perform_action(int civid, const action& a);
 		const unit_configuration* get_unit_configuration(int uid) const;
@@ -72,6 +108,9 @@ class pompelmous
 		bool in_war(unsigned int civ1, unsigned int civ2) const;
 		int get_round_number() const;
 		unsigned int get_num_road_moves() const;
+		int get_num_turns() const;
+		const map& get_map() const;
+		map& get_map();
 	private:
 		bool next_civ();
 		void refill_moves();
@@ -89,10 +128,54 @@ class pompelmous
 		bool try_wakeup_loaded(unit* u);
 		void update_civ_points();
 		std::vector<civilization*>::iterator current_civ;
-		map& m;
+		map* m;
 		int round_number;
 		const unsigned int road_moves;
 		int num_turns;
+
+		friend class boost::serialization::access;
+
+		template<class Archive>
+		void archive_helper(Archive& ar, const unsigned int version)
+		{
+			ar & const_cast<unit_configuration_map&>(uconfmap);
+			ar & const_cast<advance_map&>(amap);
+			ar & const_cast<city_improv_map&>(cimap);
+			ar & m;
+			ar & civs;
+
+			ar & round_number;
+			ar & const_cast<unsigned int&>(road_moves);
+			ar & num_turns;
+		}
+		template<class Archive>
+		void save(Archive& ar, const unsigned int version) const
+		{
+			const_cast<pompelmous*>(this)->archive_helper(ar, version);
+			int curr_civ;
+			if(current_civ != civs.end())
+				curr_civ = static_cast<int>((*current_civ)->civ_id);
+			else
+				curr_civ = -1;
+			ar & curr_civ;
+		}
+		template<class Archive>
+		void load(Archive& ar, const unsigned int version)
+		{
+			archive_helper(ar, version);
+			int curr_civ;
+			ar & curr_civ;
+			current_civ = civs.end();
+			if(curr_civ >= 0) {
+				for(current_civ = civs.begin(); 
+						current_civ != civs.end(); 
+						++current_civ) {
+					if((*current_civ)->civ_id == (unsigned int)curr_civ)
+						break;
+				}
+			}
+		}
+		BOOST_SERIALIZATION_SPLIT_MEMBER();
 };
 
 #endif

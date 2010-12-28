@@ -11,7 +11,7 @@ unit::unit(int uid, int uconfid, int x, int y, int civid,
 	civ_id(civid),
 	xpos(x),
 	ypos(y),
-	uconf(uconf_),
+	uconf(&uconf_),
 	strength(10 * uconf_.max_strength),
 	veteran(false),
 	fortifying(false),
@@ -24,6 +24,16 @@ unit::unit(int uid, int uconfid, int x, int y, int civid,
 	moves(0),
 	road_moves(0),
 	def_road_moves(def_road_moves_)
+{
+}
+
+unit::unit()
+	: unit_id(-1337),
+	uconf_id(-1337),
+	civ_id(-1337),
+	uconf(NULL),
+	carrying_unit(NULL),
+	def_road_moves(-1337)
 {
 }
 
@@ -45,21 +55,21 @@ void unit::new_round(improvement_type& i)
 		fortifying = false;
 		fortified = true;
 	}
-	if(resting || fortified || (moves == uconf.max_moves)) {
-		int strdiff = 10 * uconf.max_strength - strength;
-		if(strdiff > (int)uconf.max_strength)
+	if(resting || fortified || (moves == uconf->max_moves)) {
+		int strdiff = 10 * uconf->max_strength - strength;
+		if(strdiff > (int)uconf->max_strength)
 			strength += strdiff / 2;
 		else if(strdiff > 0)
-			strength = 10 * uconf.max_strength;
+			strength = 10 * uconf->max_strength;
 	}
-	moves = uconf.max_moves;
+	moves = uconf->max_moves;
 	road_moves = 0;
 	resting = false;
 }
 
 bool unit::is_settler() const
 {
-	return uconf.settler;
+	return uconf->settler;
 }
 
 void unit::fortify()
@@ -174,7 +184,7 @@ bool unit::idle() const
 
 bool unit::is_military_unit() const
 {
-	return uconf.max_strength > 0;
+	return uconf->max_strength > 0;
 }
 
 bool unit::load_at(unit* loader)
@@ -220,7 +230,7 @@ bool unit::carrying() const
 }
 bool unit::is_land_unit() const
 {
-	return uconf.is_land_unit();
+	return uconf->is_land_unit();
 }
 
 

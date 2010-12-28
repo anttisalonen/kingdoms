@@ -81,7 +81,7 @@ bool ai::play()
 		if(handled_units.find(it->second->unit_id) == handled_units.end()) {
 			handled_units.insert(it->second->unit_id);
 			ai_debug_printf(myciv->civ_id, "adding unhandled unit %s (%d) as free.\n",
-					it->second->uconf.unit_name.c_str(), it->second->unit_id);
+					it->second->uconf->unit_name.c_str(), it->second->unit_id);
 			free_units.insert(it->second->unit_id);
 		}
 	}
@@ -96,7 +96,7 @@ bool ai::play()
 			}
 			else {
 				ai_debug_printf(myciv->civ_id, "assigning free unit %s (%d).\n",
-						uit->second->uconf.unit_name.c_str(),
+						uit->second->uconf->unit_name.c_str(),
 						uit->second->unit_id);
 				bool succ = assign_free_unit(uit->second);
 				if(succ) {
@@ -168,14 +168,14 @@ bool ai::assign_free_unit(unit* u)
 {
 	int max_points = -1;
 	objective* chosen = NULL;
-	ai_debug_printf(myciv->civ_id, "assigning unit %s...\n", u->uconf.unit_name.c_str());
+	ai_debug_printf(myciv->civ_id, "assigning unit %s...\n", u->uconf->unit_name.c_str());
 	for(std::list<std::pair<objective*, int> >::const_iterator it = objectives.begin();
 			it != objectives.end();
 			++it) {
 		int points = it->first->get_unit_points(*u);
 		ai_debug_printf(myciv->civ_id, "%-12s: %-12s: %4d\n",
 				it->first->get_name().c_str(),
-				u->uconf.unit_name.c_str(), points);
+				u->uconf->unit_name.c_str(), points);
 		if(points > 0) {
 			int tot_points = points * it->second;
 			if(tot_points > max_points) {
@@ -218,7 +218,7 @@ void ai::handle_new_unit(const msg& m)
 		if(oit != building_cities.end()) {
 			bool succ = oit->second->add_unit(uit->second);
 			ai_debug_printf(myciv->civ_id, "adding %s to %s.\n",
-					uit->second->uconf.unit_name.c_str(),
+					uit->second->uconf->unit_name.c_str(),
 					oit->second->get_name().c_str());
 			if(!succ) {
 				ai_debug_printf(myciv->civ_id, "could not add unit.\n");
@@ -226,7 +226,7 @@ void ai::handle_new_unit(const msg& m)
 			building_cities.erase(oit);
 			if(succ) {
 				ai_debug_printf(myciv->civ_id, "adding handled unit %s (%d).\n",
-						uit->second->uconf.unit_name.c_str(), 
+						uit->second->uconf->unit_name.c_str(), 
 						uit->second->unit_id);
 				handled_units.insert(uit->second->unit_id);
 				unit_added = true;
@@ -237,7 +237,7 @@ void ai::handle_new_unit(const msg& m)
 			// objective - try best fit.
 			if(assign_free_unit(uit->second)) {
 				ai_debug_printf(myciv->civ_id, "adding handled unit %s (%d).\n",
-						uit->second->uconf.unit_name.c_str(), 
+						uit->second->uconf->unit_name.c_str(), 
 						uit->second->unit_id);
 				handled_units.insert(uit->second->unit_id);
 			}
@@ -253,7 +253,7 @@ void ai::handle_new_unit(const msg& m)
 	std::map<unsigned int, city*>::iterator cit = myciv->cities.find(m.msg_data.city_prod_data.building_city_id);
 	if(cit != myciv->cities.end()) {
 		ai_debug_printf(myciv->civ_id, "new unit %s built in %s.\n",
-				uit->second->uconf.unit_name.c_str(),
+				uit->second->uconf->unit_name.c_str(),
 				cit->second->cityname.c_str());
 		create_city_orders(cit->second);
 	}
@@ -313,7 +313,7 @@ ai::orderprio_t ai::get_exploration_prio(unit* u)
 	else
 		prio = clamp<int>(param.exploration_min_prio, 
 				param.exploration_max_prio + 
-				param.unit_strength_prio_coeff * math::pow(u->uconf.max_strength, 2) - 
+				param.unit_strength_prio_coeff * math::pow(u->uconf->max_strength, 2) - 
 				e->path_length() * param.exploration_length_decr_coeff, 
 				param.exploration_max_prio);
 	if(debug)

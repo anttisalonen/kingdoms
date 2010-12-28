@@ -1,8 +1,11 @@
 #ifndef UNIT_CONFIGURATION_H
 #define UNIT_CONFIGURATION_H
 
-#include <string>
 #include <map>
+
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/serialization/string.hpp>
 
 class unit_configuration {
 	public:
@@ -18,6 +21,21 @@ class unit_configuration {
 		unsigned int carry_units;
 		bool is_land_unit() const;
 		bool is_water_unit() const;
+
+		template<class Archive>
+		void serialize(Archive& ar, const unsigned int version)
+		{
+			ar & unit_name;
+			ar & max_moves;
+			ar & settler;
+			ar & worker;
+			ar & production_cost;
+			ar & max_strength;
+			ar & needed_advance;
+			ar & sea_unit;
+			ar & ocean_unit;
+			ar & carry_units;
+		}
 };
 
 inline bool unit_configuration::is_land_unit() const

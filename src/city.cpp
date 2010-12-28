@@ -22,6 +22,12 @@ city::city(std::string name, int x, int y, unsigned int civid,
 	production.current_production_id = -1;
 }
 
+city::city()
+	: xpos(-1337),
+	ypos(-1337)
+{
+}
+
 bool city::producing_something() const
 {
 	return production.current_production_id != -1;

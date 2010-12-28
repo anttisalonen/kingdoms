@@ -2,6 +2,7 @@
 #include "map-astar.h"
 #include "city_window.h"
 #include "diplomacy_window.h"
+#include "serialize.h"
 
 main_window::main_window(SDL_Surface* screen_, int x, int y, gui_data& data_, gui_resources& res_,
 		ai* ai_, civilization* myciv_)
@@ -569,6 +570,11 @@ action main_window::input_to_action(const SDL_Event& ev)
 					else if(k == SDLK_u) {
 						return unit_action(action_unload, current_unit->second);
 					}
+					else if(k == SDLK_s && (ev.key.keysym.mod & KMOD_CTRL)) {
+						printf("Saving.\n");
+						save_game(data.r);
+						return action_none;
+					}
 					else {
 						int chx, chy;
 						numpad_to_move(k, &chx, &chy);
@@ -593,10 +599,16 @@ action main_window::observer_action(const SDL_Event& ev)
 		case SDL_KEYDOWN:
 			{
 				SDLKey k = ev.key.keysym.sym;
-				if(k == SDLK_ESCAPE || k == SDLK_q)
+				if(k == SDLK_ESCAPE || k == SDLK_q) {
 					return action(action_give_up);
+				}
 				else if(k == SDLK_RETURN || k == SDLK_KP_ENTER) {
 					internal_ai->play();
+				}
+				else if(k == SDLK_s && (ev.key.keysym.mod & KMOD_CTRL)) {
+					printf("Saving.\n");
+					save_game(data.r);
+					return action_none;
 				}
 			}
 		default:

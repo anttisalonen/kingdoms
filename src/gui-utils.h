@@ -43,8 +43,8 @@ struct gui_resources {
 
 class gui_data {
 	public:
-		gui_data(map& mm, pompelmous& rr);
-		map& m;
+		gui_data(const map& mm, pompelmous& rr);
+		const map& m;
 		pompelmous& r;
 };
 

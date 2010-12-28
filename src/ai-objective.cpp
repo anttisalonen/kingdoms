@@ -91,13 +91,13 @@ void objective::process(std::set<unsigned int>* freed_units)
 			action a = oit->second->get_action();
 #if 0
 			ai_debug_printf(myciv->civ_id, "%s - %s - %d: %s.\n",
-						obj_name.c_str(), uit->second->uconf.unit_name.c_str(),
+						obj_name.c_str(), uit->second->uconf->unit_name.c_str(),
 						uit->second->unit_id, a.to_string().c_str());
 #endif
 			int success = r->perform_action(myciv->civ_id, a);
 			if(!success) {
 				ai_debug_printf(myciv->civ_id, "%s - %s - %d: could not perform action: %s.\n", 
-						obj_name.c_str(), uit->second->uconf.unit_name.c_str(),
+						obj_name.c_str(), uit->second->uconf->unit_name.c_str(),
 						uit->second->unit_id, a.to_string().c_str());
 				oit->second->replan();
 				action a = oit->second->get_action();

@@ -1,6 +1,9 @@
 #ifndef COORD_H
 #define COORD_H
 
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
+
 struct coord {
 	coord();
 	coord(int x_, int y_);
@@ -9,6 +12,13 @@ struct coord {
 	bool operator<(const coord& oth) const;
 	bool operator==(const coord& oth) const;
 	bool operator!=(const coord& oth) const;
+
+	template<class Archive>
+	void serialize(Archive& ar, const unsigned int version)
+	{
+		ar & x;
+		ar & y;
+	}
 };
 
 inline coord::coord()

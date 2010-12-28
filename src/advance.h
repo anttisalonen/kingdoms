@@ -1,8 +1,11 @@
 #ifndef ADVANCE_H
 #define ADVANCE_H
 
-#include <string>
 #include <map>
+
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/serialization/string.hpp>
 
 class advance {
 	public:
@@ -11,6 +14,15 @@ class advance {
 		std::string advance_name;
 		int cost;
 		unsigned int needed_advances[4];
+
+		template<class Archive>
+		void serialize(Archive& ar, const unsigned int version)
+		{
+			ar & advance_id;
+			ar & advance_name;
+			ar & cost;
+			ar & needed_advances;
+		}
 };
 
 typedef std::map<unsigned int, advance> advance_map;

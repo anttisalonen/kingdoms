@@ -26,7 +26,7 @@ void combat(unit* u1, unit* u2)
 		return;
 	if(u1->strength == 0 || u2->strength == 0)
 		return;
-	if(u2->uconf.max_strength == 0) {
+	if(u2->uconf->max_strength == 0) {
 		u2->strength = 0;
 		return;
 	}
@@ -124,7 +124,7 @@ action improve_unit_action(unit* u, improvement_type i)
 pompelmous::pompelmous(const unit_configuration_map& uconfmap_,
 		const advance_map& amap_,
 		const city_improv_map& cimap_,
-		map& m_, unsigned int road_moves_,
+		map* m_, unsigned int road_moves_,
 		int num_turns_)
 	: uconfmap(uconfmap_),
 	amap(amap_),
@@ -135,6 +135,12 @@ pompelmous::pompelmous(const unit_configuration_map& uconfmap_,
 	num_turns(num_turns_)
 {
 	current_civ = civs.begin();
+}
+
+pompelmous::pompelmous()
+	: m(NULL),
+	road_moves(1337)
+{
 }
 
 void pompelmous::add_civilization(civilization* civ)
@@ -232,7 +238,7 @@ void pompelmous::check_for_city_updates()
 			}
 			if(c->stored_food >= needed_food_for_growth(c->get_city_size())) {
 				c->increment_city_size();
-				coord rescoord = next_good_resource_spot(c, &m);
+				coord rescoord = next_good_resource_spot(c, m);
 				c->add_resource_worker(rescoord);
 				if(c->has_granary(cimap)) {
 					c->stored_food = needed_food_for_growth(c->get_city_size()) / 2;
@@ -281,11 +287,11 @@ bool pompelmous::perform_action(int civid, const action& a)
 							a.data.unit_data.unit_action_data.move_pos.chy);
 				case action_found_city:
 					{
-						bool can_build = a.data.unit_data.u->uconf.settler;
+						bool can_build = a.data.unit_data.u->uconf->settler;
 						if(can_build && 
-							m.city_on_spot(a.data.unit_data.u->xpos, 
+							m->city_on_spot(a.data.unit_data.u->xpos, 
 								a.data.unit_data.u->ypos) == NULL && 
-							m.can_found_city_on(a.data.unit_data.u->xpos,
+							m->can_found_city_on(a.data.unit_data.u->xpos,
 								a.data.unit_data.u->ypos)) {
 							city* c = (*current_civ)->add_city(a.data.unit_data.u->xpos,
 									a.data.unit_data.u->ypos);
@@ -315,16 +321,16 @@ bool pompelmous::perform_action(int civid, const action& a)
 					if(a.data.unit_data.unit_action_data.improv == improv_none) {
 						return false;
 					}
-					if(!a.data.unit_data.u->uconf.worker) {
+					if(!a.data.unit_data.u->uconf->worker) {
 						return false;
 					}
-					if(!m.can_improve_terrain(a.data.unit_data.u->xpos,
+					if(!m->can_improve_terrain(a.data.unit_data.u->xpos,
 							a.data.unit_data.u->ypos,
 							a.data.unit_data.u->civ_id,
 							a.data.unit_data.unit_action_data.improv))
 						return false;
 					a.data.unit_data.u->start_improving_to(a.data.unit_data.unit_action_data.improv,
-							m.get_needed_turns_for_improvement(a.data.unit_data.unit_action_data.improv));
+							m->get_needed_turns_for_improvement(a.data.unit_data.unit_action_data.improv));
 					return true;
 				case action_load:
 					if(!a.data.unit_data.u->is_land_unit())
@@ -348,7 +354,7 @@ bool pompelmous::perform_action(int civid, const action& a)
 
 void pompelmous::check_city_conquer(int tgtxpos, int tgtypos, int conquering_civid)
 {
-	city* c = m.city_on_spot(tgtxpos, tgtypos);
+	city* c = m->city_on_spot(tgtxpos, tgtypos);
 	if(c && c->civ_id != (unsigned int)conquering_civid) {
 		civilization* civ = civs[c->civ_id];
 		if(c->get_city_size() > 1) {
@@ -384,9 +390,9 @@ void pompelmous::destroy_improvements(city* c)
 
 void pompelmous::update_land_owners()
 {
-	for(int i = 0; i < m.size_x(); i++)
-		for(int j = 0; j < m.size_y(); j++)
-			m.set_land_owner(-1, i, j);
+	for(int i = 0; i < m->size_x(); i++)
+		for(int j = 0; j < m->size_y(); j++)
+			m->set_land_owner(-1, i, j);
 
 	for(std::vector<civilization*>::iterator it = civs.begin();
 	    it != civs.end();
@@ -394,7 +400,7 @@ void pompelmous::update_land_owners()
 		for(std::map<unsigned int, city*>::iterator cit = (*it)->cities.begin();
 				cit != (*it)->cities.end();
 				++cit) {
-			m.grab_land(cit->second);
+			m->grab_land(cit->second);
 		}
 	}
 }
@@ -426,7 +432,7 @@ bool pompelmous::try_move_unit(unit* u, int chx, int chy)
 	int tgtxpos = u->xpos + chx;
 	int tgtypos = u->ypos + chy;
 
-	if(!m.terrain_allowed(*u, tgtxpos, tgtypos)) {
+	if(!m->terrain_allowed(*u, tgtxpos, tgtypos)) {
 		if(u->carrying())
 			return try_unload_units(u, tgtxpos, tgtypos);
 		else if(!u->carried() && u->is_land_unit())
@@ -436,10 +442,10 @@ bool pompelmous::try_move_unit(unit* u, int chx, int chy)
 	}
 
 	// attack square?
-	int def_id = m.get_spot_resident(tgtxpos, tgtypos);
+	int def_id = m->get_spot_resident(tgtxpos, tgtypos);
 	if(def_id >= 0 && def_id != u->civ_id) {
 		if(in_war(u->civ_id, def_id)) {
-			const std::list<unit*>& units = m.units_on_spot(tgtxpos, tgtypos);
+			const std::list<unit*>& units = m->units_on_spot(tgtxpos, tgtypos);
 			if(units.size() != 0) {
 				unit* defender = units.front();
 				if(!can_attack(*u, *defender)) {
@@ -456,7 +462,7 @@ bool pompelmous::try_move_unit(unit* u, int chx, int chy)
 					(*civs[def_id]).remove_unit(defender);
 				}
 			}
-			if(m.units_on_spot(tgtxpos, tgtypos).size() == 0) {
+			if(m->units_on_spot(tgtxpos, tgtypos).size() == 0) {
 				// check if a city was conquered
 				check_city_conquer(tgtxpos, tgtypos, u->civ_id);
 				check_civ_elimination(def_id);
@@ -536,13 +542,13 @@ unsigned int pompelmous::get_num_road_moves() const
 
 bool pompelmous::try_load_unit(unit* u, int x, int y)
 {
-	const std::list<unit*>& units = m.units_on_spot(x, y);
+	const std::list<unit*>& units = m->units_on_spot(x, y);
 	for(std::list<unit*>::const_iterator it = units.begin();
 			it != units.end();
 			++it) {
 		if((*it)->civ_id != u->civ_id)
 			continue;
-		if((*it)->uconf.carry_units > (*it)->carried_units.size()) {
+		if((*it)->uconf->carry_units > (*it)->carried_units.size()) {
 			if(civs[u->civ_id]->load_unit(u, *it))
 				return true;
 		}
@@ -578,5 +584,20 @@ bool pompelmous::try_wakeup_loaded(unit* u)
 		(*it)->wake_up();
 	}
 	return true;
+}
+
+int pompelmous::get_num_turns() const
+{
+	return num_turns;
+}
+
+map& pompelmous::get_map()
+{
+	return *m;
+}
+
+const map& pompelmous::get_map() const
+{
+	return *m;
 }
 

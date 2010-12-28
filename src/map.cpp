@@ -108,6 +108,10 @@ map::map(int x, int y, const resource_configuration& resconf_)
 	}
 }
 
+map::map()
+{
+}
+
 void map::sea_around_land(int x, int y, int sea_tile)
 {
 	for(int j = -1; j <= 1; j++) {
@@ -369,7 +373,7 @@ bool map::terrain_allowed(const unit& u, int x, int y) const
 		return !resconf.is_water_tile(t);
 	}
 	else {
-		if(u.uconf.ocean_unit) {
+		if(u.uconf->ocean_unit) {
 			return resconf.is_water_tile(t);
 		}
 		else {

@@ -1,7 +1,9 @@
 #ifndef RESOURCE_CONFIGURATION_H
 #define RESOURCE_CONFIGURATION_H
 
-#include <string>
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/serialization/string.hpp>
 
 const int num_terrain_types = 16;
 
@@ -64,6 +66,34 @@ class resource_configuration {
 		mutable int hill_tile;
 		mutable int mountain_tile;
 		mutable int ocean_tile;
+
+		friend class boost::serialization::access;
+		template<class Archive>
+		void serialize(Archive& ar, const unsigned int version)
+		{
+			ar & resource_name;
+			ar & terrain_food_values;
+			ar & terrain_prod_values;
+			ar & terrain_comm_values;
+			ar & terrain_type;
+			ar & temperature;
+			ar & humidity;
+			ar & found_city;
+			ar & irrigatable;
+			ar & mineable;
+			ar & roadable;
+			ar & city_food_bonus;
+			ar & city_prod_bonus;
+			ar & city_comm_bonus;
+			ar & irrigation_needed_turns;
+			ar & mine_needed_turns;
+			ar & road_needed_turns;
+			ar & sea_tile;
+			ar & grass_tile;
+			ar & hill_tile;
+			ar & mountain_tile;
+			ar & ocean_tile;
+		}
 };
 
 

@@ -5,6 +5,11 @@ fog_of_war::fog_of_war(const map* m_)
 {
 }
 
+fog_of_war::fog_of_war()
+	: m(NULL)
+{
+}
+
 void fog_of_war::reveal(int x, int y, int radius)
 {
 	for(int i = x - radius; i <= x + radius; i++) {

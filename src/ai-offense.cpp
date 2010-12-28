@@ -52,9 +52,9 @@ offense_objective::offense_objective(pompelmous* r_, civilization* myciv_,
 
 int offense_objective::get_unit_points(const unit& u) const
 {
-	if(u.uconf.max_strength == 0)
+	if(u.uconf->max_strength == 0)
 		return -1;
-	if(u.uconf.is_water_unit())
+	if(u.uconf->is_water_unit())
 		return -1;
 	int tgtx, tgty;
 	int prio = -1;
@@ -62,7 +62,7 @@ int offense_objective::get_unit_points(const unit& u) const
 	tgty = u.ypos;
 	if(find_nearest_enemy(myciv, &u, &tgtx, &tgty)) {
 		prio = std::max<int>(0, max_offense_prio + 
-				unit_strength_prio_coeff * u.uconf.max_strength * u.uconf.max_strength - 
+				unit_strength_prio_coeff * u.uconf->max_strength * u.uconf->max_strength - 
 				offense_dist_prio_coeff * myciv->m->manhattan_distance(tgtx, tgty,
 					u.xpos, u.ypos));
 	}

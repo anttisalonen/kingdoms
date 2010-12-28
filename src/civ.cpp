@@ -27,7 +27,7 @@ bool can_attack(const unit& u1, const unit& u2)
 		return false;
 	if(!in_bounds(u1.ypos - 1, u2.ypos, u1.ypos + 1))
 		return false;
-	return u1.uconf.max_strength > 0;
+	return u1.uconf->max_strength > 0;
 }
 
 coord next_good_resource_spot(const city* c, const map* m)
@@ -106,6 +106,12 @@ civilization::civilization(std::string name, unsigned int civid,
 		known_land_map = buf2d<int>(m->size_x(),
 				m->size_y(), -1);
 	}
+}
+
+civilization::civilization()
+	: civ_id(1337),
+	m(NULL)
+{
 }
 
 civilization::~civilization()
@@ -262,7 +268,7 @@ void civilization::update_military_expenses()
 	int free_units_togo = gov->free_units;
 	for(std::map<unsigned int, unit*>::const_iterator it = units.begin();
 			it != units.end(); ++it) {
-		if(it->second->uconf.max_strength > 0) {
+		if(it->second->uconf->max_strength > 0) {
 			if(free_units_togo > 0)
 				free_units_togo--;
 			else
@@ -347,7 +353,7 @@ void civilization::increment_resources(const unit_configuration_map& uconfmap,
 		while(uit != units.end() && gold < 0) {
 			std::map<unsigned int, unit*>::iterator uit2(uit);
 			uit++;
-			if(uit2->second->uconf.max_strength > 0) {
+			if(uit2->second->uconf->max_strength > 0) {
 				gold += gov->unit_cost;
 				add_message(unit_disbanded(uit2->second->unit_id));
 				remove_unit(uit2->second);

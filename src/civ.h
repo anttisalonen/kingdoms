@@ -3,10 +3,12 @@
 
 #include <stdlib.h>
 
-#include <vector>
-#include <string>
-#include <list>
-#include <set>
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/serialization/string.hpp>
+#include <boost/serialization/vector.hpp>
+#include <boost/serialization/map.hpp>
+#include <boost/serialization/set.hpp>
 
 #include "coord.h"
 #include "color.h"
@@ -41,6 +43,30 @@ struct msg {
 		unsigned int new_advance_id;
 		unsigned int disbanded_unit_id;
 	} msg_data;
+
+	friend class boost::serialization::access;
+	template<class Archive>
+	void serialize(Archive& ar, const unsigned int version)
+	{
+		ar & type;
+		switch(type) {
+			case msg_new_unit:
+			case msg_new_city_improv:
+				ar & msg_data.city_prod_data.building_city_id;
+				ar & msg_data.city_prod_data.prod_id;
+				ar & msg_data.city_prod_data.unit_id;
+				break;
+			case msg_civ_discovery:
+				ar & msg_data.discovered_civ_id;
+				break;
+			case msg_new_advance:
+				ar & msg_data.new_advance_id;
+				break;
+			case msg_unit_disbanded:
+				ar & msg_data.disbanded_unit_id;
+				break;
+		}
+	}
 };
 
 enum relationship {
@@ -55,6 +81,7 @@ class civilization {
 				const std::vector<std::string>::iterator& names_start,
 				const std::vector<std::string>::iterator& names_end,
 				const government* gov_);
+		civilization(); // for serialization
 		~civilization();
 		unit* add_unit(int uid, int x, int y, 
 				const unit_configuration& uconf,
@@ -135,6 +162,40 @@ class civilization {
 		std::map<unsigned int, int> lost_units;
 		unsigned int points;
 		bool cross_oceans;
+
+		friend class boost::serialization::access;
+		template<class Archive>
+		void serialize(Archive& ar, const unsigned int version)
+		{
+			ar & civname;
+			ar & const_cast<unsigned int&>(civ_id);
+			ar & col;
+			ar & units;
+			ar & cities;
+			ar & m;
+			ar & fog;
+			ar & gold;
+			ar & science;
+			ar & messages;
+			ar & alloc_gold;
+			ar & alloc_science;
+			ar & research_goal_id;
+			ar & researched_advances;
+			ar & ai;
+			ar & relationships;
+			ar & known_land_map;
+			ar & city_names;
+			ar & curr_city_name_index;
+			ar & next_city_id;
+			ar & next_unit_id;
+			ar & const_cast<government*&>(gov);
+			ar & national_income;
+			ar & military_expenses;
+			ar & built_units;
+			ar & lost_units;
+			ar & points;
+			ar & cross_oceans;
+		}
 };
 
 

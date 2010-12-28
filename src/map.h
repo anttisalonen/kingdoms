@@ -1,8 +1,10 @@
 #ifndef CIV_MAP_H
 #define CIV_MAP_H
 
-#include <vector>
-#include <list>
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/serialization/list.hpp>
+#include <boost/serialization/vector.hpp>
 
 #include "unit.h"
 #include "coord.h"
@@ -13,6 +15,7 @@
 class map {
 	public:
 		map(int x, int y, const resource_configuration& resconf_);
+		map(); // for serialization
 		int get_data(int x, int y) const;
 		int size_x() const;
 		int size_y() const;
@@ -70,13 +73,26 @@ class map {
 		buf2d<int> land_map;
 		buf2d<int> improv_map;
 	public:
-		const resource_configuration& resconf;
+		const resource_configuration resconf;
 	private:
 		bool x_wrap;
 		bool y_wrap;
 		static const std::list<unit*> empty_unit_spot;
-};
 
+		friend class boost::serialization::access;
+		template<class Archive>
+		void serialize(Archive& ar, const unsigned int version)
+		{
+			ar & data;
+			ar & unit_map;
+			ar & city_map;
+			ar & land_map;
+			ar & improv_map;
+			ar & const_cast<resource_configuration&>(resconf);
+			ar & x_wrap;
+			ar & y_wrap;
+		}
+};
 
 #endif
 

@@ -21,12 +21,19 @@
 #include "civ.h"
 #include "gui.h"
 #include "ai.h"
+#include "serialize.h"
 
 #include "SDL/SDL.h"
 #include "SDL/SDL_image.h"
 #include "SDL/SDL_ttf.h"
 
 static bool signal_received = false;
+
+static bool observer = false;
+static bool use_gui = true;
+static bool ai_debug = false;
+static int skip_rounds = 0;
+static bool load = false;
 
 void segv_handler(int sig)
 {
@@ -269,7 +276,9 @@ government_map parse_government_config(const std::string& fp)
 
 void automatic_play_until(pompelmous& r, std::map<unsigned int, ai>& ais, int num_turns)
 {
-	while(!signal_received && r.get_round_number() <= num_turns) {
+	while(!signal_received &&
+			r.get_round_number() <= num_turns &&
+			r.get_round_number() < r.get_num_turns()) {
 		std::map<unsigned int, ai>::iterator ait = ais.find(r.current_civ_id());
 		if(ait != ais.end()) {
 			ait->second.play();
@@ -277,69 +286,19 @@ void automatic_play_until(pompelmous& r, std::map<unsigned int, ai>& ais, int nu
 	}
 }
 
-int run(bool observer, bool use_gui, bool ai_debug, int skip_rounds)
+void play_game(pompelmous& r, std::map<unsigned int, ai>& ais)
 {
-	const int map_x = 140;
-	const int map_y = 120;
-	const int road_moves = 3;
-	const int num_turns = 400;
-
-	if(!use_gui)
-		observer = true;
-
-	std::vector<civilization*> civs = parse_civs_config("share/civs.txt");
-	unit_configuration_map uconfmap = parse_unit_config("share/units.txt");
-	advance_map amap = parse_advance_config("share/discoveries.txt");
-	city_improv_map cimap = parse_city_improv_config("share/improvs.txt");
-	resource_configuration resconf = parse_resource_config("share/terrain.txt");
-	government_map govmap = parse_government_config("share/governments.txt");
-	map m(map_x, map_y, resconf);
-	for(unsigned int i = 0; i < civs.size(); i++) {
-		civs[i]->set_map(&m);
-		civs[i]->set_government(&govmap.begin()->second);
-	}
-	pompelmous r(uconfmap, amap, cimap, m, road_moves, num_turns);
-
-	std::vector<coord> starting_places = m.get_starting_places(civs.size());
-	if(starting_places.size() != civs.size()) {
-		printf("Could find only %d starting places (instead of %d).\n",
-				starting_places.size(), civs.size());
-		if(starting_places.size() < 3) {
-			return 1;
-		}
-	}
-	for(unsigned int i = 0; i < starting_places.size(); i++) {
-		// settler
-		civs[i]->add_unit(0, starting_places[i].x, starting_places[i].y, 
-				(*(r.uconfmap.find(0))).second, road_moves);
-		// warrior
-		civs[i]->add_unit(2, starting_places[i].x, starting_places[i].y, 
-				(*(r.uconfmap.find(2))).second, road_moves);
-		r.add_civilization(civs[i]);
-	}
-
-	std::vector<std::string> terrain_files = get_file_list("share/", "share/terrain-gfx.txt");
-	std::vector<std::string> unit_files = get_file_list("share/", "share/units-gfx.txt");
-
 	bool running = true;
 
-	TTF_Font* font = NULL;
 	if(use_gui) {
+		std::vector<std::string> terrain_files = get_file_list("share/", "share/terrain-gfx.txt");
+		std::vector<std::string> unit_files = get_file_list("share/", "share/units-gfx.txt");
+
+		TTF_Font* font = NULL;
 		font = TTF_OpenFont("share/DejaVuSans.ttf", 12);
 		if(!font) {
 			fprintf(stderr, "Could not open font: %s\n", TTF_GetError());
 		}
-	}
-
-	std::map<unsigned int, ai> ais;
-	if(observer) {
-		ais.insert(std::make_pair(0, ai(m, r, r.civs[0])));
-		if(ai_debug)
-			set_ai_debug_civ(0);
-	}
-	for(unsigned int i = 1; i < starting_places.size(); i++)
-		ais.insert(std::make_pair(i, ai(m, r, r.civs[i])));
-	if(use_gui) {
 		std::vector<const char*> road_images;
 		road_images.push_back("share/road_nw.png");
 		road_images.push_back("share/road_w.png");
@@ -350,7 +309,7 @@ int run(bool observer, bool use_gui, bool ai_debug, int skip_rounds)
 		road_images.push_back("share/road_ne.png");
 		road_images.push_back("share/road_e.png");
 		road_images.push_back("share/road_se.png");
-		gui g(1024, 768, m, r, terrain_files, unit_files, "share/empty.png", 
+		gui g(1024, 768, r.get_map(), r, terrain_files, unit_files, "share/empty.png", 
 				"share/city.png", *font,
 				"share/food_icon.png",
 				"share/prod_icon.png",
@@ -358,13 +317,13 @@ int run(bool observer, bool use_gui, bool ai_debug, int skip_rounds)
 				"share/irrigation.png",
 				"share/mine.png",
 				road_images,
-				observer ? &ais.find(0)->second : NULL, civs[0]);
+				observer ? &ais.find(0)->second : NULL, r.civs[0]);
 		g.display();
 		g.init_turn();
 		if(observer && skip_rounds > 0)
 			automatic_play_until(r, ais, skip_rounds);
 		while(running) {
-			if(r.current_civ_id() == (int)civs[0]->civ_id) {
+			if(r.current_civ_id() == (int)r.civs[0]->civ_id) {
 				SDL_Event event;
 				while(SDL_PollEvent(&event)) {
 					switch(event.type) {
@@ -396,23 +355,25 @@ int run(bool observer, bool use_gui, bool ai_debug, int skip_rounds)
 				}
 			}
 		}
+		TTF_CloseFont(font);
 	}
 	else {
-		automatic_play_until(r, ais, num_turns);
+		automatic_play_until(r, ais, r.get_num_turns());
 	}
-	for(unsigned int i = 0; i < starting_places.size(); i++) {
-		const std::map<unsigned int, int>& m1 = civs[i]->get_built_units();
-		const std::map<unsigned int, int>& m2 = civs[i]->get_lost_units();
-		printf("%-20s%-6d points    %4d cities\n%-20s%-6s%-6s\n", civs[i]->civname.c_str(),
-				civs[i]->get_points(), civs[i]->cities.size(),
+
+	for(unsigned int i = 0; i < r.civs.size(); i++) {
+		const std::map<unsigned int, int>& m1 = r.civs[i]->get_built_units();
+		const std::map<unsigned int, int>& m2 = r.civs[i]->get_lost_units();
+		printf("%-20s%-6d points    %4d cities\n%-20s%-6s%-6s\n", r.civs[i]->civname.c_str(),
+				r.civs[i]->get_points(), r.civs[i]->cities.size(),
 			       	"Unit", "Built", "Lost");
 		for(std::map<unsigned int, int>::const_iterator mit = m1.begin();
 				mit != m1.end();
 				++mit) {
 			unsigned int key = mit->first;
-			unit_configuration_map::iterator uit = uconfmap.find(key);
+			unit_configuration_map::const_iterator uit = r.uconfmap.find(key);
 			std::map<unsigned int, int>::const_iterator mit2 = m2.find(mit->first);
-			if(uit != uconfmap.end()) {
+			if(uit != r.uconfmap.end()) {
 				printf("%-20s%-6d%-6d\n", uit->second.unit_name.c_str(),
 						mit->second,
 						mit2 == m2.end() ? 0 : mit2->second);
@@ -420,24 +381,78 @@ int run(bool observer, bool use_gui, bool ai_debug, int skip_rounds)
 		}
 		printf("\n");
 	}
-	if(use_gui)
-		TTF_CloseFont(font);
+}
+
+int run_game(pompelmous& r)
+{
+	std::map<unsigned int, ai> ais;
+	if(observer) {
+		ais.insert(std::make_pair(0, ai(r.get_map(), r, r.civs[0])));
+		if(ai_debug)
+			set_ai_debug_civ(0);
+	}
+	for(unsigned int i = 1; i < r.civs.size(); i++)
+		ais.insert(std::make_pair(i, ai(r.get_map(), r, r.civs[i])));
+	play_game(r, ais);
+	return 0;
+}
+
+int run_gamedata()
+{
+	const int map_x = 80;
+	const int map_y = 60;
+	const int road_moves = 3;
+
+	const int num_turns = 400;
+
+	resource_configuration resconf = parse_resource_config("share/terrain.txt");
+	if(load) {
+		pompelmous r = load_game();
+		return run_game(r);
+	}
+	std::vector<civilization*> civs;
+	civs = parse_civs_config("share/civs.txt");
+	unit_configuration_map uconfmap = parse_unit_config("share/units.txt");
+	advance_map amap = parse_advance_config("share/discoveries.txt");
+	city_improv_map cimap = parse_city_improv_config("share/improvs.txt");
+	government_map govmap = parse_government_config("share/governments.txt");
+	map m(map_x, map_y, resconf);
+	for(unsigned int i = 0; i < civs.size(); i++) {
+		civs[i]->set_map(&m);
+		civs[i]->set_government(&govmap.begin()->second);
+	}
+	pompelmous r(uconfmap, amap, cimap, &m, road_moves, num_turns);
+
+	std::vector<coord> starting_places = m.get_starting_places(civs.size());
+	if(starting_places.size() != civs.size()) {
+		printf("Could find only %d starting places (instead of %d).\n",
+				starting_places.size(), civs.size());
+		if(starting_places.size() < 3) {
+			exit(1);
+		}
+	}
+	for(unsigned int i = 0; i < starting_places.size(); i++) {
+		// settler
+		civs[i]->add_unit(0, starting_places[i].x, starting_places[i].y, 
+				(*(r.uconfmap.find(0))).second, road_moves);
+		// warrior
+		civs[i]->add_unit(2, starting_places[i].x, starting_places[i].y, 
+				(*(r.uconfmap.find(2))).second, road_moves);
+		r.add_civilization(civs[i]);
+	}
+	int ret = run_game(r);
 	for(unsigned int i = 0; i < civs.size(); i++) {
 		delete civs[i];
 	}
-	return 0;
+	return ret;
 }
 
 int main(int argc, char **argv)
 {
-	bool observer = false;
-	bool gui = true;
 	int seed = 0;
 	int c;
 	bool succ = true;
-	bool ai_debug = false;
-	int skip_rounds = 0;
-	while((c = getopt(argc, argv, "adoxS:s:")) != -1) {
+	while((c = getopt(argc, argv, "adloxS:s:")) != -1) {
 		switch(c) {
 			case 'S':
 				skip_rounds = atoi(optarg);
@@ -445,11 +460,14 @@ int main(int argc, char **argv)
 			case 'd':
 				ai_debug = true;
 				break;
+			case 'l':
+				load = true;
+				break;
 			case 'o':
 				observer = true;
 				break;
 			case 'x':
-				gui = false;
+				use_gui = false;
 				break;
 			case 's':
 				seed = atoi(optarg);
@@ -471,7 +489,7 @@ int main(int argc, char **argv)
 		printf("Seed: %d\n", seed);
 		srand(seed);
 	}
-	if(gui) {
+	if(use_gui) {
 		int sdl_flags = SDL_INIT_EVERYTHING;
 		if (SDL_Init(sdl_flags) < 0) {
 			fprintf(stderr, "Unable to init SDL: %s\n", SDL_GetError());
@@ -491,8 +509,15 @@ int main(int argc, char **argv)
 
 	signal(SIGSEGV, segv_handler);
 
+	if(!use_gui)
+		observer = true;
+
 	try {
-		run(observer, gui, ai_debug, skip_rounds);
+		run_gamedata();
+	}
+	catch (boost::archive::archive_exception& e) {
+		printf("boost::archive::archive_exception: %s (code %d).\n",
+				e.what(), e.code);
 	}
 	catch (std::exception& e) {
 		printf("std::exception: %s\n", e.what());
@@ -501,7 +526,7 @@ int main(int argc, char **argv)
 		printf("Unknown exception.\n");
 	}
 
-	if(gui) {
+	if(use_gui) {
 		TTF_Quit();
 		SDL_Quit();
 	}

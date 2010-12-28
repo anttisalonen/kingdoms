@@ -77,7 +77,7 @@ exploration_objective::exploration_objective(pompelmous* r_, civilization* myciv
 
 int exploration_objective::get_unit_points(const unit& u) const
 {
-	if(!usable_unit(u.uconf))
+	if(!usable_unit(*u.uconf))
 		return -1;
 	unsigned int dist = exploration_path(*myciv, u).size();
 	int val = exploration_distance_to_points(dist, 
@@ -96,7 +96,7 @@ bool exploration_objective::add_unit(unit* u)
 
 orders* exploration_objective::create_exploration_orders(unit* u) const
 {
-	if(u->uconf.settler || u->uconf.worker)
+	if(u->uconf->settler || u->uconf->worker)
 		return NULL;
 	else
 		return new explore_orders(myciv, u, false);

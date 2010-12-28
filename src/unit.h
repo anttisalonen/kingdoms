@@ -2,6 +2,11 @@
 #define UNIT_H
 
 #include <list>
+
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/serialization/list.hpp>
+
 #include "unit_configuration.h"
 #include "resource_configuration.h"
 
@@ -11,6 +16,7 @@ class unit
 		unit(int uid, int uconfid, int x, int y, int civid, 
 				const unit_configuration& uconf_, 
 				unsigned int def_road_moves_);
+		unit(); // for serialization
 		~unit();
 		void new_round(improvement_type& i);
 		bool is_settler() const;
@@ -39,7 +45,7 @@ class unit
 		const int civ_id;
 		int xpos;
 		int ypos;
-		const unit_configuration& uconf;
+		const unit_configuration* uconf;
 		unsigned int strength;
 		bool veteran;
 		std::list<unit*> carried_units;
@@ -54,6 +60,31 @@ class unit
 		unsigned int moves;
 		unsigned int road_moves;
 		const unsigned int def_road_moves;
+
+		friend class boost::serialization::access;
+		template<class Archive>
+		void serialize(Archive& ar, const unsigned int version)
+		{
+			ar & const_cast<int&>(unit_id);
+			ar & const_cast<int&>(uconf_id);
+			ar & const_cast<int&>(civ_id);
+			ar & xpos;
+			ar & ypos;
+			ar & const_cast<unit_configuration*&>(uconf);
+			ar & strength;
+			ar & veteran;
+			ar & carried_units;
+			ar & fortifying;
+			ar & fortified;
+			ar & resting;
+			ar & sentry;
+			ar & carrying_unit;
+			ar & turns_improving;
+			ar & improving;
+			ar & moves;
+			ar & road_moves;
+			ar & const_cast<unsigned int&>(def_road_moves);
+		}
 };
 
 #endif

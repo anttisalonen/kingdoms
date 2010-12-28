@@ -1,12 +1,18 @@
 #ifndef BUF2D_H
 #define BUF2D_H
 
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/serialization/split_member.hpp>
+#include <boost/serialization/array.hpp>
+
 #include "utils.h"
 
 template<typename N>
 class buf2d {
 	public:
 		buf2d(int x, int y, const N& def);
+		buf2d(); // for serialization
 		~buf2d();
 		buf2d(const buf2d& buf);
 		buf2d& operator=(const buf2d& buf);
@@ -18,6 +24,25 @@ class buf2d {
 	private:
 		int get_index(int x, int y) const;
 		N* data;
+
+		friend class boost::serialization::access;
+		template<class Archive>
+		void save(Archive& ar, const unsigned int version) const
+		{
+			ar << size_x;
+			ar << size_y;
+			ar << boost::serialization::make_array(data, size_x * size_y);
+		}
+		template<class Archive>
+		void load(Archive& ar, const unsigned int version)
+		{
+			ar >> size_x;
+			ar >> size_y;
+			delete data;
+			data = new N[size_x * size_y];
+			ar >> boost::serialization::make_array(data, size_x * size_y);
+		}
+		BOOST_SERIALIZATION_SPLIT_MEMBER();
 };
 
 template<typename N>
@@ -31,6 +56,12 @@ buf2d<N>::buf2d(int x, int y, const N& def)
 			data[get_index(j, i)] = def;
 		}
 	}
+}
+
+template<typename N>
+buf2d<N>::buf2d()
+	: data(NULL)
+{
 }
 
 template<typename N>

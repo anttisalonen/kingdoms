@@ -212,7 +212,7 @@ gui_resources::~gui_resources()
 	}
 }
 
-gui_data::gui_data(map& mm, pompelmous& rr)
+gui_data::gui_data(const map& mm, pompelmous& rr)
 	: m(mm),
 	r(rr)
 {
@@ -238,7 +238,7 @@ SDL_Surface* gui_resources::get_unit_tile(const unit& u, const color& c)
 		SDL_Surface* plain = plain_unit_images[u.uconf_id];
 		if(!plain) {
 			fprintf(stderr, "%s: could not load image file for unit '%s'.\n",
-					__func__, u.uconf.unit_name.c_str());
+					__func__, u.uconf->unit_name.c_str());
 			return NULL;
 		}
 		SDL_Surface* result = SDL_DisplayFormatAlpha(plain);

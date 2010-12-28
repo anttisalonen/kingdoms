@@ -325,15 +325,15 @@ bool expansion_objective::add_unit(unit* u)
 	bool found_pos;
 	bool overseas;
 	ai_debug_printf(myciv->civ_id, "settler: %d\n",
-			u->uconf.settler);
-	if(u->uconf.settler && myciv->cities.size() == 0) {
+			u->uconf->settler);
+	if(u->uconf->settler && myciv->cities.size() == 0) {
 		tgtx = u->xpos;
 		tgty = u->ypos;
 		found_pos = true;
 		prio = 1000;
 		overseas = false;
 	}
-	else if(!u->uconf.ocean_unit) {
+	else if(!u->uconf->ocean_unit) {
 		found_pos = find_best_city_pos(myciv, found_city, planned_cities, 
 				myciv->m->connected_to_sea(u->xpos, u->ypos),
 				u, &tgtx, &tgty, &prio, &overseas);
@@ -344,7 +344,7 @@ bool expansion_objective::add_unit(unit* u)
 			return false;
 		}
 	}
-	if(u->uconf.settler) {
+	if(u->uconf->settler) {
 		orders* o;
 		std::map<coord, unsigned int>::iterator eit = escorters.find(coord(u->xpos, u->ypos));
 		if(!overseas) {
@@ -393,7 +393,7 @@ bool expansion_objective::add_unit(unit* u)
 				tgtx, tgty, u->unit_id);
 		ordersmap.insert(std::make_pair(u->unit_id, o));
 	}
-	else if(u->uconf.ocean_unit) {
+	else if(u->uconf->ocean_unit) {
 		// transporter
 		std::map<coord, std::list<std::pair<coord, unsigned int> > >::iterator trit = transportees.find(coord(u->xpos, u->ypos));
 		if(trit == transportees.end()) {

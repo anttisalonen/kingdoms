@@ -7,6 +7,10 @@ color::color(int r_, int g_, int b_)
 {
 }
 
+color::color()
+{
+}
+
 bool color::operator<(const color& oth) const
 {
 	if(r < oth.r)

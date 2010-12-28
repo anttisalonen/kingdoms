@@ -36,7 +36,7 @@ int defense_objective::get_unit_points(const unit& u) const
 {
 	// if not usable, return 1 instead of -1 - a unit should return to
 	// a city if it has nothing better to do
-	if(!usable_unit(u.uconf))
+	if(!usable_unit(*u.uconf))
 		return 1;
 	int tgtx, tgty;
 	int prio = 1;
@@ -54,7 +54,7 @@ int defense_objective::get_unit_points(const unit& u) const
 			if(tgtx == u.xpos && tgty == u.ypos)
 				num_units--;
 			prio = clamp<int>(1, 1000 + 
-					unit_strength_prio_coeff * u.uconf.max_strength * u.uconf.max_strength - 
+					unit_strength_prio_coeff * u.uconf->max_strength * u.uconf->max_strength - 
 					defense_units_prio_coeff * num_units,
 					1000);
 		}
