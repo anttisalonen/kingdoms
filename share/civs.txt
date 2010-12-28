@@ -7,5 +7,5 @@ Greek		128 0   128	Corinth Aegae Knossos Ithaca Heraklion Apollonia Cythera Delp
 Chinese         60  60  200	Beijing Shanghai Guangzhou Shenzhen Tianjin Chongqing "Hong Kong" Dongquan Nanjing Wuhan Hangzhou Shenyang Harbin Chengdu Hefei Zhengzhou Jinan
 Aztecs		128 128 128	Tenochtitlan Tlacopan Texcoco Tlaxcala Teotitlan Tzintzuntzan Metztitlan Cihuatlan Cuetlaxtlan Coyolapan Atotonilco Oxtlilipa Tlapan Tochpan
 Japanese	60  60  0	Kyoto Edo Kobe Yokohama Osaka Nagoya Sapporo Fukuoka Kawasaki Saitama Hiroshima Sendai Kitakyushu Chiba Niigata Shizuoka Okayama Kumamoto Kagoshima
-Spanish		128 128 0	Madrid Barcelona Valencia Seville Bilbao Malaga Oviedo Alicante "Las Palmas" Zaragoza Murcia Mallorca Granada Vigo Cadiz "San Sebiastian" Valladolid
+Spanish		128 128 0	Madrid Barcelona Valencia Seville Bilbao Malaga Oviedo Alicante "Las Palmas" Zaragoza Murcia Mallorca Granada Vigo Cadiz "San Sebastian" Valladolid
 English		128 0   0	London York Birmingham Hereford Leicester Manchester Liverpool Wolverhampton Leeds Newcastle Sheffield Exeter Derby Bradford Bath Portsmouth Coventry
