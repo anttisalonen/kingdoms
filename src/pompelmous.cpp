@@ -29,7 +29,7 @@ bool can_attack(const map* m, const unit& u1, const unit& u2)
 	return u1.uconf->max_strength > 0;
 }
 
-void combat(const map* m, unit* u1, unit* u2)
+void combat(const map* m, unit* u1, unit* u2, int off_bonus, int def_bonus)
 {
 	if(!can_attack(m, *u1, *u2))
 		return;
@@ -47,6 +47,8 @@ void combat(const map* m, unit* u1, unit* u2)
 		u1chance *= 1.5f;
 	if(u2->veteran)
 		u2chance *= 1.5f;
+	u1chance *= (100 + off_bonus) / 100.0f;
+	u2chance *= (100 + def_bonus) / 100.0f;
 	if(u2->is_fortified())
 		u2chance *= 2;
 	unsigned int val = rand() % (u1chance + u2chance);
@@ -433,6 +435,32 @@ void pompelmous::check_civ_elimination(int civ_id)
 	}
 }
 
+int pompelmous::get_offense_bonus(const unit* off, const unit* def) const
+{
+	return 0;
+}
+
+int pompelmous::get_defense_bonus(const unit* def, const unit* off) const
+{
+	int bonus = 0;
+	int city_bonus = 0;
+	city* c = m->city_on_spot(def->xpos, def->ypos);
+	if(c) {
+		for(std::set<unsigned int>::const_iterator cit = c->built_improvements.begin();
+				cit != c->built_improvements.end();
+				++cit) {
+			city_improv_map::const_iterator ciit = cimap.find(*cit);
+			if(ciit != cimap.end()) {
+				if(ciit->second.defense_bonus > city_bonus) {
+					city_bonus = ciit->second.defense_bonus;
+				}
+			}
+		}
+	}
+	bonus += city_bonus;
+	return bonus;
+}
+
 bool pompelmous::try_move_unit(unit* u, int chx, int chy)
 {
 	if(abs(chx) > 1 || abs(chy) > 1)
@@ -462,7 +490,8 @@ bool pompelmous::try_move_unit(unit* u, int chx, int chy)
 				if(!can_attack(m, *u, *defender)) {
 					return false;
 				}
-				combat(m, u, defender);
+				combat(m, u, defender, get_offense_bonus(u, defender),
+						get_defense_bonus(defender, u));
 				fought = true;
 				if(u->strength == 0) {
 					// lost combat

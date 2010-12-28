@@ -17,6 +17,8 @@ class city_improvement {
 		bool granary;
 		bool palace;
 		int comm_bonus;
+		int science_bonus;
+		int defense_bonus;
 		int culture;
 		int happiness;
 		unsigned int needed_advance;
@@ -31,6 +33,8 @@ class city_improvement {
 			ar & granary;
 			ar & palace;
 			ar & comm_bonus;
+			ar & science_bonus;
+			ar & defense_bonus;
 			ar & culture;
 			ar & happiness;
 			ar & needed_advance;

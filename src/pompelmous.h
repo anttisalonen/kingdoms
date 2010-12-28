@@ -127,6 +127,8 @@ class pompelmous
 		bool try_unload_units(unit* u, int x, int y);
 		bool try_wakeup_loaded(unit* u);
 		void update_civ_points();
+		int get_offense_bonus(const unit* off, const unit* def) const;
+		int get_defense_bonus(const unit* def, const unit* off) const;
 		std::vector<civilization*>::iterator current_civ;
 		map* m;
 		int round_number;

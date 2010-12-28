@@ -2,7 +2,26 @@
 "Warrior Code"		10	0 0 0 0
 "Bronze Working"	15	1 0 0 0
 "Pottery"		10	0 0 0 0
-"Currency"		20	2 0 0 0
-"Ceremonial Burial"	20	2 0 0 0
-"Map Making"		30	4 5 0 0
-"Navigation"		40	7 0 0 0
+"Currency"		20	0 0 0 0
+"Ceremonial Burial"	20	0 0 0 0
+"Map Making"		30	13 0 0 0
+"Navigation"		40	6 19 18 0
+"Mysticism"		10	5 0 0 0
+"Polytheism"		10	8 0 0 0
+"Monotheism"		10	9 0 0 0
+"Philosophy"		10	9 13 0 0
+"Theology"		10	10 11 20 0
+"Writing"		10	0 0 0 0
+"Horseback Riding"	10	2 0 0 0
+"Literature"		10	13 11 0 0
+"Masonry"		10	3 0 0 0
+"Medicine"		10	15 11 18 0
+"Mathematics"		10	13 4 0 0
+"Astronomy"		10	8 0 0 0
+"Construction"		10	16 0 0 0
+"Iron Working"		10	2 22 20 0
+"Code of Laws"		10	13 0 0 0
+"Monarchy"		10	22 0 0 0
+"Feudalism"		10	23 21 25 0
+"The Wheel"		10	14 0 0 0
+"Trade"			10	4 0 0 0

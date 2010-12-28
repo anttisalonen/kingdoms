@@ -60,6 +60,7 @@ int commerce_objective::improvement_value(const city_improvement& ci) const
 	if(ci.granary)
 		points += 100;
 	points += ci.comm_bonus * 10;
+	points += ci.science_bonus * 10;
 	points += ci.culture * 50;
 	return points;
 }

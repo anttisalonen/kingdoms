@@ -268,19 +268,43 @@ void civilization::update_military_expenses()
 	}
 }
 
+void civilization::calculate_total_city_commerce(const city& c,
+		const city_improv_map& cimap,
+		int orig_comm, int* add_gold, int* add_science) const
+{
+	for(std::set<unsigned int>::const_iterator cit = c.built_improvements.begin();
+			cit != c.built_improvements.end();
+			++cit) {
+		city_improv_map::const_iterator ciit = cimap.find(*cit);
+		if(ciit != cimap.end()) {
+			if(ciit->second.comm_bonus && alloc_gold) {
+				*add_gold += (orig_comm * alloc_gold / 10) * ((ciit->second.comm_bonus + 100) / 100.0f);
+			}
+			if(ciit->second.science_bonus && alloc_science) {
+				*add_science += (orig_comm * alloc_science / 10) * ((ciit->second.science_bonus + 100) / 100.0f);
+			}
+		}
+	}
+}
+
 void civilization::increment_resources(const unit_configuration_map& uconfmap,
 		const advance_map& amap, const city_improv_map& cimap,
 		unsigned int road_moves)
 {
-	int total_commerce = 0;
+	national_income = 0;
+	int total_science = 0;
 	for(std::map<unsigned int, city*>::iterator cit = cities.begin();
 			cit != cities.end();
 			++cit) {
 		int food, prod, comm;
 		city* this_city = cit->second;
 		total_resources(*this_city, *m, &food, &prod, &comm);
+		int add_gold = comm;
+		int add_science = comm;
+		calculate_total_city_commerce(*this_city, cimap, comm, &add_gold, &add_science);
 		this_city->stored_food += food - this_city->get_city_size() * 2;
-		total_commerce += comm;
+		national_income += add_gold;
+		total_science += add_science;
 		this_city->stored_prod += prod;
 		if(this_city->production.current_production_id > -1) {
 			if(this_city->production.producing_unit) {
@@ -324,18 +348,6 @@ void civilization::increment_resources(const unit_configuration_map& uconfmap,
 				this_city->accum_culture += cnit->second.culture;
 		}
 	}
-	national_income = total_commerce * alloc_gold / 10;
-	int science_add = alloc_gold != 10 ? 
-		(total_commerce - national_income) * alloc_science / (10 - alloc_gold) : 
-		0;
-
-#if 0
-	int luxury_add = alloc_gold + alloc_science != 10 ? 
-		(total_commerce - national_income - science_add) * 
-		(10 - alloc_science - alloc_gold) / 
-		(10 - alloc_gold - alloc_science) : 
-		0;
-#endif
 
 	update_military_expenses();
 	gold += national_income - military_expenses;
@@ -351,7 +363,7 @@ void civilization::increment_resources(const unit_configuration_map& uconfmap,
 			}
 		}
 	}
-	science += science_add;
+	science += total_science;
 	advance_map::const_iterator adv = amap.find(research_goal_id);
 	if(adv == amap.end()) {
 		add_message(new_advance_discovered(0));

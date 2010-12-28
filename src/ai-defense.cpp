@@ -88,6 +88,7 @@ int defense_objective::improvement_value(const city_improvement& ci) const
 	int points = -1;
 	if(ci.barracks)
 		points += 500;
+	points += ci.defense_bonus * 10;
 	return points;
 }
 

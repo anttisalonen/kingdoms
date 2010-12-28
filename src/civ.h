@@ -149,6 +149,9 @@ class civilization {
 		void destroy_old_palace(const city* c, const city_improv_map& cimap);
 		void update_ocean_crossing(const unit_configuration_map& uconfmap,
 				const advance_map& amap, int adv_id);
+		void calculate_total_city_commerce(const city& c,
+				const city_improv_map& cimap,
+				int orig_comm, int* add_gold, int* add_science) const;
 		std::vector<relationship> relationships;
 		buf2d<int> known_land_map;
 		std::vector<std::string> city_names;

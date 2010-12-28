@@ -209,7 +209,7 @@ advance_map parse_advance_config(const std::string& fp)
 
 city_improv_map parse_city_improv_config(const std::string& fp)
 {
-	parse_result improvs = parser(fp, 7);
+	parse_result improvs = parser(fp, 9);
 	city_improv_map cimap;
 	for(unsigned int i = 0; i < improvs.size(); i++) {
 		city_improvement a;
@@ -218,11 +218,13 @@ city_improv_map parse_city_improv_config(const std::string& fp)
 		a.cost = stoi(improvs[i][1]);
 		a.needed_advance = stoi(improvs[i][2]);
 		a.comm_bonus = stoi(improvs[i][3]);
-		a.culture = stoi(improvs[i][4]);
-		a.happiness = stoi(improvs[i][5]);
-		a.barracks = get_flag(improvs[i][6], 0);
-		a.granary = get_flag(improvs[i][6], 1);
-		a.palace = get_flag(improvs[i][6], 2);
+		a.science_bonus = stoi(improvs[i][4]);
+		a.defense_bonus = stoi(improvs[i][5]);
+		a.culture = stoi(improvs[i][6]);
+		a.happiness = stoi(improvs[i][7]);
+		a.barracks = get_flag(improvs[i][8], 0);
+		a.granary = get_flag(improvs[i][8], 1);
+		a.palace = get_flag(improvs[i][8], 2);
 		cimap.insert(std::make_pair(a.improv_id, a));
 	}
 	return cimap;
