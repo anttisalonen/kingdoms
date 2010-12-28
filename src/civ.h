@@ -87,7 +87,7 @@ class civilization {
 				const unit_configuration& uconf,
 				unsigned int road_moves);
 		void remove_unit(unit* u);
-		int try_move_unit(unit* u, int chx, int chy);
+		int try_move_unit(unit* u, int chx, int chy, bool fought);
 		void refill_moves(const unit_configuration_map& uconfmap);
 		void increment_resources(const unit_configuration_map& uconfmap,
 				const advance_map& amap,
@@ -201,7 +201,6 @@ class civilization {
 
 void total_resources(const city& c, const map& m,
 		int* food, int* prod, int* comm);
-bool can_attack(const unit& u1, const unit& u2);
 coord next_good_resource_spot(const city* c, const map* m);
 
 

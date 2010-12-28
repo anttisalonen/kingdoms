@@ -21,15 +21,6 @@ void total_resources(const city& c, const map& m,
 	}
 }
 
-bool can_attack(const unit& u1, const unit& u2)
-{
-	if(!in_bounds(u1.xpos - 1, u2.xpos, u1.xpos + 1))
-		return false;
-	if(!in_bounds(u1.ypos - 1, u2.ypos, u1.ypos + 1))
-		return false;
-	return u1.uconf->max_strength > 0;
-}
-
 coord next_good_resource_spot(const city* c, const map* m)
 {
 	int curr_food, curr_prod, curr_comm;
@@ -399,7 +390,7 @@ void civilization::setup_default_research_goal(const advance_map& amap)
 	}
 }
 
-int civilization::try_move_unit(unit* u, int chx, int chy)
+int civilization::try_move_unit(unit* u, int chx, int chy, bool fought)
 {
 	if((!u->num_moves() && !u->num_road_moves()) || !(chx || chy)) {
 		return 0;
@@ -411,7 +402,7 @@ int civilization::try_move_unit(unit* u, int chx, int chy)
 		if(!u->carried())
 			fog.shade(u->xpos, u->ypos, 1);
 		bool succ = u->move_to(newx, newy, 
-				m->road_between(u->xpos, u->ypos, newx, newy));
+				!fought && m->road_between(u->xpos, u->ypos, newx, newy));
 		if(!u->carried())
 			fog.reveal(u->xpos, u->ypos, 1);
 		reveal_land(u->xpos, u->ypos, 1);

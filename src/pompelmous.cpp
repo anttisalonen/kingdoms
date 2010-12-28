@@ -20,9 +20,18 @@ void set_default_city_production(city* c, const unit_configuration_map& uconfmap
 	}
 }
 
-void combat(unit* u1, unit* u2)
+bool can_attack(const map* m, const unit& u1, const unit& u2)
 {
-	if(!can_attack(*u1, *u2))
+	if(m->manhattan_distance_x(u1.xpos, u2.xpos) > 1)
+		return false;
+	if(m->manhattan_distance_y(u1.ypos, u2.ypos) > 1)
+		return false;
+	return u1.uconf->max_strength > 0;
+}
+
+void combat(const map* m, unit* u1, unit* u2)
+{
+	if(!can_attack(m, *u1, *u2))
 		return;
 	if(u1->strength == 0 || u2->strength == 0)
 		return;
@@ -431,14 +440,16 @@ bool pompelmous::try_move_unit(unit* u, int chx, int chy)
 
 	int tgtxpos = u->xpos + chx;
 	int tgtypos = u->ypos + chy;
+	bool fought = false;
 
 	if(!m->terrain_allowed(*u, tgtxpos, tgtypos)) {
 		if(u->carrying())
 			return try_unload_units(u, tgtxpos, tgtypos);
 		else if(!u->carried() && u->is_land_unit())
 			return try_load_unit(u, tgtxpos, tgtypos);
-		else
+		else {
 			return false;
+		}
 	}
 
 	// attack square?
@@ -448,10 +459,11 @@ bool pompelmous::try_move_unit(unit* u, int chx, int chy)
 			const std::list<unit*>& units = m->units_on_spot(tgtxpos, tgtypos);
 			if(units.size() != 0) {
 				unit* defender = units.front();
-				if(!can_attack(*u, *defender)) {
+				if(!can_attack(m, *u, *defender)) {
 					return false;
 				}
-				combat(u, defender);
+				combat(m, u, defender);
+				fought = true;
 				if(u->strength == 0) {
 					// lost combat
 					(*current_civ)->remove_unit(u);
@@ -475,7 +487,7 @@ bool pompelmous::try_move_unit(unit* u, int chx, int chy)
 
 	// move to square
 	if((*current_civ)->can_move_to(tgtxpos, tgtypos)) {
-		if((*current_civ)->try_move_unit(u, chx, chy)) {
+		if((*current_civ)->try_move_unit(u, chx, chy, fought)) {
 			std::vector<unsigned int> discs = (*current_civ)->check_discoveries(u->xpos,
 					u->ypos, 1);
 			for(std::vector<unsigned int>::const_iterator it = discs.begin();
