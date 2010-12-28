@@ -665,6 +665,8 @@ bool civilization::load_unit(unit* loadee, unit* loader)
 
 bool civilization::unload_unit(unit* unloadee, int x, int y)
 {
+	if(!m->terrain_allowed(*unloadee, x, y) || !can_move_to(x, y))
+		return false;
 	if(!unloadee->unload(x, y))
 		return false;
 	m->add_unit(unloadee);
