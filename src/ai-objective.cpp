@@ -49,7 +49,7 @@ city_production objective::best_improv_production(const city& c, int* points) co
 	for(city_improv_map::const_iterator it = r->cimap.begin();
 			it != r->cimap.end();
 			++it) {
-		if(!myciv->can_build_improvement(it->second, c))
+		if(!myciv->can_build_improvement(it->second, c) || it->second.palace)
 			continue;
 		int tp = improvement_value(it->second);
 		if(tp > *points) {
@@ -58,10 +58,13 @@ city_production objective::best_improv_production(const city& c, int* points) co
 		}
 	}
 	if(chosen != r->cimap.end()) {
-		return city_production(true, chosen->first);
+		ai_debug_printf(myciv->civ_id, "%-12s: %-12s: %4d\n",
+				obj_name.c_str(),
+				chosen->second.improv_name.c_str(), *points);
+		return city_production(false, chosen->first);
 	}
 	else {
-		return city_production(true, -1);
+		return city_production(false, -1);
 	}
 }
 

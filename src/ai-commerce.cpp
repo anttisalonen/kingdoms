@@ -56,7 +56,12 @@ bool commerce_objective::usable_unit(const unit_configuration& uc) const
 
 int commerce_objective::improvement_value(const city_improvement& ci) const
 {
-	return -1;
+	int points = -1;
+	if(ci.granary)
+		points += 100;
+	points += ci.comm_bonus * 10;
+	points += ci.culture * 50;
+	return points;
 }
 
 bool get_next_improv_spot(int startx, int starty, const civilization* civ,

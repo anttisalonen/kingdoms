@@ -85,7 +85,10 @@ bool defense_objective::compare_units(const unit_configuration& lhs,
 
 int defense_objective::improvement_value(const city_improvement& ci) const
 {
-	return -1;
+	int points = -1;
+	if(ci.barracks)
+		points += 500;
+	return points;
 }
 
 bool defense_objective::usable_unit(const unit_configuration& uc) const

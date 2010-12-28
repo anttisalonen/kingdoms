@@ -285,7 +285,11 @@ bool expansion_objective::usable_unit(const unit_configuration& uc) const
 
 int expansion_objective::improvement_value(const city_improvement& ci) const
 {
-	return -1;
+	int points = -1;
+	if(ci.granary)
+		points += 300;
+	points += ci.culture * 150;
+	return points;
 }
 
 city_production expansion_objective::get_city_production(const city& c, int* points) const
