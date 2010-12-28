@@ -194,6 +194,16 @@ bool ai::assign_free_unit(unit* u)
 
 void ai::handle_new_advance(unsigned int adv_id)
 {
+	advance_map::const_iterator it = r.amap.find(adv_id);
+	if(it != r.amap.end()) {
+		ai_debug_printf(myciv->civ_id, "Discovered advance '%s'.\n",
+				it->second.advance_name.c_str());
+	}
+	it = r.amap.find(myciv->research_goal_id);
+	if(it != r.amap.end()) {
+		ai_debug_printf(myciv->civ_id, "Now researching '%s'.\n",
+				it->second.advance_name.c_str());
+	}
 }
 
 void ai::handle_civ_discovery(int civ_id)
