@@ -379,26 +379,34 @@ void civilization::increment_resources(const unit_configuration_map& uconfmap,
 	}
 }
 
-class not_in_set {
-	private:
-		const std::set<unsigned int>& u;
-	public:
-		not_in_set(const std::set<unsigned int>& u_) : u(u_) { }
-		bool operator()(const std::pair<unsigned int, advance>& i) {
-			return u.find(i.first) == u.end();
+bool civilization::allowed_research_goal(const advance_map::const_iterator& it) const
+{
+	if(researched_advances.find(it->first) == researched_advances.end()) {
+		for(int i = 0; i < max_num_needed_advances; i++) {
+			if(it->second.needed_advances[i] == 0)
+				continue;
+			if(researched_advances.find(it->second.needed_advances[i]) ==
+					researched_advances.end()) {
+				return false;
+			}
 		}
-};
+		return true;
+	}
+	else {
+		return false;
+	}
+}
 
 void civilization::setup_default_research_goal(const advance_map& amap)
 {
-	advance_map::const_iterator it = std::find_if(amap.begin(),
-			amap.end(),
-			not_in_set(researched_advances));
-	if(it != amap.end()) {
-		research_goal_id = it->first;
-	}
-	else {
-		research_goal_id = 0;
+	research_goal_id = 0;
+	for(advance_map::const_iterator it = amap.begin();
+			it != amap.end();
+			++it) {
+		if(allowed_research_goal(it)) {
+			research_goal_id = it->first;
+			return;
+		}
 	}
 }
 

@@ -203,7 +203,7 @@ advance_map parse_advance_config(const std::string& fp)
 		a.advance_id = i + 1;
 		a.advance_name = discoveries[i][0];
 		a.cost = stoi(discoveries[i][1]);
-		for(int j = 0; j < 4; j++) {
+		for(int j = 0; j < max_num_needed_advances; j++) {
 			a.needed_advances[j] = stoi(discoveries[i][j + 2]);
 		}
 		amap.insert(std::make_pair(a.advance_id, a));
