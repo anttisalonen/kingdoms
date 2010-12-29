@@ -449,56 +449,63 @@ int run_gamedata()
 
 class main_menu {
 	public:
+		enum main_menu_selection {
+			main_menu_start,
+			main_menu_load,
+			main_menu_quit,
+		};
+
 		main_menu(SDL_Surface* screen_,
 				TTF_Font* font_);
-		int run();
+		main_menu_selection run();
 	private:
-		int start_game_button();
+		int start_game_button(main_menu_selection s);
 		int quit_button();
 		SDL_Surface* screen;
 		TTF_Font* font;
-		bool running;
-		bool new_game;
+		main_menu_selection sel;
 };
 
 main_menu::main_menu(SDL_Surface* screen_,
 		TTF_Font* font_)
 	: screen(screen_),
 	font(font_),
-	running(true),
-	new_game(false)
+	sel(main_menu::main_menu_quit)
 {
 }
 
-int main_menu::run()
+main_menu::main_menu_selection main_menu::run()
 {
 	SDL_Surface* bg_img = sdl_load_image("share/pergamon.png");
 	if(!bg_img) {
 		fprintf(stderr, "Unable to load image %s: %s\n", "share/pergamon.png",
 				SDL_GetError());
-		return 0;
+		return main_menu_quit;
 	}
 	plain_button start_button(rect(312, 400, 400, 60),
-			"Start game", font, color(40, 30, 10),
-			color(200, 200, 200), boost::bind(&main_menu::start_game_button, this));
+			"Start new game", font, color(40, 30, 10),
+			color(200, 200, 200), boost::bind(&main_menu::start_game_button, this, main_menu_start));
+	plain_button load_button(rect(312, 500, 400, 60),
+			"Load game", font, color(40, 30, 10),
+			color(200, 200, 200), boost::bind(&main_menu::start_game_button, this, main_menu_load));
 	plain_button quit_button(rect(312, 600, 400, 60),
 			"Quit", font, color(40, 30, 10),
 			color(200, 200, 200), boost::bind(&main_menu::quit_button, this));
 	if(draw_image(0, 0, bg_img, screen)) {
 		fprintf(stderr, "Could not draw background image: %s\n",
 				SDL_GetError());
-		return 0;
-	}
-	start_button.draw(screen);
-	quit_button.draw(screen);
-	if(SDL_Flip(screen)) {
-		fprintf(stderr, "Unable to flip: %s\n", SDL_GetError());
-		return 0;
+		return main_menu_quit;
 	}
 	std::list<button*> buttons;
 	buttons.push_back(&start_button);
+	buttons.push_back(&load_button);
 	buttons.push_back(&quit_button);
-	running = true;
+	std::for_each(buttons.begin(), buttons.end(), std::bind2nd(std::mem_fun(&button::draw), screen));
+	if(SDL_Flip(screen)) {
+		fprintf(stderr, "Unable to flip: %s\n", SDL_GetError());
+		return main_menu_quit;
+	}
+	bool running = true;
 	while(running) {
 		SDL_Event event;
 		while(SDL_PollEvent(&event)) {
@@ -519,18 +526,18 @@ int main_menu::run()
 		}
 		SDL_Delay(50);
 	}
-	return new_game;
+	return sel;
 }
 
-int main_menu::start_game_button()
+int main_menu::start_game_button(main_menu_selection s)
 {
-	new_game = true;
+	sel = s;
 	return 1;
 }
 
 int main_menu::quit_button()
 {
-	new_game = false;
+	sel = main_menu_quit;
 	return 1;
 }
 
@@ -548,8 +555,19 @@ void run_mainmenu()
 		}
 		else {
 			main_menu m(screen, font);
-			if(m.run())
-				run_gamedata();
+			main_menu::main_menu_selection s = m.run();
+			switch(s) {
+				case main_menu::main_menu_start:
+					load = false;
+					run_gamedata();
+					break;
+				case main_menu::main_menu_load:
+					load = true;
+					run_gamedata();
+					break;
+				default:
+					break;
+			}
 			TTF_CloseFont(font);
 		}
 	}
