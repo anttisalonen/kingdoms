@@ -262,7 +262,7 @@ button::button(const rect& dim_, boost::function<int()> onclick_)
 int check_button_click(const std::list<button*>& buttons,
 		const SDL_Event& ev)
 {
-	if(ev.type != SDL_MOUSEBUTTONDOWN)
+	if(ev.type != SDL_MOUSEBUTTONDOWN && ev.type != SDL_MOUSEBUTTONUP)
 		return 0;
 	for(std::list<button*>::const_iterator it = buttons.begin();
 			it != buttons.end();

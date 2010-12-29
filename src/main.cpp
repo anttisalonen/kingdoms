@@ -12,6 +12,7 @@
 #include <fstream>
 #include <sstream>
 
+#include <boost/bind/bind.hpp>
 #include <boost/algorithm/string.hpp>
 
 #include "color.h"
@@ -34,6 +35,9 @@ static bool use_gui = true;
 static bool ai_debug = false;
 static int skip_rounds = 0;
 static bool load = false;
+
+static SDL_Surface* screen = NULL;
+static TTF_Font* font = NULL;
 
 void segv_handler(int sig)
 {
@@ -296,11 +300,6 @@ void play_game(pompelmous& r, std::map<unsigned int, ai>& ais)
 		std::vector<std::string> terrain_files = get_file_list("share/", "share/terrain-gfx.txt");
 		std::vector<std::string> unit_files = get_file_list("share/", "share/units-gfx.txt");
 
-		TTF_Font* font = NULL;
-		font = TTF_OpenFont("share/DejaVuSans.ttf", 12);
-		if(!font) {
-			fprintf(stderr, "Could not open font: %s\n", TTF_GetError());
-		}
 		std::vector<const char*> road_images;
 		road_images.push_back("share/road_nw.png");
 		road_images.push_back("share/road_w.png");
@@ -311,7 +310,7 @@ void play_game(pompelmous& r, std::map<unsigned int, ai>& ais)
 		road_images.push_back("share/road_ne.png");
 		road_images.push_back("share/road_e.png");
 		road_images.push_back("share/road_se.png");
-		gui g(1024, 768, r.get_map(), r, terrain_files, unit_files, "share/empty.png", 
+		gui g(1024, 768, screen, r.get_map(), r, terrain_files, unit_files, "share/empty.png", 
 				"share/city.png", *font,
 				"share/food_icon.png",
 				"share/prod_icon.png",
@@ -357,7 +356,6 @@ void play_game(pompelmous& r, std::map<unsigned int, ai>& ais)
 				}
 			}
 		}
-		TTF_CloseFont(font);
 	}
 	else {
 		automatic_play_until(r, ais, r.get_num_turns());
@@ -449,6 +447,117 @@ int run_gamedata()
 	return ret;
 }
 
+class main_menu {
+	public:
+		main_menu(SDL_Surface* screen_,
+				TTF_Font* font_);
+		int run();
+	private:
+		int start_game_button();
+		int quit_button();
+		SDL_Surface* screen;
+		TTF_Font* font;
+		bool running;
+		bool new_game;
+};
+
+main_menu::main_menu(SDL_Surface* screen_,
+		TTF_Font* font_)
+	: screen(screen_),
+	font(font_),
+	running(true),
+	new_game(false)
+{
+}
+
+int main_menu::run()
+{
+	SDL_Surface* bg_img = sdl_load_image("share/pergamon.png");
+	if(!bg_img) {
+		fprintf(stderr, "Unable to load image %s: %s\n", "share/pergamon.png",
+				SDL_GetError());
+		return 0;
+	}
+	plain_button start_button(rect(312, 400, 400, 60),
+			"Start game", font, color(40, 30, 10),
+			color(0, 0, 0), boost::bind(&main_menu::start_game_button, this));
+	plain_button quit_button(rect(312, 600, 400, 60),
+			"Quit", font, color(40, 30, 10),
+			color(0, 0, 0), boost::bind(&main_menu::quit_button, this));
+	if(draw_image(0, 0, bg_img, screen)) {
+		fprintf(stderr, "Could not draw background image: %s\n",
+				SDL_GetError());
+		return 0;
+	}
+	start_button.draw(screen);
+	quit_button.draw(screen);
+	if(SDL_Flip(screen)) {
+		fprintf(stderr, "Unable to flip: %s\n", SDL_GetError());
+		return 0;
+	}
+	std::list<button*> buttons;
+	buttons.push_back(&start_button);
+	buttons.push_back(&quit_button);
+	running = true;
+	while(running) {
+		SDL_Event event;
+		while(SDL_PollEvent(&event)) {
+			switch(event.type) {
+				case SDL_KEYDOWN:
+					if(event.key.keysym.sym == SDLK_ESCAPE)
+						running = false;
+					break;
+				case SDL_MOUSEBUTTONUP:
+					if(check_button_click(buttons, event))
+						running = false;
+					break;
+				case SDL_QUIT:
+					running = false;
+				default:
+					break;
+			}
+		}
+		SDL_Delay(50);
+	}
+	return new_game;
+}
+
+int main_menu::start_game_button()
+{
+	new_game = true;
+	return 1;
+}
+
+int main_menu::quit_button()
+{
+	new_game = false;
+	return 1;
+}
+
+void run_mainmenu()
+{
+	if(use_gui) {
+		screen = SDL_SetVideoMode(1024, 768, 32, SDL_HWSURFACE | SDL_DOUBLEBUF);
+		if (!screen) {
+			fprintf(stderr, "Unable to set %dx%d video: %s\n", 1024, 768, SDL_GetError());
+			return;
+		}
+		font = TTF_OpenFont("share/DejaVuSans.ttf", 12);
+		if(!font) {
+			fprintf(stderr, "Could not open font: %s\n", TTF_GetError());
+		}
+		else {
+			main_menu m(screen, font);
+			if(m.run())
+				run_gamedata();
+			TTF_CloseFont(font);
+		}
+	}
+	else {
+		run_gamedata();
+	}
+}
+
 int main(int argc, char **argv)
 {
 	int seed = 0;
@@ -484,12 +593,14 @@ int main(int argc, char **argv)
 	}
 	if(!succ)
 		exit(2);
-	if(seed)
-		srand(seed);
-	else {
-		seed = time(NULL);
-		printf("Seed: %d\n", seed);
-		srand(seed);
+	if(!load) {
+		if(seed)
+			srand(seed);
+		else {
+			seed = time(NULL);
+			printf("Seed: %d\n", seed);
+			srand(seed);
+		}
 	}
 	if(use_gui) {
 		int sdl_flags = SDL_INIT_EVERYTHING;
@@ -500,7 +611,7 @@ int main(int argc, char **argv)
 		if(!IMG_Init(IMG_INIT_PNG)) {
 			fprintf(stderr, "Unable to init SDL_image: %s\n", IMG_GetError());
 		}
-		if(!TTF_Init()) {
+		if(TTF_Init() == -1) {
 			fprintf(stderr, "Unable to init SDL_ttf: %s\n", TTF_GetError());
 		}
 		SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
@@ -515,7 +626,7 @@ int main(int argc, char **argv)
 		observer = true;
 
 	try {
-		run_gamedata();
+		run_mainmenu();
 	}
 	catch (boost::archive::archive_exception& e) {
 		printf("boost::archive::archive_exception: %s (code %d).\n",

@@ -1,6 +1,6 @@
 #include "gui.h"
 
-gui::gui(int x, int y, const map& mm, pompelmous& rr,
+gui::gui(int x, int y, SDL_Surface* screen_, const map& mm, pompelmous& rr,
 	       	const std::vector<std::string>& terrain_files,
 		const std::vector<std::string>& unit_files,
 		const char* default_unit_file,
@@ -16,17 +16,13 @@ gui::gui(int x, int y, const map& mm, pompelmous& rr,
 		civilization* myciv_)
 	: screen_w(x),
 	screen_h(y),
-	screen(SDL_SetVideoMode(x, y, 32, SDL_HWSURFACE | SDL_DOUBLEBUF)),
+	screen(screen_),
 	data(gui_data(mm, rr)),
 	res(font_, 32, 32, sdl_load_image(food_icon_name), 
 			sdl_load_image(prod_icon_name), 
 			sdl_load_image(curr_icon_name)),
 	mw(screen, x, y, data, res, ai_, myciv_)
 {
-	if (!screen) {
-		fprintf(stderr, "Unable to set %dx%d video: %s\n", x, y, SDL_GetError());
-		return;
-	}
 	res.terrains.textures.resize(terrain_files.size());
 	for(unsigned int i = 0; i < terrain_files.size(); i++) {
 		res.terrains.textures[i] = sdl_load_image(terrain_files[i].c_str());
