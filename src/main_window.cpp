@@ -29,6 +29,8 @@ main_window::~main_window()
 
 void main_window::get_next_free_unit()
 {
+	if(myciv->units.empty())
+		return;
 	std::map<unsigned int, unit*>::const_iterator uit = current_unit;
 	for(++current_unit;
 			current_unit != myciv->units.end();
