@@ -3,25 +3,27 @@
 "Bronze Working"	15	1 0 0 0
 "Pottery"		10	0 0 0 0
 "Currency"		20	0 0 0 0
-"Ceremonial Burial"	20	0 0 0 0
+"Ceremonial Burial"	10	0 0 0 0
 "Map Making"		30	13 0 0 0
-"Navigation"		40	6 19 18 0
-"Mysticism"		10	5 0 0 0
-"Polytheism"		10	8 0 0 0
-"Monotheism"		10	9 0 0 0
-"Philosophy"		10	9 13 0 0
-"Theology"		10	10 11 20 0
+"Navigation"		50	6 19 18 0
+"Mysticism"		20	5 0 0 0
+"Polytheism"		20	8 0 0 0
+"Monotheism"		30	9 0 0 0
+"Philosophy"		40	9 13 0 0
+"Theology"		50	10 11 20 0
 "Writing"		10	0 0 0 0
-"Horseback Riding"	10	2 0 0 0
-"Literature"		10	13 11 0 0
-"Masonry"		10	3 0 0 0
-"Medicine"		10	15 11 18 0
-"Mathematics"		10	13 4 0 0
-"Astronomy"		10	8 0 0 0
-"Construction"		10	16 0 0 0
-"Iron Working"		10	2 22 20 0
-"Code of Laws"		10	13 0 0 0
-"Monarchy"		10	22 0 0 0
-"Feudalism"		10	23 21 25 0
-"The Wheel"		10	14 0 0 0
-"Trade"			10	4 0 0 0
+"Horseback Riding"	10	2 28 0 0
+"Literature"		40	13 11 0 0
+"Masonry"		20	3 0 0 0
+"Medicine"		60	15 11 18 0
+"Mathematics"		20	13 4 0 0
+"Astronomy"		30	8 0 0 0
+"Construction"		30	16 0 0 0
+"Iron Working"		30	2 22 20 0
+"Code of Laws"		20	13 0 0 0
+"Monarchy"		30	22 0 0 0
+"Feudalism"		50	23 21 25 0
+"The Wheel"		30	14 0 0 0
+"Trade"			20	4 0 0 0
+"Republic"		40	23 11 0 0
+"Domestication"		10	0 0 0 0
