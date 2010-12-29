@@ -27,7 +27,7 @@ class city_window : public window {
 		int handle_keydown(SDLKey k, SDLMod mod);
 		int handle_mousedown(const SDL_Event& ev);
 		int handle_production_input(const SDL_Event& ev);
-		int change_production();
+		int change_production(int num);
 		int on_exit();
 		int on_unit(unit* u);
 		int draw_city_resources_screen(int xpos, int ypos);

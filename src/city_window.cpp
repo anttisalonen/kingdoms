@@ -17,10 +17,10 @@ city_window::city_window(SDL_Surface* screen_, int x, int y, gui_data& data_, gu
 			       	boost::bind(&city_window::on_exit, this)));
 	buttons.push_back(new plain_button(rect(screen_w * 0.75, screen_h * 0.6, screen_w * 0.15, screen_h * 0.08),
 				"Change production", &res.font, color(128, 60, 60), color(0, 0, 0),
-				boost::bind(&city_window::change_production, this)));
+				boost::bind(&city_window::change_production, this, 0)));
 
 	// create "buttons" for unit icons
-	rect unit_box = rect(screen_w * 0.8, screen_h * 0.1, screen_w * 0.4, screen_h * 0.4);
+	rect unit_box = rect(screen_w * 0.8, screen_h * 0.1, screen_w * 0.1, screen_h * 0.4);
 	int unit_x = unit_box.x;
 	int unit_y = unit_box.y;
 	rect unit_coord = rect(unit_x, unit_y, res.terrains.tile_w, res.terrains.tile_h);
@@ -36,7 +36,7 @@ city_window::city_window(SDL_Surface* screen_, int x, int y, gui_data& data_, gu
 						unit_tile,
 						boost::bind(&city_window::on_unit, this, u)));
 			unit_coord.x += unit_coord.w;
-			if(unit_coord.x + unit_coord.w >= unit_box.w + unit_box.w) {
+			if(unit_coord.x + unit_coord.w >= unit_box.x + unit_box.w) {
 				unit_coord.x = unit_box.x;
 				unit_coord.y += unit_coord.h;
 				if(unit_coord.y + unit_coord.h >= unit_box.h + unit_box.h)
@@ -54,30 +54,57 @@ city_window::~city_window()
 	}
 }
 
-int city_window::change_production()
+int city_window::change_production(int num)
 {
 	if(internal_ai)
 		return 0;
-	rect option_rect = rect(screen_w * 0.30, screen_h * 0.1, screen_w * 0.40, screen_h * 0.08);
+	const float button_dist_y = 0.06f;
+	rect option_rect = rect(screen_w * 0.30, screen_h * 0.1, screen_w * 0.40, screen_h * 0.05);
+	int listed = 0;
+	change_prod_buttons.clear();
+	if(num) {
+		change_prod_buttons.push_back(new plain_button(option_rect,
+					"back", &res.font, color(128, 128, 128), color(0, 0, 0),
+					boost::bind(&city_window::change_production, this, 0)));
+		option_rect.y += screen_h * button_dist_y;
+	}
 	for(unit_configuration_map::const_iterator it = data.r.uconfmap.begin();
 			it != data.r.uconfmap.end();
 			++it) {
 		if(!myciv->can_build_unit(it->second, *c))
 			continue;
+		if(num > listed++) {
+			continue;
+		}
 		change_prod_buttons.push_back(new plain_button(option_rect,
-				it->second.unit_name.c_str(), &res.font, color(128, 128, 128), color(0, 0, 0),
+				it->second.unit_name.c_str(), &res.font, color(160, 160, 160), color(0, 0, 0),
 				boost::bind(&city_window::choose_unit_production, this, *it)));
-		option_rect.y += screen_h * 0.09;
+		option_rect.y += screen_h * button_dist_y;
+		if(option_rect.y > screen_h * 0.8) {
+			change_prod_buttons.push_back(new plain_button(option_rect,
+						"more", &res.font, color(128, 128, 128), color(0, 0, 0),
+						boost::bind(&city_window::change_production, this, listed)));
+			return 0;
+		}
 	}
 	for(city_improv_map::const_iterator it = data.r.cimap.begin();
 			it != data.r.cimap.end();
 			++it) {
 		if(!myciv->can_build_improvement(it->second, *c))
 			continue;
+		if(num > listed++) {
+			continue;
+		}
 		change_prod_buttons.push_back(new plain_button(option_rect,
-				it->second.improv_name.c_str(), &res.font, color(160, 160, 160), color(0, 0, 0),
+				it->second.improv_name.c_str(), &res.font, color(200, 200, 200), color(0, 0, 0),
 				boost::bind(&city_window::choose_improv_production, this, *it)));
-		option_rect.y += screen_h * 0.09;
+		option_rect.y += screen_h * button_dist_y;
+		if(option_rect.y > screen_h * 0.8) {
+			change_prod_buttons.push_back(new plain_button(option_rect,
+						"more", &res.font, color(128, 128, 128), color(0, 0, 0),
+						boost::bind(&city_window::change_production, this, listed)));
+			return 0;
+		}
 	}
 	return 0;
 }
