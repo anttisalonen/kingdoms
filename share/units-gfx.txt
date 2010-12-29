@@ -5,3 +5,8 @@ archer.png
 spearman.png
 trireme.png
 caravel.png
+horseman.png
+catapult.png
+chariot.png
+swordsman.png
+knight.png
