@@ -8,7 +8,7 @@
 "Navigation"		50	6 19 18 0
 "Mysticism"		20	5 0 0 0
 "Polytheism"		20	8 0 0 0
-"Monotheism"		30	9 0 0 0
+"Monotheism"		30	8 0 0 0
 "Philosophy"		40	9 13 0 0
 "Theology"		50	10 11 20 0
 "Writing"		10	0 0 0 0
