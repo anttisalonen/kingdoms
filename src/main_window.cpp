@@ -859,6 +859,14 @@ void main_window::init_turn()
 			try_center_camera_to_unit(myciv->units.begin()->second);
 		return;
 	}
-	get_next_free_unit();
+	else {
+		if(data.r.get_round_number() == 0) {
+			current_unit = myciv->units.begin();
+			try_center_camera_to_unit(current_unit->second);
+		}
+		else {
+			get_next_free_unit();
+		}
+	}
 }
 
