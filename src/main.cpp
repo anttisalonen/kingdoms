@@ -480,10 +480,10 @@ int main_menu::run()
 	}
 	plain_button start_button(rect(312, 400, 400, 60),
 			"Start game", font, color(40, 30, 10),
-			color(0, 0, 0), boost::bind(&main_menu::start_game_button, this));
+			color(200, 200, 200), boost::bind(&main_menu::start_game_button, this));
 	plain_button quit_button(rect(312, 600, 400, 60),
 			"Quit", font, color(40, 30, 10),
-			color(0, 0, 0), boost::bind(&main_menu::quit_button, this));
+			color(200, 200, 200), boost::bind(&main_menu::quit_button, this));
 	if(draw_image(0, 0, bg_img, screen)) {
 		fprintf(stderr, "Could not draw background image: %s\n",
 				SDL_GetError());
