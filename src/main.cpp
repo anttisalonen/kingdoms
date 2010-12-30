@@ -348,8 +348,12 @@ void play_game(pompelmous& r, std::map<unsigned int, ai>& ais)
 				if(ait != ais.end()) {
 					if(ait->second.play())
 						running = false;
-					else
-						g.init_turn();
+					else {
+						if(r.civs[0]->eliminated())
+							running = false;
+						else
+							g.init_turn();
+					}
 				}
 				else {
 					running = false;
@@ -555,18 +559,22 @@ void run_mainmenu()
 		}
 		else {
 			main_menu m(screen, font);
-			main_menu::main_menu_selection s = m.run();
-			switch(s) {
-				case main_menu::main_menu_start:
-					load = false;
-					run_gamedata();
-					break;
-				case main_menu::main_menu_load:
-					load = true;
-					run_gamedata();
-					break;
-				default:
-					break;
+			bool running = true;
+			while(running) {
+				main_menu::main_menu_selection s = m.run();
+				switch(s) {
+					case main_menu::main_menu_start:
+						load = false;
+						run_gamedata();
+						break;
+					case main_menu::main_menu_load:
+						load = true;
+						run_gamedata();
+						break;
+					default:
+						running = false;
+						break;
+				}
 			}
 			TTF_CloseFont(font);
 		}

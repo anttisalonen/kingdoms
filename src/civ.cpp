@@ -176,6 +176,11 @@ void civilization::eliminate()
 	m->remove_civ_land(civ_id);
 }
 
+bool civilization::eliminated() const
+{
+	return units.empty() && cities.empty();
+}
+
 void civilization::refill_moves(const unit_configuration_map& uconfmap)
 {
 	for(std::map<unsigned int, unit*>::iterator uit = units.begin();

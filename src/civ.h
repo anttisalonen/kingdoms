@@ -111,6 +111,7 @@ class civilization {
 		bool blocked_by_land(int x, int y) const;
 		int get_known_land_owner(int x, int y) const;
 		void eliminate();
+		bool eliminated() const;
 		void set_map(map* m_);
 		void set_government(const government* g);
 		int get_national_income() const;
