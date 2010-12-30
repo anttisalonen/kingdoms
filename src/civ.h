@@ -87,7 +87,9 @@ class civilization {
 				const unit_configuration& uconf,
 				unsigned int road_moves);
 		void remove_unit(unit* u);
-		int try_move_unit(unit* u, int chx, int chy, bool fought);
+		bool move_acceptable_by_land_and_units(int x, int y) const;
+		bool can_move_unit(const unit* u, int chx, int chy) const;
+		void move_unit(unit* u, int chx, int chy, bool fought);
 		void refill_moves(const unit_configuration_map& uconfmap);
 		void increment_resources(const unit_configuration_map& uconfmap,
 				const advance_map& amap,
@@ -107,7 +109,6 @@ class civilization {
 		std::vector<unsigned int> check_discoveries(int x, int y, int radius);
 		bool unit_discovered(const unit_configuration& uconf) const;
 		bool improv_discovered(const city_improvement& uconf) const;
-		bool can_move_to(int x, int y) const;
 		bool blocked_by_land(int x, int y) const;
 		int get_known_land_owner(int x, int y) const;
 		void eliminate();
@@ -119,7 +120,8 @@ class civilization {
 		void update_city_resource_workers(city* c);
 		bool can_build_unit(const unit_configuration& uc, const city& c) const;
 		bool can_build_improvement(const city_improvement& ci, const city& c) const;
-		bool load_unit(unit* loadee, unit* loader);
+		bool can_load_unit(unit* loadee, unit* loader) const;
+		void load_unit(unit* loadee, unit* loader);
 		bool unload_unit(unit* loadee, int x, int y);
 		const std::map<unsigned int, int>& get_built_units() const;
 		const std::map<unsigned int, int>& get_lost_units() const;

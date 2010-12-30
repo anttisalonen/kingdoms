@@ -415,36 +415,6 @@ void civilization::setup_default_research_goal(const advance_map& amap)
 	}
 }
 
-int civilization::try_move_unit(unit* u, int chx, int chy, bool fought)
-{
-	if((!u->num_moves() && !u->num_road_moves()) || !(chx || chy)) {
-		return 0;
-	}
-	int newx = m->wrap_x(u->xpos + chx);
-	int newy = m->wrap_y(u->ypos + chy);
-	if(m->terrain_allowed(*u, newx, newy) && can_move_to(newx, newy)) {
-		m->remove_unit(u);
-		if(!u->carried())
-			fog.shade(u->xpos, u->ypos, 1);
-		bool succ = u->move_to(newx, newy, 
-				!fought && m->road_between(u->xpos, u->ypos, newx, newy));
-		if(!u->carried())
-			fog.reveal(u->xpos, u->ypos, 1);
-		reveal_land(u->xpos, u->ypos, 1);
-		m->add_unit(u);
-		for(std::list<unit*>::iterator it = u->carried_units.begin();
-				it != u->carried_units.end();
-				++it) {
-			(*it)->xpos = u->xpos;
-			(*it)->ypos = u->ypos;
-		}
-		if(succ && u->carried()) {
-			unload_unit(u, newx, newy);
-		}
-		return succ;
-	}
-	return 0;
-}
 
 char civilization::fog_at(int x, int y) const
 {
@@ -585,7 +555,7 @@ void civilization::set_map(map* m_)
 	}
 }
 
-bool civilization::can_move_to(int x, int y) const
+bool civilization::move_acceptable_by_land_and_units(int x, int y) const
 {
 	const std::list<unit*>& units = m->units_on_spot(x, y);
 	int land_owner = m->get_land_owner(x, y);
@@ -594,12 +564,53 @@ bool civilization::can_move_to(int x, int y) const
 		unit_owner = units.front()->civ_id;
 	bool acceptable_unit_owner = unit_owner == -1 ||
 		unit_owner == (int)civ_id;
+	if(!acceptable_unit_owner)
+		return false;
 	bool acceptable_land_owner = land_owner == -1 ||
 		land_owner == (int)civ_id ||
 		get_relationship_to_civ(land_owner) != relationship_peace;
-	return acceptable_unit_owner && acceptable_land_owner;
+	if(!acceptable_land_owner)
+		return false;
+	return true;
 }
 
+bool civilization::can_move_unit(const unit* u, int chx, int chy) const
+{
+	if((!u->num_moves() && !u->num_road_moves()) || !(chx || chy)) {
+		return false;
+	}
+	int newx = u->xpos + chx;
+	int newy = u->ypos + chy;
+	if(!m->terrain_allowed(*u, newx, newy))
+		return false;
+	if(!move_acceptable_by_land_and_units(newx, newy))
+		return false;
+	return true;
+}
+
+void civilization::move_unit(unit* u, int chx, int chy, bool fought)
+{
+	int newx = m->wrap_x(u->xpos + chx);
+	int newy = m->wrap_y(u->ypos + chy);
+	m->remove_unit(u);
+	if(!u->carried())
+		fog.shade(u->xpos, u->ypos, 1);
+	u->move_to(newx, newy, 
+			!fought && m->road_between(u->xpos, u->ypos, newx, newy));
+	if(!u->carried())
+		fog.reveal(u->xpos, u->ypos, 1);
+	reveal_land(u->xpos, u->ypos, 1);
+	m->add_unit(u);
+	for(std::list<unit*>::iterator it = u->carried_units.begin();
+			it != u->carried_units.end();
+			++it) {
+		(*it)->xpos = u->xpos;
+		(*it)->ypos = u->ypos;
+	}
+	if(u->carried()) {
+		unload_unit(u, newx, newy);
+	}
+}
 int civilization::get_known_land_owner(int x, int y) const
 {
 	const int* v = known_land_map.get(m->wrap_x(x), m->wrap_y(y));
@@ -666,29 +677,29 @@ bool civilization::can_build_improvement(const city_improvement& ci, const city&
 	return true;
 }
 
-bool civilization::load_unit(unit* loadee, unit* loader)
+bool civilization::can_load_unit(unit* loadee, unit* loader) const
+{
+	return loadee->can_load_at(loader);
+}
+
+void civilization::load_unit(unit* loadee, unit* loader)
 {
 	int oldx = loadee->xpos;
 	int oldy = loadee->ypos;
-	if(loadee->load_at(loader)) {
-		m->remove_unit(loadee);
-		fog.shade(oldx, oldy, 1);
-		printf("loaded unit\n");
-		return true;
-	}
-	return false;
+	loadee->load_at(loader);
+	m->remove_unit(loadee);
+	fog.shade(oldx, oldy, 1);
 }
 
 bool civilization::unload_unit(unit* unloadee, int x, int y)
 {
-	if(!m->terrain_allowed(*unloadee, x, y) || !can_move_to(x, y))
+	if(!can_move_unit(unloadee, x, y))
 		return false;
 	if(!unloadee->unload(x, y))
 		return false;
 	m->add_unit(unloadee);
 	fog.reveal(x, y, 1);
 	reveal_land(x, y, 1);
-	printf("unloaded unit\n");
 	return true;
 }
 

@@ -5,6 +5,7 @@
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/split_member.hpp>
+#include <boost/function.hpp>
 
 #include "unit_configuration.h"
 #include "advance.h"
@@ -85,6 +86,26 @@ action unit_action(unit_action_type t, unit* u);
 action move_unit_action(unit* u, int chx, int chy);
 action improve_unit_action(unit* u, improvement_type i);
 
+enum combat_result {
+	combat_result_none,
+	combat_result_lost,
+	combat_result_won,
+};
+
+struct visible_move_action {
+	visible_move_action(const unit* un, int chx, int chy,
+			combat_result res, const unit* opp);
+	const unit* u;
+	coord change;
+	combat_result combat;
+	const unit* opponent;
+};
+
+class action_listener {
+	public:
+		virtual void handle_action(const visible_move_action& a) = 0;
+};
+
 class pompelmous
 {
 	public:
@@ -111,7 +132,10 @@ class pompelmous
 		int get_num_turns() const;
 		const map& get_map() const;
 		map& get_map();
+		void add_action_listener(action_listener* cb);
+		void remove_action_listener(action_listener* cb);
 	private:
+		void broadcast_action(const visible_move_action& a) const;
 		bool next_civ();
 		void refill_moves();
 		void increment_resources();
@@ -123,7 +147,8 @@ class pompelmous
 		void check_for_city_updates();
 		void update_land_owners();
 		void destroy_improvements(city* c);
-		bool try_load_unit(unit* u, int x, int y);
+		bool can_load_unit(unit* u, int x, int y) const;
+		void load_unit(unit* u, int x, int y);
 		bool try_unload_units(unit* u, int x, int y);
 		bool try_wakeup_loaded(unit* u);
 		void update_civ_points();
@@ -134,6 +159,7 @@ class pompelmous
 		int round_number;
 		const unsigned int road_moves;
 		int num_turns;
+		std::list<action_listener*> action_listeners;
 
 		friend class boost::serialization::access;
 

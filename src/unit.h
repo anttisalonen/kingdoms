@@ -27,7 +27,7 @@ class unit
 		void skip_turn();
 		int num_moves() const;
 		int num_road_moves() const;
-		bool move_to(int x, int y, bool road);
+		void move_to(int x, int y, bool road);
 		void decrement_moves();
 		improvement_type improving_to() const;
 		int turns_still_improving() const;
@@ -35,7 +35,8 @@ class unit
 		bool is_improving() const;
 		bool idle() const;
 		bool is_military_unit() const;
-		bool load_at(unit* loader);
+		bool can_load_at(unit* loader) const;
+		void load_at(unit* loader);
 		bool unload(int x, int y);
 		bool carried() const;
 		bool carrying() const;

@@ -160,6 +160,7 @@ int draw_road_overlays(const map& m,
 int draw_terrain_tile(int x, int y, int xpos, int ypos, bool shade,
 		const map& m, 
 		const tileset& terrains,
+		bool draw_improvements,
 		SDL_Surface* screen)
 {
 	SDL_Rect dest;
@@ -175,22 +176,26 @@ int draw_terrain_tile(int x, int y, int xpos, int ypos, bool shade,
 		fprintf(stderr, "Unable to blit surface: %s\n", SDL_GetError());
 		return 1;
 	}
-	int im = m.get_improvements_on(x, y);
-	SDL_Surface* imp_surf = NULL;
-	if(im & improv_irrigation)
-		imp_surf = terrains.irrigation_overlay;
-	if(im & improv_mine)
-		imp_surf = terrains.mine_overlay;
-	if(imp_surf) {
-		if(SDL_BlitSurface(imp_surf, NULL, screen, &dest)) {
-			fprintf(stderr, "Unable to blit surface: %s\n", SDL_GetError());
-			return 1;
+
+	if(draw_improvements) {
+		int im = m.get_improvements_on(x, y);
+		SDL_Surface* imp_surf = NULL;
+		if(im & improv_irrigation)
+			imp_surf = terrains.irrigation_overlay;
+		else if(im & improv_mine)
+			imp_surf = terrains.mine_overlay;
+		if(imp_surf) {
+			if(SDL_BlitSurface(imp_surf, NULL, screen, &dest)) {
+				fprintf(stderr, "Unable to blit surface: %s\n", SDL_GetError());
+				return 1;
+			}
+		}
+		if(im & improv_road) {
+			if(draw_road_overlays(m, x, y, xpos, ypos, terrains, screen))
+				return 1;
 		}
 	}
-	if(im & improv_road) {
-		if(draw_road_overlays(m, x, y, xpos, ypos, terrains, screen))
-			return 1;
-	}
+
 	if(shade) {
 		color c(0, 0, 0);
 		for(int i = dest.y; i < dest.y + terrains.tile_h; i++) {

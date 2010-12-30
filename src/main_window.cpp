@@ -1,3 +1,5 @@
+#include <boost/bind.hpp>
+#include <boost/lambda/lambda.hpp>
 #include "main_window.h"
 #include "map-astar.h"
 #include "city_window.h"
@@ -244,60 +246,75 @@ int main_window::draw_unit(const unit* u)
 	if(!tile_visible(u->xpos, u->ypos)) {
 		return 0;
 	}
-	if(u->carried() && (current_unit == myciv->units.end() || current_unit->second != u))
+	if(u->carried() && (current_unit == myciv->units.end() || current_unit->second != u)) {
 		return 0;
+	}
 	SDL_Surface* surf = res.get_unit_tile(*u, data.r.civs[u->civ_id]->col);
 	return draw_tile(surf, u->xpos, u->ypos);
+}
+
+int main_window::draw_complete_tile(int x, int y, int shx, int shy, bool terrain,
+		bool improvements, bool borders,
+		boost::function<bool(const unit*)> unit_predicate,
+		bool cities)
+{
+	char fog = myciv->fog_at(x, y);
+	if(fog == 0 && !internal_ai)
+		return 0;
+	if(terrain) {
+		if(show_terrain_image(x, y, shx, shy, improvements, !internal_ai && fog == 1))
+			return 1;
+	}
+	if(borders) {
+		if(test_draw_border(x, y, shx, shy))
+			return 1;
+	}
+	const std::list<unit*>& units = data.m.units_on_spot(x, y);
+	for(std::list<unit*>::const_iterator it = units.begin();
+			it != units.end(); ++it) {
+		if((internal_ai || fog == 2) && unit_predicate(*it)) {
+			if(draw_unit(*it))
+				return 1;
+		}
+	}
+	if(cities) {
+		city* c = data.m.city_on_spot(x, y);
+		if(c) {
+			if(draw_city(*c))
+				return 1;
+		}
+	}
+	return 0;
+}
+
+bool main_window::draw_gui_unit(const unit* u) const
+{
+	if(current_unit == myciv->units.end())
+	       return true;
+	else
+		return u != current_unit->second &&
+			(u->xpos != current_unit->second->xpos ||
+			 u->ypos != current_unit->second->ypos);
 }
 
 int main_window::draw_main_map()
 {
 	int imax = cam.cam_y + cam_total_tiles_y;
 	int jmax = cam.cam_x + cam_total_tiles_x;
-	for(int i = cam.cam_y, y = 0; i < imax; i++, y++) {
+	// bottom-up in y dimension for correct rendering of city names
+	for(int i = imax - 1, y = cam_total_tiles_y - 1; i >= cam.cam_y; i--, y--) {
 		for(int j = cam.cam_x, x = sidebar_size; j < jmax; j++, x++) {
-			int dj = data.m.wrap_x(j);
-			int di = data.m.wrap_y(i);
-			char fog = myciv->fog_at(dj, di);
-			if(fog > 0 || internal_ai) {
-				if(show_terrain_image(dj, i, x, y, !internal_ai && fog == 1)) {
-					return 1;
-				}
-				if(test_draw_border(dj, i, x, y)) {
-					return 1;
-				}
-			}
+			if(draw_complete_tile(data.m.wrap_x(j),
+						data.m.wrap_y(i),
+						x, y,
+						true, true, true,
+						boost::bind(&main_window::draw_gui_unit,
+							this, boost::lambda::_1),
+						true))
+				return 1;
 		}
 	}
-	for(std::vector<civilization*>::iterator cit = data.r.civs.begin();
-			cit != data.r.civs.end();
-			++cit) {
-		for(std::map<unsigned int, unit*>::const_iterator it = (*cit)->units.begin(); 
-				it != (*cit)->units.end();
-				++it) {
-			if(it == current_unit)
-				continue;
-			if(current_unit != myciv->units.end())
-				if(it->second->xpos == current_unit->second->xpos &&
-				   it->second->ypos == current_unit->second->ypos)
-					continue;
-			if(internal_ai || myciv->fog_at(it->second->xpos, it->second->ypos) == 2) {
-				if(draw_unit(it->second)) {
-					return 1;
-				}
-			}
-		}
-		for(std::map<unsigned int, city*>::const_iterator it = (*cit)->cities.begin();
-				it != (*cit)->cities.end();
-				++it) {
-			city* c = it->second;
-			if(internal_ai || myciv->fog_at(c->xpos, c->ypos) > 0) {
-				if(draw_city(*c)) {
-					return 1;
-				}
-			}
-		}
-	}
+
 	if(!internal_ai && current_unit != myciv->units.end() && !blink_unit) {
 		if(draw_unit(current_unit->second))
 			return 1;
@@ -315,10 +332,11 @@ int main_window::draw_main_map()
 	return 0;
 }
 
-int main_window::show_terrain_image(int x, int y, int xpos, int ypos, bool shade)
+int main_window::show_terrain_image(int x, int y, int xpos, int ypos,
+		bool draw_improvements, bool shade)
 {
 	return draw_terrain_tile(x, y, xpos * tile_w, ypos * tile_h, shade,
-			data.m, res.terrains, screen);
+			data.m, res.terrains, draw_improvements, screen);
 }
 
 int main_window::test_draw_border(int x, int y, int xpos, int ypos)
@@ -868,6 +886,62 @@ void main_window::init_turn()
 		}
 		else {
 			get_next_free_unit();
+		}
+	}
+}
+
+bool main_window::unit_not_at(int x, int y, const unit* u) const
+{
+	return u->xpos != x && u->ypos != y;
+}
+
+void main_window::handle_action(const visible_move_action& a)
+{
+	if(abs(a.change.x) > 1 || abs(a.change.y) > 1)
+		return;
+	int newx = data.m.wrap_x(a.u->xpos + a.change.x);
+	int newy = data.m.wrap_y(a.u->ypos + a.change.y);
+	if((myciv->fog_at(a.u->xpos, a.u->ypos) != 2 || myciv->fog_at(newx, newy) != 2) &&
+			!internal_ai)
+		return;
+	if(!tile_visible(a.u->xpos, a.u->ypos) || !tile_visible(newx, newy)) {
+		return;
+	}
+	std::vector<coord> redrawable_tiles;
+	redrawable_tiles.push_back(coord(a.u->xpos, a.u->ypos));
+	redrawable_tiles.push_back(coord(newx, newy));
+	if(a.u->xpos != newx || a.u->ypos != newy) {
+		redrawable_tiles.push_back(coord(a.u->xpos, newy));
+		redrawable_tiles.push_back(coord(newx, a.u->ypos));
+	}
+	SDL_Surface* surf = res.get_unit_tile(*a.u, data.r.civs[a.u->civ_id]->col);
+	float xpos = tile_xcoord_to_pixel(a.u->xpos);
+	float ypos = tile_ycoord_to_pixel(a.u->ypos);
+	const int steps = 30;
+	float xdiff = tile_w * a.change.x / steps;
+	float ydiff = tile_h * a.change.y / steps;
+	for(int i = 0; i < steps; i++) {
+		for(std::vector<coord>::const_iterator it = redrawable_tiles.begin();
+				it != redrawable_tiles.end();
+				++it) {
+			if(tile_visible(it->x, it->y)) {
+				int shx = data.m.wrap_x(it->x - cam.cam_x + sidebar_size);
+				int shy = data.m.wrap_y(it->y - cam.cam_y);
+				draw_complete_tile(it->x, it->y, shx, shy,
+						true, true, true,
+						boost::bind(&main_window::unit_not_at, 
+							this,
+							a.u->xpos, a.u->ypos, 
+							boost::lambda::_1), 
+						true);
+			}
+		}
+		draw_image((int)xpos, (int)ypos, surf, screen);
+		xpos += xdiff;
+		ypos += ydiff;
+		if(SDL_Flip(screen)) {
+			fprintf(stderr, "Unable to flip: %s\n", SDL_GetError());
+			return;
 		}
 	}
 }

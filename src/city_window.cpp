@@ -146,7 +146,7 @@ int city_window::draw_city_resources_screen(int xpos, int ypos)
 				if(in_bounds(0, xp, data.m.size_x() - 1) &&
 				   in_bounds(0, yp, data.m.size_y() - 1) && myciv->fog_at(xp, yp)) {
 					draw_terrain_tile(xp, yp, x, y, false,
-							data.m, res.terrains, screen);
+							data.m, res.terrains, true, screen);
 				}
 			}
 		}

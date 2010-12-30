@@ -15,4 +15,10 @@ N clamp(N min, N val, N max)
 	return val;
 }
 
+template<typename N>
+int signum(N val)
+{
+	return (val > 0) - (val < 0);
+}
+
 #endif

@@ -117,12 +117,10 @@ int unit::num_road_moves() const
 	return road_moves;
 }
 
-bool unit::move_to(int x, int y, bool road)
+void unit::move_to(int x, int y, bool road)
 {
 	turns_improving = 0;
 	improving = improv_none;
-	if(moves < 1 && road_moves < 1)
-		return false;
 	xpos = x;
 	ypos = y;
 	if(!road) {
@@ -137,12 +135,14 @@ bool unit::move_to(int x, int y, bool road)
 		if(road_moves) {
 			road_moves--;
 		}
-		else {
+		else if(moves) {
 			moves--;
 			road_moves = def_road_moves - 1;
 		}
+		else {
+			fprintf(stderr, "unit warning: moving, even though no movement points left.\n");
+		}
 	}
-	return true;
 }
 
 void unit::decrement_moves()
@@ -187,17 +187,20 @@ bool unit::is_military_unit() const
 	return uconf->max_strength > 0;
 }
 
-bool unit::load_at(unit* loader)
+bool unit::can_load_at(unit* loader) const
 {
-	if(carrying_unit || !idle())
-		return false;
+	return !carrying_unit && idle() &&
+		loader->uconf->carry_units > loader->carried_units.size();
+}
+
+void unit::load_at(unit* loader)
+{
 	loader->carried_units.push_back(this);
 	xpos = loader->xpos;
 	ypos = loader->ypos;
 	decrement_moves();
 	sentry = true;
 	carrying_unit = loader;
-	return true;
 }
 
 bool unit::unload(int x, int y)

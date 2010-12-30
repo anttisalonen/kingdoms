@@ -132,6 +132,13 @@ action improve_unit_action(unit* u, improvement_type i)
 	return a;
 }
 
+visible_move_action::visible_move_action(const unit* un, int chx, int chy,
+		combat_result res, const unit* opp)
+	: u(un), change(coord(chx, chy)),
+	combat(res), opponent(opp)
+{
+}
+
 pompelmous::pompelmous(const unit_configuration_map& uconfmap_,
 		const advance_map& amap_,
 		const city_improv_map& cimap_,
@@ -276,6 +283,15 @@ const unit_configuration* pompelmous::get_unit_configuration(int uid) const
 	return &it->second;
 }
 
+void pompelmous::broadcast_action(const visible_move_action& a) const
+{
+	for(std::list<action_listener*>::const_iterator it = action_listeners.begin();
+			it != action_listeners.end();
+			++it) {
+		(*it)->handle_action(a);
+	}
+}
+
 bool pompelmous::perform_action(int civid, const action& a)
 {
 	if(civid < 0 || civid != current_civ_id()) {
@@ -346,9 +362,17 @@ bool pompelmous::perform_action(int civid, const action& a)
 				case action_load:
 					if(!a.data.unit_data.u->is_land_unit())
 						return false;
-					return try_load_unit(a.data.unit_data.u, 
+					if(can_load_unit(a.data.unit_data.u,
+							a.data.unit_data.u->xpos, 
+							a.data.unit_data.u->ypos)) {
+						load_unit(a.data.unit_data.u,
 							a.data.unit_data.u->xpos,
 							a.data.unit_data.u->ypos);
+						return true;
+					}
+					else {
+						return false;
+					}
 				case action_unload:
 					return try_wakeup_loaded(a.data.unit_data.u);
 				default:
@@ -473,8 +497,16 @@ bool pompelmous::try_move_unit(unit* u, int chx, int chy)
 	if(!m->terrain_allowed(*u, tgtxpos, tgtypos)) {
 		if(u->carrying())
 			return try_unload_units(u, tgtxpos, tgtypos);
-		else if(!u->carried() && u->is_land_unit())
-			return try_load_unit(u, tgtxpos, tgtypos);
+		else if(!u->carried() && u->is_land_unit()) {
+			if(can_load_unit(u, tgtxpos, tgtypos)) {
+				broadcast_action(visible_move_action(u, chx, chy, combat_result_none, NULL));
+				load_unit(u, tgtxpos, tgtypos);
+				return true;
+			}
+			else {
+				return false;
+			}
+		}
 		else {
 			return false;
 		}
@@ -495,11 +527,19 @@ bool pompelmous::try_move_unit(unit* u, int chx, int chy)
 				fought = true;
 				if(u->strength == 0) {
 					// lost combat
+					broadcast_action(visible_move_action(u,
+								chx, chy,
+								combat_result_lost,
+								defender));
 					(*current_civ)->remove_unit(u);
 					return true;
 				}
 				else if(defender->strength == 0) {
 					// won combat
+					broadcast_action(visible_move_action(u,
+								chx, chy,
+								combat_result_won,
+								defender));
 					(*civs[def_id]).remove_unit(defender);
 				}
 			}
@@ -515,24 +555,21 @@ bool pompelmous::try_move_unit(unit* u, int chx, int chy)
 	}
 
 	// move to square
-	if((*current_civ)->can_move_to(tgtxpos, tgtypos)) {
-		if((*current_civ)->try_move_unit(u, chx, chy, fought)) {
-			std::vector<unsigned int> discs = (*current_civ)->check_discoveries(u->xpos,
-					u->ypos, 1);
-			for(std::vector<unsigned int>::const_iterator it = discs.begin();
-					it != discs.end();
-					++it) {
-				civs[*it]->discover((*current_civ)->civ_id);
-			}
-			if(def_id >= 0 && def_id != u->civ_id) {
-				check_city_conquer(tgtxpos, tgtypos, u->civ_id);
-				check_civ_elimination(def_id);
-			}
-			return true;
+	if((*current_civ)->can_move_unit(u, chx, chy)) {
+		broadcast_action(visible_move_action(u, chx, chy, combat_result_none, NULL));
+		(*current_civ)->move_unit(u, chx, chy, fought);
+		std::vector<unsigned int> discs = (*current_civ)->check_discoveries(u->xpos,
+				u->ypos, 1);
+		for(std::vector<unsigned int>::const_iterator it = discs.begin();
+				it != discs.end();
+				++it) {
+			civs[*it]->discover((*current_civ)->civ_id);
 		}
-		else {
-			return false;
+		if(def_id >= 0 && def_id != u->civ_id) {
+			check_city_conquer(tgtxpos, tgtypos, u->civ_id);
+			check_civ_elimination(def_id);
 		}
+		return true;
 	}
 	else {
 		if(def_id >= 0 && def_id != u->civ_id) {
@@ -581,7 +618,7 @@ unsigned int pompelmous::get_num_road_moves() const
 	return road_moves;
 }
 
-bool pompelmous::try_load_unit(unit* u, int x, int y)
+bool pompelmous::can_load_unit(unit* u, int x, int y) const
 {
 	const std::list<unit*>& units = m->units_on_spot(x, y);
 	for(std::list<unit*>::const_iterator it = units.begin();
@@ -589,12 +626,26 @@ bool pompelmous::try_load_unit(unit* u, int x, int y)
 			++it) {
 		if((*it)->civ_id != u->civ_id)
 			continue;
-		if((*it)->uconf->carry_units > (*it)->carried_units.size()) {
-			if(civs[u->civ_id]->load_unit(u, *it))
-				return true;
+		if(civs[u->civ_id]->can_load_unit(u, *it)) {
+			return true;
 		}
 	}
 	return false;
+}
+
+void pompelmous::load_unit(unit* u, int x, int y)
+{
+	const std::list<unit*>& units = m->units_on_spot(x, y);
+	for(std::list<unit*>::const_iterator it = units.begin();
+			it != units.end();
+			++it) {
+		if((*it)->civ_id != u->civ_id)
+			continue;
+		if(civs[u->civ_id]->can_load_unit(u, *it)) {
+			civs[u->civ_id]->load_unit(u, *it);
+			return;
+		}
+	}
 }
 
 bool pompelmous::try_unload_units(unit* u, int x, int y)
@@ -640,5 +691,15 @@ map& pompelmous::get_map()
 const map& pompelmous::get_map() const
 {
 	return *m;
+}
+
+void pompelmous::add_action_listener(action_listener* cb)
+{
+	action_listeners.push_back(cb);
+}
+
+void pompelmous::remove_action_listener(action_listener* cb)
+{
+	action_listeners.remove(cb);
 }
 

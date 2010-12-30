@@ -13,13 +13,13 @@
 #include "utils.h"
 #include "sdl-utils.h"
 #include "buf2d.h"
-#include "civ.h"
+#include "pompelmous.h"
 #include "rect.h"
 #include "main_window.h"
 #include "city_window.h"
 #include "ai.h"
 
-class gui
+class gui : public action_listener
 {
 	public:
 		gui(int x, int y, SDL_Surface* screen, const map& mm, pompelmous& rr,
@@ -41,6 +41,7 @@ class gui
 		int handle_input(const SDL_Event& ev);
 		int process(int ms);
 		void init_turn();
+		void handle_action(const visible_move_action& a);
 	private:
 		void show_city_window(city* c);
 		const int screen_w;

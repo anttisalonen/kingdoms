@@ -321,6 +321,7 @@ void play_game(pompelmous& r, std::map<unsigned int, ai>& ais)
 				observer ? &ais.find(0)->second : NULL, r.civs[0]);
 		g.display();
 		g.init_turn();
+		r.add_action_listener(&g);
 		if(observer && skip_rounds > 0)
 			automatic_play_until(r, ais, skip_rounds);
 		while(running) {
@@ -360,6 +361,7 @@ void play_game(pompelmous& r, std::map<unsigned int, ai>& ais)
 				}
 			}
 		}
+		r.remove_action_listener(&g);
 	}
 	else {
 		automatic_play_until(r, ais, r.get_num_turns());
@@ -480,6 +482,7 @@ main_menu::main_menu(SDL_Surface* screen_,
 
 main_menu::main_menu_selection main_menu::run()
 {
+	sel = main_menu_quit;
 	SDL_Surface* bg_img = sdl_load_image("share/pergamon.png");
 	if(!bg_img) {
 		fprintf(stderr, "Unable to load image %s: %s\n", "share/pergamon.png",

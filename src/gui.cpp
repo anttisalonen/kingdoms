@@ -109,3 +109,9 @@ void gui::init_turn()
 {
 	mw.init_turn();
 }
+
+void gui::handle_action(const visible_move_action& a)
+{
+	mw.handle_action(a);
+}
+

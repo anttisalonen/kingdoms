@@ -23,6 +23,7 @@ class main_window : public window {
 		int process(int ms);
 		int handle_window_input(const SDL_Event& ev);
 		void init_turn();
+		void handle_action(const visible_move_action& a);
 	private:
 		void get_next_free_unit();
 		int draw_main_map();
@@ -38,7 +39,8 @@ class main_window : public window {
 		int draw_tile(const SDL_Surface* surf, int x, int y) const;
 		int draw_city(const city& c) const;
 		int test_draw_border(int x, int y, int xpos, int ypos);
-		int show_terrain_image(int x, int y, int xpos, int ypos, bool shade);
+		int show_terrain_image(int x, int y, int xpos, int ypos,
+				bool draw_improvements, bool shade);
 		int handle_mousemotion(int x, int y);
 		int try_move_camera(bool left, bool right, bool up, bool down);
 		void center_camera_to_unit(unit* u);
@@ -60,6 +62,13 @@ class main_window : public window {
 		int tile_xcoord_to_pixel(int x) const;
 		int tile_ycoord_to_pixel(int y) const;
 		int tile_visible(int x, int y) const;
+		bool unit_not_at(int x, int y, const unit* u) const;
+		int draw_complete_tile(int x, int y, int shx, int shy,
+				bool terrain,
+				bool improvements, bool borders,
+				boost::function<bool(const unit*)> unit_predicate,
+				bool cities);
+		bool draw_gui_unit(const unit* u) const;
 		const int tile_w;
 		const int tile_h;
 		const int cam_total_tiles_x;
