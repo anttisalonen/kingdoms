@@ -920,7 +920,7 @@ void main_window::handle_action(const visible_move_action& a)
 	const int steps = 30;
 	float xdiff = tile_w * a.change.x / steps;
 	float ydiff = tile_h * a.change.y / steps;
-	for(int i = 0; i < steps; i++) {
+	for(int i = 0; i <= steps; i++) {
 		for(std::vector<coord>::const_iterator it = redrawable_tiles.begin();
 				it != redrawable_tiles.end();
 				++it) {
