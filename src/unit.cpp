@@ -198,15 +198,13 @@ void unit::load_at(unit* loader)
 	loader->carried_units.push_back(this);
 	xpos = loader->xpos;
 	ypos = loader->ypos;
-	decrement_moves();
+	moves = road_moves = 0;
 	sentry = true;
 	carrying_unit = loader;
 }
 
-bool unit::unload(int x, int y)
+void unit::unload(int x, int y)
 {
-	if(!carrying_unit)
-		return false;
 	for(std::list<unit*>::iterator it = carrying_unit->carried_units.begin();
 			it != carrying_unit->carried_units.end();
 			++it) {
@@ -219,7 +217,6 @@ bool unit::unload(int x, int y)
 	decrement_moves();
 	wake_up();
 	carrying_unit = NULL;
-	return true;
 }
 
 bool unit::carried() const

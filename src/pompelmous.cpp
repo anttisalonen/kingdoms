@@ -495,8 +495,17 @@ bool pompelmous::try_move_unit(unit* u, int chx, int chy)
 	bool fought = false;
 
 	if(!m->terrain_allowed(*u, tgtxpos, tgtypos)) {
-		if(u->carrying())
-			return try_unload_units(u, tgtxpos, tgtypos);
+		if(u->carrying()) {
+			if(can_unload_unit(u, chx, chy)) {
+				broadcast_action(visible_move_action(*u->carried_units.begin(),
+							chx, chy, combat_result_none, NULL));
+				unload_unit(u, chx, chy);
+				return true;
+			}
+			else {
+				return false;
+			}
+		}
 		else if(!u->carried() && u->is_land_unit()) {
 			if(can_load_unit(u, tgtxpos, tgtypos)) {
 				broadcast_action(visible_move_action(u, chx, chy, combat_result_none, NULL));
@@ -648,22 +657,20 @@ void pompelmous::load_unit(unit* u, int x, int y)
 	}
 }
 
-bool pompelmous::try_unload_units(unit* u, int x, int y)
+bool pompelmous::can_unload_unit(unit* u, int chx, int chy) const
 {
-	if(!u->carrying())
+	std::list<unit*>::iterator it = u->carried_units.begin();
+	if(it == u->carried_units.end()) {
 		return false;
-	for(std::list<unit*>::iterator it = u->carried_units.begin();
-			it != u->carried_units.end();) {
-		if((*it)->num_moves() || 
-  		   (*it)->num_road_moves()) {
-			std::list<unit*>::iterator it2(it);
-			++it2;
-			if(!civs[u->civ_id]->unload_unit(*it, x, y))
-				return false;
-			it = it2;
-		}
 	}
-	return true;
+	else {
+		return civs[u->civ_id]->can_move_unit(*it, chx, chy);
+	}
+}
+
+void pompelmous::unload_unit(unit* u, int chx, int chy)
+{
+	civs[u->civ_id]->move_unit(*u->carried_units.begin(), chx, chy, false);
 }
 
 bool pompelmous::try_wakeup_loaded(unit* u)

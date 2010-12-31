@@ -149,7 +149,8 @@ class pompelmous
 		void destroy_improvements(city* c);
 		bool can_load_unit(unit* u, int x, int y) const;
 		void load_unit(unit* u, int x, int y);
-		bool try_unload_units(unit* u, int x, int y);
+		bool can_unload_unit(unit* u, int chx, int chy) const;
+		void unload_unit(unit* u, int chx, int chy);
 		bool try_wakeup_loaded(unit* u);
 		void update_civ_points();
 		int get_offense_bonus(const unit* off, const unit* def) const;

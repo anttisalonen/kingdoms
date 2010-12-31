@@ -122,7 +122,6 @@ class civilization {
 		bool can_build_improvement(const city_improvement& ci, const city& c) const;
 		bool can_load_unit(unit* loadee, unit* loader) const;
 		void load_unit(unit* loadee, unit* loader);
-		bool unload_unit(unit* loadee, int x, int y);
 		const std::map<unsigned int, int>& get_built_units() const;
 		const std::map<unsigned int, int>& get_lost_units() const;
 		void add_points(unsigned int num);
@@ -156,6 +155,7 @@ class civilization {
 				const city_improv_map& cimap,
 				int orig_comm, int* add_gold, int* add_science) const;
 		bool allowed_research_goal(const advance_map::const_iterator& amap) const;
+		void unload_unit(unit* loadee, int x, int y);
 		std::vector<relationship> relationships;
 		buf2d<int> known_land_map;
 		std::vector<std::string> city_names;

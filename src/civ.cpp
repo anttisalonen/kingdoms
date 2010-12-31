@@ -581,10 +581,12 @@ bool civilization::can_move_unit(const unit* u, int chx, int chy) const
 	}
 	int newx = u->xpos + chx;
 	int newy = u->ypos + chy;
-	if(!m->terrain_allowed(*u, newx, newy))
+	if(!m->terrain_allowed(*u, newx, newy)) {
 		return false;
-	if(!move_acceptable_by_land_and_units(newx, newy))
+	}
+	if(!move_acceptable_by_land_and_units(newx, newy)) {
 		return false;
+	}
 	return true;
 }
 
@@ -691,16 +693,12 @@ void civilization::load_unit(unit* loadee, unit* loader)
 	fog.shade(oldx, oldy, 1);
 }
 
-bool civilization::unload_unit(unit* unloadee, int x, int y)
+void civilization::unload_unit(unit* unloadee, int x, int y)
 {
-	if(!can_move_unit(unloadee, x, y))
-		return false;
-	if(!unloadee->unload(x, y))
-		return false;
+	unloadee->unload(x, y);
 	m->add_unit(unloadee);
 	fog.reveal(x, y, 1);
 	reveal_land(x, y, 1);
-	return true;
 }
 
 const std::map<unsigned int, int>& civilization::get_built_units() const
