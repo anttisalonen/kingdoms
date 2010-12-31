@@ -56,13 +56,13 @@ void combat(const map* m, unit* u1, unit* u2, int off_bonus, int def_bonus)
 			u2->xpos, u2->ypos, u1chance, u2chance,
 			u1chance / ((float)u1chance + u2chance));
 	if(val < u1chance) {
-		u1->strength = std::min<unsigned int>(1, u1->strength * (val + 1) / u1chance);
+		u1->strength = std::max<unsigned int>(1, u1->strength * (val + 1) / u1chance);
 		u2->strength = 0;
 		printf("attacker won\n");
 	}
 	else {
 		u1->strength = 0;
-		u2->strength = std::min<unsigned int>(1, u2->strength * (val + 1 - u1chance) / u2chance);
+		u2->strength = std::max<unsigned int>(1, u2->strength * (val + 1 - u1chance) / u2chance);
 		printf("defender won\n");
 	}
 }
