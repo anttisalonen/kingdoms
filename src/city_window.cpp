@@ -17,7 +17,7 @@ city_window::city_window(SDL_Surface* screen_, int x, int y, gui_data& data_, gu
 			       	boost::bind(&city_window::on_exit, this)));
 	buttons.push_back(new plain_button(rect(screen_w * 0.75, screen_h * 0.6, screen_w * 0.15, screen_h * 0.08),
 				"Change production", &res.font, color(128, 60, 60), color(0, 0, 0),
-				boost::bind(&city_window::change_production, this, 0)));
+				boost::bind(&city_window::change_production, this)));
 
 	// create "buttons" for unit icons
 	rect unit_box = rect(screen_w * 0.8, screen_h * 0.1, screen_w * 0.1, screen_h * 0.4);
@@ -54,71 +54,18 @@ city_window::~city_window()
 	}
 }
 
-int city_window::change_production(int num)
+int city_window::change_production()
 {
-	if(internal_ai)
-		return 0;
-	const float button_dist_y = 0.06f;
-	rect option_rect = rect(screen_w * 0.30, screen_h * 0.1, screen_w * 0.40, screen_h * 0.05);
-	int listed = 0;
-	change_prod_buttons.clear();
-	if(num) {
-		change_prod_buttons.push_back(new plain_button(option_rect,
-					"back", &res.font, color(128, 128, 128), color(0, 0, 0),
-					boost::bind(&city_window::change_production, this, 0)));
-		option_rect.y += screen_h * button_dist_y;
-	}
-	for(unit_configuration_map::const_iterator it = data.r.uconfmap.begin();
-			it != data.r.uconfmap.end();
-			++it) {
-		if(!myciv->can_build_unit(it->second, *c))
-			continue;
-		if(num > listed++) {
-			continue;
-		}
-		change_prod_buttons.push_back(new plain_button(option_rect,
-				it->second.unit_name.c_str(), &res.font, color(160, 160, 160), color(0, 0, 0),
-				boost::bind(&city_window::choose_unit_production, this, *it)));
-		option_rect.y += screen_h * button_dist_y;
-		if(option_rect.y > screen_h * 0.8) {
-			change_prod_buttons.push_back(new plain_button(option_rect,
-						"more", &res.font, color(128, 128, 128), color(0, 0, 0),
-						boost::bind(&city_window::change_production, this, listed)));
-			return 0;
-		}
-	}
-	for(city_improv_map::const_iterator it = data.r.cimap.begin();
-			it != data.r.cimap.end();
-			++it) {
-		if(!myciv->can_build_improvement(it->second, *c))
-			continue;
-		if(num > listed++) {
-			continue;
-		}
-		change_prod_buttons.push_back(new plain_button(option_rect,
-				it->second.improv_name.c_str(), &res.font, color(200, 200, 200), color(0, 0, 0),
-				boost::bind(&city_window::choose_improv_production, this, *it)));
-		option_rect.y += screen_h * button_dist_y;
-		if(option_rect.y > screen_h * 0.8) {
-			change_prod_buttons.push_back(new plain_button(option_rect,
-						"more", &res.font, color(128, 128, 128), color(0, 0, 0),
-						boost::bind(&city_window::change_production, this, listed)));
-			return 0;
-		}
-	}
+	add_subwindow(new production_window(screen,
+				screen_w, screen_h,
+				data, res, c,
+				myciv, rect(screen_w * 0.25,
+					screen_h * 0.15,
+					screen_w * 0.50f,
+					screen_h * 0.74f),
+				color(180, 180, 180),
+				std::string("Choose production"), false));
 	return 0;
-}
-
-int city_window::choose_unit_production(const std::pair<int, unit_configuration>& u)
-{
-	c->set_unit_production(u.first);
-	return 1;
-}
-
-int city_window::choose_improv_production(const std::pair<unsigned int, city_improvement>& i)
-{
-	c->set_improv_production(i.first);
-	return 1;
 }
 
 int city_window::on_exit()
@@ -286,11 +233,6 @@ int city_window::draw_window()
 		improv_y += 20;
 	}
 
-	// production choice buttons if any
-	std::for_each(change_prod_buttons.begin(),
-			change_prod_buttons.end(),
-			std::bind2nd(std::mem_fun(&button::draw), screen));
-
 	// final flip
 	if(SDL_Flip(screen)) {
 		fprintf(stderr, "Unable to flip: %s\n", SDL_GetError());
@@ -298,34 +240,15 @@ int city_window::draw_window()
 	return 0;
 }
 
-int city_window::handle_production_input(const SDL_Event& ev)
-{
-	if(ev.type == SDL_MOUSEBUTTONDOWN) {
-		return check_button_click(change_prod_buttons, ev);
-	}
-	return 0;
-}
-
 int city_window::handle_window_input(const SDL_Event& ev)
 {
-	if(change_prod_buttons.size() == 0) {
-		switch(ev.type) {
-			case SDL_KEYDOWN:
-				return handle_keydown(ev.key.keysym.sym, ev.key.keysym.mod);
-			case SDL_MOUSEBUTTONDOWN:
-				return handle_mousedown(ev);
-			default:
-				return 0;
-		}
-	}
-	else {
-		if(handle_production_input(ev)) {
-			while(!change_prod_buttons.empty()) {
-				delete change_prod_buttons.back();
-				change_prod_buttons.pop_back();
-			}
-		}
-		return 0;
+	switch(ev.type) {
+		case SDL_KEYDOWN:
+			return handle_keydown(ev.key.keysym.sym, ev.key.keysym.mod);
+		case SDL_MOUSEBUTTONDOWN:
+			return handle_mousedown(ev);
+		default:
+			return 0;
 	}
 }
 

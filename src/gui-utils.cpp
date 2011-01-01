@@ -314,7 +314,7 @@ int window::draw()
 		return draw_window();
 	}
 	else {
-		std::for_each(subwindows.begin(), subwindows.end(), std::mem_fun(&window::draw));
+		(*subwindows.begin())->draw();
 		return 0;
 	}
 }
@@ -325,14 +325,11 @@ int window::handle_input(const SDL_Event& ev)
 		return handle_window_input(ev);
 	}
 	else {
-		for(std::list<window*>::iterator it = subwindows.begin();
-				it != subwindows.end();
-				++it) {
-			int p = (*it)->handle_input(ev);
-			if(p) {
-				delete *it;
-				subwindows.erase(it--);
-			}
+		std::list<window*>::iterator it = subwindows.begin();
+		int p = (*it)->handle_input(ev);
+		if(p) {
+			delete *it;
+			subwindows.erase(it);
 		}
 		return 0;
 	}
@@ -352,5 +349,10 @@ void window::init_turn()
 {
 	init_window_turn();
 	std::for_each(subwindows.begin(), subwindows.end(), std::mem_fun(&window::init_turn));
+}
+
+int window::num_subwindows() const
+{
+	return subwindows.size();
 }
 

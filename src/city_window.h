@@ -14,9 +14,9 @@
 #include "civ.h"
 #include "rect.h"
 #include "ai.h"
+#include "production_window.h"
 
 class city_window : public window {
-	typedef int(city_window::*city_window_fun)();
 	public:
 		city_window(SDL_Surface* screen_, int x, int y, gui_data& data_, gui_resources& res_, city* c_,
 				ai* ai_, civilization* myciv_);
@@ -26,16 +26,12 @@ class city_window : public window {
 	private:
 		int handle_keydown(SDLKey k, SDLMod mod);
 		int handle_mousedown(const SDL_Event& ev);
-		int handle_production_input(const SDL_Event& ev);
-		int change_production(int num);
+		int change_production();
 		int on_exit();
 		int on_unit(unit* u);
 		int draw_city_resources_screen(int xpos, int ypos);
-		int choose_unit_production(const std::pair<int, unit_configuration>& u);
-		int choose_improv_production(const std::pair<unsigned int, city_improvement>& i);
 		city* c;
 		std::list<button*> buttons;
-		std::list<button*> change_prod_buttons;
 		std::vector<SDL_Surface*> change_prod_labels;
 		civilization* myciv;
 		ai* internal_ai;

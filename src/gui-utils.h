@@ -94,6 +94,7 @@ class window {
 		virtual int draw_window() = 0;
 		virtual int process_window(int ms) { return 0; }
 		virtual void init_window_turn() { }
+		int num_subwindows() const;
 		SDL_Surface* screen;
 		const int screen_w;
 		const int screen_h;
