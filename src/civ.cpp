@@ -294,7 +294,7 @@ void civilization::calculate_total_city_commerce(const city& c,
 
 void civilization::increment_resources(const unit_configuration_map& uconfmap,
 		const advance_map& amap, const city_improv_map& cimap,
-		unsigned int road_moves)
+		unsigned int road_moves, unsigned int food_eaten_per_citizen)
 {
 	national_income = 0;
 	int total_science = 0;
@@ -307,7 +307,7 @@ void civilization::increment_resources(const unit_configuration_map& uconfmap,
 		int add_gold = comm;
 		int add_science = comm;
 		calculate_total_city_commerce(*this_city, cimap, comm, &add_gold, &add_science);
-		this_city->stored_food += food - this_city->get_city_size() * 2;
+		this_city->stored_food += food - this_city->get_city_size() * food_eaten_per_citizen;
 		national_income += add_gold;
 		total_science += add_science;
 		this_city->stored_prod += prod;

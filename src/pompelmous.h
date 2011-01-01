@@ -114,6 +114,7 @@ class pompelmous
 				const city_improv_map& cimap_,
 				map* m_,
 				unsigned int road_moves_,
+				unsigned int food_eaten_per_citizen_,
 				int num_turns_);
 		pompelmous(); // for serialization
 		void add_civilization(civilization* civ);
@@ -134,6 +135,13 @@ class pompelmous
 		map& get_map();
 		void add_action_listener(action_listener* cb);
 		void remove_action_listener(action_listener* cb);
+		unsigned int get_city_growth_turns(const city* c) const;
+		unsigned int get_city_production_turns(const city* c,
+				const city_production& cp) const;
+		unsigned int get_city_production_turns(const city* c,
+				const unit_configuration& uc) const;
+		unsigned int get_city_production_turns(const city* c,
+				const city_improvement& ci) const;
 	private:
 		void broadcast_action(const visible_move_action& a) const;
 		bool next_civ();
@@ -159,6 +167,7 @@ class pompelmous
 		map* m;
 		int round_number;
 		const unsigned int road_moves;
+		const unsigned int food_eaten_per_citizen;
 		int num_turns;
 		std::list<action_listener*> action_listeners;
 
@@ -175,6 +184,7 @@ class pompelmous
 
 			ar & round_number;
 			ar & const_cast<unsigned int&>(road_moves);
+			ar & const_cast<unsigned int&>(food_eaten_per_citizen);
 			ar & num_turns;
 		}
 		template<class Archive>

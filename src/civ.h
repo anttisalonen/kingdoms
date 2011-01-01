@@ -94,7 +94,8 @@ class civilization {
 		void increment_resources(const unit_configuration_map& uconfmap,
 				const advance_map& amap,
 				const city_improv_map& cimap,
-				unsigned int road_moves);
+				unsigned int road_moves,
+				unsigned int food_eaten_per_citizen);
 		char fog_at(int x, int y) const;
 		city* add_city(int x, int y);
 		void add_city(city* c);

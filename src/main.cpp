@@ -408,6 +408,7 @@ int run_gamedata()
 	const int map_x = 80;
 	const int map_y = 60;
 	const int road_moves = 3;
+	const unsigned int food_eaten_per_citizen = 2;
 
 	const int num_turns = 400;
 
@@ -427,7 +428,8 @@ int run_gamedata()
 		civs[i]->set_map(&m);
 		civs[i]->set_government(&govmap.begin()->second);
 	}
-	pompelmous r(uconfmap, amap, cimap, &m, road_moves, num_turns);
+	pompelmous r(uconfmap, amap, cimap, &m, road_moves,
+			food_eaten_per_citizen, num_turns);
 
 	std::vector<coord> starting_places = m.get_starting_places(civs.size());
 	if(starting_places.size() != civs.size()) {

@@ -198,16 +198,70 @@ int main_window::draw_city(const city& c) const
 
 	if(draw_tile(res.city_images[c.civ_id], c.xpos, c.ypos))
 		return 1;
+
+	// don't draw the text on cities on gui border
 	if(!tile_visible(c.xpos + 1, c.ypos) ||
-	   !tile_visible(c.xpos - 1, c.ypos))
+	   !tile_visible(c.xpos - 1, c.ypos) ||
+	   !tile_visible(c.xpos, c.ypos + 1))
 		return 0;
+
 	char buf[64];
-	snprintf(buf, 63, "%d %s", c.get_city_size(),
-			c.cityname.c_str());
+	if(internal_ai || c.civ_id == myciv->civ_id) {
+		unsigned int num_turns = data.r.get_city_growth_turns(&c);
+		if(num_turns == 0)
+			snprintf(buf, 63, "%d %s (-)", c.get_city_size(),
+					c.cityname.c_str());
+		else
+			snprintf(buf, 63, "%d %s (%d)", c.get_city_size(),
+					c.cityname.c_str(), num_turns);
+	}
+	else {
+		snprintf(buf, 63, "%d %s", c.get_city_size(),
+				c.cityname.c_str());
+	}
 	buf[63] = '\0';
-	return draw_text(screen, &res.font, buf, tile_xcoord_to_pixel(c.xpos) + tile_h / 2,
+	if(draw_text(screen, &res.font, buf, tile_xcoord_to_pixel(c.xpos) + tile_h / 2,
 			tile_ycoord_to_pixel(c.ypos) + tile_w,
-			255, 255, 255, true);
+			255, 255, 255, true))
+		return 1;
+
+	if(internal_ai || c.civ_id == myciv->civ_id) {
+		const std::string* producing = NULL;
+		unsigned int num_turns_prod = 0;
+		if(c.production.current_production_id >= 0) {
+			if(c.production.producing_unit) {
+				unit_configuration_map::const_iterator it = 
+					data.r.uconfmap.find(c.production.current_production_id);
+				if(it != data.r.uconfmap.end()) {
+					producing = &it->second.unit_name;
+					num_turns_prod = data.r.get_city_production_turns(&c,
+							it->second);
+				}
+			}
+			else {
+				city_improv_map::const_iterator it = 
+					data.r.cimap.find(c.production.current_production_id);
+				if(it != data.r.cimap.end()) {
+					producing = &it->second.improv_name;
+					num_turns_prod = data.r.get_city_production_turns(&c,
+							it->second);
+				}
+			}
+		}
+		if(producing) {
+			if(num_turns_prod)
+				snprintf(buf, 63, "%s (%d)", producing->c_str(), num_turns_prod);
+			else
+				snprintf(buf, 63, "%s (-)", producing->c_str());
+			if(draw_text(screen, &res.font, buf, tile_xcoord_to_pixel(c.xpos) + tile_h / 2,
+						tile_ycoord_to_pixel(c.ypos) + 1.5 * tile_w,
+						255, 255, 255, true)) {
+				fprintf(stderr, "Could not draw production text.\n");
+				return 1;
+			}
+		}
+	}
+	return 0;
 }
 
 int main_window::tile_ycoord_to_pixel(int y) const
@@ -228,7 +282,7 @@ int main_window::tile_visible(int x, int y) const
 		return vis_no_wrap;
 	else // handle X wrapping
 		return (in_bounds(cam.cam_x, x + data.m.size_x(), cam.cam_x + cam_total_tiles_x) &&
-			in_bounds(cam.cam_y, y, cam.cam_y + cam_total_tiles_y));
+				in_bounds(cam.cam_y, y, cam.cam_y + cam_total_tiles_y));
 }
 
 int main_window::draw_line_by_sq(const coord& c1, const coord& c2, int r, int g, int b)

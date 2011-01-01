@@ -143,6 +143,7 @@ pompelmous::pompelmous(const unit_configuration_map& uconfmap_,
 		const advance_map& amap_,
 		const city_improv_map& cimap_,
 		map* m_, unsigned int road_moves_,
+		unsigned int food_eaten_per_citizen_,
 		int num_turns_)
 	: uconfmap(uconfmap_),
 	amap(amap_),
@@ -150,6 +151,7 @@ pompelmous::pompelmous(const unit_configuration_map& uconfmap_,
 	m(m_),
 	round_number(0),
 	road_moves(road_moves_),
+	food_eaten_per_citizen(food_eaten_per_citizen_),
 	num_turns(num_turns_)
 {
 	current_civ = civs.begin();
@@ -157,7 +159,8 @@ pompelmous::pompelmous(const unit_configuration_map& uconfmap_,
 
 pompelmous::pompelmous()
 	: m(NULL),
-	road_moves(1337)
+	road_moves(1337),
+	food_eaten_per_citizen(1337)
 {
 }
 
@@ -183,7 +186,7 @@ void pompelmous::increment_resources()
 	    it != civs.end();
 	    ++it) {
 		(*it)->increment_resources(uconfmap, amap, cimap,
-				road_moves);
+				road_moves, food_eaten_per_citizen);
 	}
 }
 
@@ -708,5 +711,61 @@ void pompelmous::add_action_listener(action_listener* cb)
 void pompelmous::remove_action_listener(action_listener* cb)
 {
 	action_listeners.remove(cb);
+}
+
+unsigned int pompelmous::get_city_growth_turns(const city* c) const
+{
+	int food, prod, comm;
+	total_resources(*c, *m, &food, &prod, &comm);
+	food -= c->get_city_size() * food_eaten_per_citizen;
+	if(food < 1)
+		return 0;
+	int needed_food = needed_food_for_growth(c->get_city_size()) - c->stored_food;
+	if(needed_food < 1)
+		return 0;
+	return (needed_food + food - 1) / food;
+}
+
+unsigned int pompelmous::get_city_production_turns(const city* c,
+		const city_production& cp) const
+{
+	if(cp.current_production_id >= 0) {
+		if(cp.producing_unit) {
+			unit_configuration_map::const_iterator it = 
+				uconfmap.find(cp.current_production_id);
+			if(it != uconfmap.end()) {
+				return get_city_production_turns(c, it->second);
+			}
+		}
+		else {
+			city_improv_map::const_iterator it = 
+				cimap.find(cp.current_production_id);
+			if(it != cimap.end()) {
+				return get_city_production_turns(c, it->second);
+			}
+		}
+	}
+}
+
+unsigned int pompelmous::get_city_production_turns(const city* c,
+		const unit_configuration& uc) const
+{
+	int food, prod, comm;
+	total_resources(*c, *m, &food, &prod, &comm);
+	if(prod < 1)
+		return 0;
+	int needed_prod = uc.production_cost - c->stored_prod;
+	return (needed_prod + prod - 1) / prod;
+}
+
+unsigned int pompelmous::get_city_production_turns(const city* c,
+		const city_improvement& ci) const
+{
+	int food, prod, comm;
+	total_resources(*c, *m, &food, &prod, &comm);
+	if(prod < 1)
+		return 0;
+	int needed_prod = ci.cost - c->stored_prod;
+	return (needed_prod + prod - 1) / prod;
 }
 
