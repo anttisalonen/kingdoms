@@ -943,7 +943,10 @@ void main_window::init_turn()
 							data, res, myciv,
 							0));
 			}
+			current_unit = myciv->units.begin();
 			get_next_free_unit();
+			if(current_unit != myciv->units.end())
+				try_center_camera_to_unit(current_unit->second);
 		}
 	}
 }
