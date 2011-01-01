@@ -321,9 +321,9 @@ void play_game(pompelmous& r, std::map<unsigned int, ai>& ais)
 				observer ? &ais.find(0)->second : NULL, r.civs[0]);
 		g.display();
 		g.init_turn();
-		r.add_action_listener(&g);
 		if(observer && skip_rounds > 0)
 			automatic_play_until(r, ais, skip_rounds);
+		r.add_action_listener(&g);
 		while(running) {
 			if(r.current_civ_id() == (int)r.civs[0]->civ_id) {
 				SDL_Event event;
@@ -350,7 +350,7 @@ void play_game(pompelmous& r, std::map<unsigned int, ai>& ais)
 					if(ait->second.play())
 						running = false;
 					else {
-						if(r.civs[0]->eliminated())
+						if(!observer && r.civs[0]->eliminated())
 							running = false;
 						else
 							g.init_turn();
