@@ -19,7 +19,7 @@ SRCFILES = color.cpp sdl-utils.cpp utils.cpp rect.cpp \
 	   ai-defense.cpp ai-offense.cpp ai-commerce.cpp \
 	   ai.cpp \
 	   gui-utils.cpp main_window.cpp city_window.cpp \
-	   diplomacy_window.cpp gui.cpp \
+	   discovery_window.cpp diplomacy_window.cpp gui.cpp \
 	   main.cpp
 OBJS   = $(SRCS:.cpp=.o)
 DEPS   = $(SRCS:.cpp=.dep)
