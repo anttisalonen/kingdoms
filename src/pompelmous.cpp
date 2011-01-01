@@ -745,6 +745,7 @@ unsigned int pompelmous::get_city_production_turns(const city* c,
 			}
 		}
 	}
+	return 0;
 }
 
 unsigned int pompelmous::get_city_production_turns(const city* c,
@@ -768,4 +769,10 @@ unsigned int pompelmous::get_city_production_turns(const city* c,
 	int needed_prod = ci.cost - c->stored_prod;
 	return (needed_prod + prod - 1) / prod;
 }
+
+const unsigned int pompelmous::get_food_eaten_per_citizen() const
+{
+	return food_eaten_per_citizen;
+}
+
 

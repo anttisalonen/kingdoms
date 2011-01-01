@@ -142,6 +142,9 @@ class pompelmous
 				const unit_configuration& uc) const;
 		unsigned int get_city_production_turns(const city* c,
 				const city_improvement& ci) const;
+		int needed_food_for_growth(int city_size) const;
+		int needed_culture_for_growth(int city_culture) const;
+		const unsigned int get_food_eaten_per_citizen() const;
 	private:
 		void broadcast_action(const visible_move_action& a) const;
 		bool next_civ();
@@ -150,8 +153,6 @@ class pompelmous
 		bool try_move_unit(unit* u, int chx, int chy);
 		void check_city_conquer(int tgtxpos, int tgtypos, int conquering_civid);
 		void check_civ_elimination(int civ_id);
-		int needed_food_for_growth(int city_size) const;
-		int needed_culture_for_growth(int city_culture) const;
 		void check_for_city_updates();
 		void update_land_owners();
 		void destroy_improvements(city* c);

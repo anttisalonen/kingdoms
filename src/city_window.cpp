@@ -209,16 +209,30 @@ int city_window::draw_window()
 	total_resources(*c, data.m, &food, &prod, &comm);
 	char buf[64];
 	buf[63] = '\0';
-	snprintf(buf, 63, "Food: %d/turn (Total: %d)", food, c->stored_food);
+	unsigned int num_turns_growth = data.r.get_city_growth_turns(c);
+	int food_eaten = c->get_city_size() * data.r.get_food_eaten_per_citizen();
+	int food_surplus = food - food_eaten;
+	if(num_turns_growth)
+		snprintf(buf, 63, "Food: (%d) %d/turn (Total: %d/%d - growth in %d turn%s)",
+				food, food_surplus, c->stored_food,
+				data.r.needed_food_for_growth(c->get_city_size()),
+				num_turns_growth, num_turns_growth > 1 ? "s" : "");
+	else
+		snprintf(buf, 63, "Food: (%d) %d/turn (Total: %d/%d - no growth)",
+				food, food_surplus, c->stored_food,
+				data.r.needed_food_for_growth(c->get_city_size()));
 	draw_text(screen, &res.font, buf, screen_w * 0.3, screen_h * 0.60, 0, 0, 0);
 	{
 		const char* prod_tgt = NULL;
 		int prod_cost = 0;
+		unsigned int num_turns_prod = 0;
 		if(c->production.producing_unit) {
 			unit_configuration_map::const_iterator it = data.r.uconfmap.find(c->production.current_production_id);
 			if(it != data.r.uconfmap.end()) {
 				prod_tgt = it->second.unit_name.c_str();
 				prod_cost = it->second.production_cost;
+				num_turns_prod = data.r.get_city_production_turns(c,
+						it->second);
 			}
 		}
 		else {
@@ -226,16 +240,25 @@ int city_window::draw_window()
 			if(it != data.r.cimap.end()) {
 				prod_tgt = it->second.improv_name.c_str();
 				prod_cost = it->second.cost;
+				num_turns_prod = data.r.get_city_production_turns(c,
+						it->second);
 			}
 		}
 		if(!prod_tgt) {
 			snprintf(buf, 63, "Production: %d per turn - not producing", prod);
 		}
 		else {
-			snprintf(buf, 63, "Production: %d/turn - %s - %d/%d", 
-					prod, prod_tgt,
-					c->stored_prod, 
-					prod_cost);
+			if(num_turns_prod)
+				snprintf(buf, 63, "Production: %s - %d/turn - %d/%d (%d turn%s)", 
+						prod_tgt, prod,
+						c->stored_prod, 
+						prod_cost, num_turns_prod,
+						num_turns_prod > 1 ? "s" : "");
+			else
+				snprintf(buf, 63, "Production: %s - %d/turn - %d/%d", 
+						prod_tgt, prod,
+						c->stored_prod, 
+						prod_cost);
 		}
 		draw_text(screen, &res.font, buf, screen_w * 0.3, screen_h * 0.66, 0, 0, 0);
 	}
