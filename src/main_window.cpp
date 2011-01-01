@@ -4,6 +4,7 @@
 #include "map-astar.h"
 #include "city_window.h"
 #include "diplomacy_window.h"
+#include "discovery_window.h"
 #include "serialize.h"
 
 main_window::main_window(SDL_Surface* screen_, int x, int y, gui_data& data_, gui_resources& res_,
@@ -835,11 +836,9 @@ int main_window::handle_civ_messages(std::list<msg>* messages)
 						printf("Discovered advance '%s'.\n",
 								it->second.advance_name.c_str());
 					}
-					it = data.r.amap.find(myciv->research_goal_id);
-					if(it != data.r.amap.end()) {
-						printf("Now researching '%s'.\n",
-								it->second.advance_name.c_str());
-					}
+					add_subwindow(new discovery_window(screen, screen_w, screen_h,
+								data, res, myciv,
+								m.msg_data.new_advance_id));
 				}
 				break;
 			case msg_new_city_improv:
@@ -939,6 +938,11 @@ void main_window::init_turn()
 			try_center_camera_to_unit(current_unit->second);
 		}
 		else {
+			if(myciv->research_goal_id == 0 && myciv->cities.size() > 0) {
+				add_subwindow(new discovery_window(screen, screen_w, screen_h,
+							data, res, myciv,
+							0));
+			}
 			get_next_free_unit();
 		}
 	}
