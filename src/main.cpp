@@ -652,6 +652,7 @@ int main(int argc, char **argv)
 	}
 
 	signal(SIGSEGV, segv_handler);
+	signal(SIGABRT, segv_handler);
 
 	if(!use_gui)
 		observer = true;
