@@ -371,8 +371,10 @@ void civilization::increment_resources(const unit_configuration_map& uconfmap,
 	science += total_science;
 	advance_map::const_iterator adv = amap.find(research_goal_id);
 	if(adv == amap.end()) {
-		add_message(new_advance_discovered(0));
-		update_ocean_crossing(uconfmap, amap, 0);
+		if(researched_advances.empty()) {
+			add_message(new_advance_discovered(0));
+			update_ocean_crossing(uconfmap, amap, 0);
+		}
 		setup_default_research_goal(amap);
 	}
 	else if(adv->second.cost <= science) {
