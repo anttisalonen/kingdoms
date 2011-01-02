@@ -28,6 +28,16 @@
 #include "SDL/SDL_image.h"
 #include "SDL/SDL_ttf.h"
 
+#define QUOTE_(x)	#x
+#define QUOTE(x)	QUOTE_(x)
+#ifndef PREFIX
+#define PREFIX			.
+#endif
+
+#define KINGDOMS_SHAREDIR	QUOTE(PREFIX)"/share/kingdoms/"
+#define KINGDOMS_GFXDIR		KINGDOMS_SHAREDIR"/gfx/"
+#define KINGDOMS_RULESDIR	KINGDOMS_SHAREDIR"/rules/"
+
 static bool signal_received = false;
 
 static bool observer = false;
@@ -297,26 +307,26 @@ void play_game(pompelmous& r, std::map<unsigned int, ai>& ais)
 	bool running = true;
 
 	if(use_gui) {
-		std::vector<std::string> terrain_files = get_file_list("share/", "share/terrain-gfx.txt");
-		std::vector<std::string> unit_files = get_file_list("share/", "share/units-gfx.txt");
+		std::vector<std::string> terrain_files = get_file_list(KINGDOMS_GFXDIR, KINGDOMS_RULESDIR "terrain-gfx.txt");
+		std::vector<std::string> unit_files = get_file_list(KINGDOMS_GFXDIR, KINGDOMS_RULESDIR "units-gfx.txt");
 
 		std::vector<const char*> road_images;
-		road_images.push_back("share/road_nw.png");
-		road_images.push_back("share/road_w.png");
-		road_images.push_back("share/road_sw.png");
-		road_images.push_back("share/road_n.png");
-		road_images.push_back("share/road.png");
-		road_images.push_back("share/road_s.png");
-		road_images.push_back("share/road_ne.png");
-		road_images.push_back("share/road_e.png");
-		road_images.push_back("share/road_se.png");
-		gui g(1024, 768, screen, r.get_map(), r, terrain_files, unit_files, "share/empty.png", 
-				"share/city.png", *font,
-				"share/food_icon.png",
-				"share/prod_icon.png",
-				"share/comm_icon.png",
-				"share/irrigation.png",
-				"share/mine.png",
+		road_images.push_back(KINGDOMS_GFXDIR "road_nw.png");
+		road_images.push_back(KINGDOMS_GFXDIR "road_w.png");
+		road_images.push_back(KINGDOMS_GFXDIR "road_sw.png");
+		road_images.push_back(KINGDOMS_GFXDIR "road_n.png");
+		road_images.push_back(KINGDOMS_GFXDIR "road.png");
+		road_images.push_back(KINGDOMS_GFXDIR "road_s.png");
+		road_images.push_back(KINGDOMS_GFXDIR "road_ne.png");
+		road_images.push_back(KINGDOMS_GFXDIR "road_e.png");
+		road_images.push_back(KINGDOMS_GFXDIR "road_se.png");
+		gui g(1024, 768, screen, r.get_map(), r, terrain_files, unit_files, KINGDOMS_GFXDIR "empty.png", 
+				KINGDOMS_GFXDIR "city.png", *font,
+				KINGDOMS_GFXDIR "food_icon.png",
+				KINGDOMS_GFXDIR "prod_icon.png",
+				KINGDOMS_GFXDIR "comm_icon.png",
+				KINGDOMS_GFXDIR "irrigation.png",
+				KINGDOMS_GFXDIR "mine.png",
 				road_images,
 				observer ? &ais.find(0)->second : NULL, r.civs[0]);
 		g.display();
@@ -412,17 +422,17 @@ int run_gamedata()
 
 	const int num_turns = 400;
 
-	resource_configuration resconf = parse_resource_config("share/terrain.txt");
+	resource_configuration resconf = parse_resource_config(KINGDOMS_RULESDIR "terrain.txt");
 	if(load) {
 		pompelmous r = load_game();
 		return run_game(r);
 	}
 	std::vector<civilization*> civs;
-	civs = parse_civs_config("share/civs.txt");
-	unit_configuration_map uconfmap = parse_unit_config("share/units.txt");
-	advance_map amap = parse_advance_config("share/discoveries.txt");
-	city_improv_map cimap = parse_city_improv_config("share/improvs.txt");
-	government_map govmap = parse_government_config("share/governments.txt");
+	civs = parse_civs_config(KINGDOMS_RULESDIR "civs.txt");
+	unit_configuration_map uconfmap = parse_unit_config(KINGDOMS_RULESDIR "units.txt");
+	advance_map amap = parse_advance_config(KINGDOMS_RULESDIR "discoveries.txt");
+	city_improv_map cimap = parse_city_improv_config(KINGDOMS_RULESDIR "improvs.txt");
+	government_map govmap = parse_government_config(KINGDOMS_RULESDIR "governments.txt");
 	map m(map_x, map_y, resconf);
 	for(unsigned int i = 0; i < civs.size(); i++) {
 		civs[i]->set_map(&m);
@@ -485,9 +495,9 @@ main_menu::main_menu(SDL_Surface* screen_,
 main_menu::main_menu_selection main_menu::run()
 {
 	sel = main_menu_quit;
-	SDL_Surface* bg_img = sdl_load_image("share/pergamon.png");
+	SDL_Surface* bg_img = sdl_load_image(KINGDOMS_GFXDIR "pergamon.png");
 	if(!bg_img) {
-		fprintf(stderr, "Unable to load image %s: %s\n", "share/pergamon.png",
+		fprintf(stderr, "Unable to load image %s: %s\n", KINGDOMS_GFXDIR "pergamon.png",
 				SDL_GetError());
 		return main_menu_quit;
 	}
@@ -558,7 +568,7 @@ void run_mainmenu()
 			fprintf(stderr, "Unable to set %dx%d video: %s\n", 1024, 768, SDL_GetError());
 			return;
 		}
-		font = TTF_OpenFont("share/DejaVuSans.ttf", 12);
+		font = TTF_OpenFont(KINGDOMS_GFXDIR "DejaVuSans.ttf", 12);
 		if(!font) {
 			fprintf(stderr, "Could not open font: %s\n", TTF_GetError());
 		}

@@ -1,10 +1,18 @@
 CXX      ?= g++
 CXXFLAGS ?= -O2
 CXXFLAGS += -Wall
+CXXFLAGS += -DPREFIX=$(PREFIX)
 LDFLAGS  ?= -lSDL -lSDL_image -lSDL_ttf -lboost_serialization
 
-BINDIR = bin
-TARGET = $(BINDIR)/main
+PREFIX        ?= /usr/local
+INSTALLBINDIR  = $(PREFIX)/bin
+SHAREDIR       = $(PREFIX)/share/kingdoms
+GFXDIR         = $(SHAREDIR)/gfx
+RULESDIR       = $(SHAREDIR)/rules
+
+BINDIR  = bin
+BINNAME = kingdoms
+TARGET = $(BINDIR)/$(BINNAME)
 SRCDIR = src
 TMPDIR = tmp
 SRCFILES = color.cpp sdl-utils.cpp utils.cpp rect.cpp \
@@ -35,16 +43,23 @@ $(BINDIR):
 	mkdir -p $(BINDIR)
 
 $(TARGET): $(OBJS)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(OBJS) -o $(TARGET)
-
-%.cpp.o: %.dep
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(LDFLAGS) $(OBJS) -o $(TARGET)
 
 %.dep: %.cpp
 	@rm -f $@
 	@$(CC) -MM $(CPPFLAGS) $< > $@.P
 	@sed 's,\($(notdir $*)\)\.o[ :]*,$(dir $*)\1.o $@ : ,g' < $@.P > $@
 	@rm -f $@.P
+
+install: $(TARGET)
+	install -d $(INSTALLBINDIR) $(GFXDIR) $(RULESDIR)
+	install -m 0755 $(TARGET) $(INSTALLBINDIR)
+	install -m 0644 share/gfx/* $(GFXDIR)
+	install -m 0644 share/rules/* $(RULESDIR)
+
+uninstall:
+	rm -rf $(INSTALLBINDIR)/$(BINNAME)
+	rm -rf $(SHAREDIR)
 
 $(TMPDIR):
 	mkdir -p $(TMPDIR)
