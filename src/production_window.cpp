@@ -104,7 +104,7 @@ int production_window::change_production(int num)
 		if(option_rect.y + 2 * button_dist_y > bg.y + bg.h - 20) {
 			change_prod_buttons.push_back(new plain_button(option_rect,
 						"more", &res.font, color(128, 128, 128), color(0, 0, 0),
-						boost::bind(&production_window::change_production, this, listed)));
+						boost::bind(&production_window::change_production, this, listed - 1)));
 			return 0;
 		}
 		change_prod_buttons.push_back(new plain_button(option_rect,
@@ -123,7 +123,7 @@ int production_window::change_production(int num)
 		if(option_rect.y + 2 * button_dist_y > bg.y + bg.h - 20) {
 			change_prod_buttons.push_back(new plain_button(option_rect,
 						"more", &res.font, color(128, 128, 128), color(0, 0, 0),
-						boost::bind(&production_window::change_production, this, listed)));
+						boost::bind(&production_window::change_production, this, listed - 1)));
 			return 0;
 		}
 		change_prod_buttons.push_back(new plain_button(option_rect,
