@@ -149,6 +149,8 @@ void unit::decrement_moves()
 {
 	if(moves)
 		moves--;
+	else
+		road_moves = 0;
 }
 
 improvement_type unit::improving_to() const
