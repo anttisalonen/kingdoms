@@ -656,7 +656,7 @@ action main_window::input_to_action(const SDL_Event& ev)
 					}
 					else if(k == SDLK_s && (ev.key.keysym.mod & KMOD_CTRL)) {
 						printf("Saving.\n");
-						save_game(data.r);
+						save_game("manual", data.r);
 						return action_none;
 					}
 					else {
@@ -691,7 +691,7 @@ action main_window::observer_action(const SDL_Event& ev)
 				}
 				else if(k == SDLK_s && (ev.key.keysym.mod & KMOD_CTRL)) {
 					printf("Saving.\n");
-					save_game(data.r);
+					save_game("manual", data.r);
 					return action_none;
 				}
 			}

@@ -2,7 +2,7 @@ CXX      ?= g++
 CXXFLAGS ?= -O2
 CXXFLAGS += -Wall
 CXXFLAGS += -DPREFIX=$(PREFIX)
-LDFLAGS  ?= -lSDL -lSDL_image -lSDL_ttf -lboost_serialization
+LDFLAGS  ?= -lSDL -lSDL_image -lSDL_ttf -lboost_serialization -lboost_filesystem
 
 PREFIX        ?= /usr/local
 INSTALLBINDIR  = $(PREFIX)/bin
