@@ -502,7 +502,7 @@ int main_window::try_move_camera(bool left, bool right, bool up, bool down)
 	return redraw;
 }
 
-void main_window::center_camera_to_unit(unit* u)
+void main_window::center_camera_to_unit(const unit* u)
 {
 	cam.cam_x = clamp(0, data.m.wrap_x(u->xpos - (-sidebar_size + cam_total_tiles_x) / 2), 
 			data.m.size_x() - (data.m.x_wrapped() ? 0 : cam_total_tiles_x));
@@ -510,7 +510,7 @@ void main_window::center_camera_to_unit(unit* u)
 			data.m.size_y() - (data.m.y_wrapped() ? 0 : cam_total_tiles_y));
 }
 
-int main_window::try_center_camera_to_unit(unit* u)
+int main_window::try_center_camera_to_unit(const unit* u)
 {
 	const int border = 3;
 	if(!in_bounds(cam.cam_x + border, u->xpos, cam.cam_x - sidebar_size + cam_total_tiles_x - border) ||
@@ -1087,6 +1087,10 @@ void main_window::handle_action(const visible_move_action& a)
 	if((myciv->fog_at(a.u->xpos, a.u->ypos) != 2 || myciv->fog_at(newx, newy) != 2) &&
 			!internal_ai)
 		return;
+	if(a.u->civ_id != (int)myciv->civ_id) {
+		try_center_camera_to_unit(a.u);
+		draw();
+	}
 	if(!tile_visible(a.u->xpos, a.u->ypos) || !tile_visible(newx, newy)) {
 		return;
 	}
