@@ -41,6 +41,8 @@ void main_window::get_next_free_unit()
 			++current_unit) {
 		if(current_unit->second->idle()) {
 			try_center_camera_to_unit(current_unit->second);
+			draw();
+			check_unit_movement_orders();
 			return;
 		}
 	}
@@ -51,6 +53,8 @@ void main_window::get_next_free_unit()
 			++current_unit) {
 		if(current_unit->second->idle()) {
 			try_center_camera_to_unit(current_unit->second);
+			draw();
+			check_unit_movement_orders();
 			return;
 		}
 	}
@@ -669,6 +673,10 @@ action main_window::input_to_action(const SDL_Event& ev)
 				}
 			}
 			break;
+		case SDL_MOUSEBUTTONDOWN:
+			handle_action_mouse_down(ev);
+		case SDL_MOUSEBUTTONUP:
+			handle_action_mouse_up(ev);
 		default:
 			break;
 	}
@@ -706,6 +714,10 @@ void main_window::handle_successful_action(const action& a, city** c)
 	switch(a.type) {
 		case action_eot:
 			// end of turn for this civ
+			if(data.r.get_round_number() % 4 == 0) {
+				printf("Auto-saving.\n");
+				save_game("auto", data.r);
+			}
 			get_next_free_unit();
 			break;
 		case action_unit_action:
@@ -720,7 +732,8 @@ void main_window::handle_successful_action(const action& a, city** c)
 					break;
 				case action_found_city:
 					current_unit = myciv->units.end();
-					*c = myciv->cities.rbegin()->second;
+					if(c)
+						*c = myciv->cities.rbegin()->second;
 					// fall through
 				case action_improvement:
 				case action_skip:
@@ -756,6 +769,9 @@ void main_window::handle_input_gui_mod(const SDL_Event& ev, city** c)
 						if(current_unit == myciv->units.end())
 							current_unit = old_it;
 					}
+					else if(k == SDLK_KP_ENTER) {
+						*c = data.m.city_on_spot(current_unit->second->xpos, current_unit->second->ypos);
+					}
 				}
 			}
 			break;
@@ -776,10 +792,8 @@ void main_window::update_view()
 	draw();
 }
 
-int main_window::handle_window_input(const SDL_Event& ev)
+int main_window::try_perform_action(const action& a, city** c)
 {
-	city* c = NULL;
-	action a = internal_ai ? observer_action(ev) : input_to_action(ev);
 	if(a.type != action_none) {
 		// save the iterator - performing an action may destroy
 		// the current unit
@@ -795,17 +809,27 @@ int main_window::handle_window_input(const SDL_Event& ev)
 			current_unit = myciv->units.begin();
 		}
 		if(success) {
-			handle_successful_action(a, &c);
+			handle_successful_action(a, c);
 		}
 		else {
 			printf("Unable to perform action.\n");
 		}
+		if(!internal_ai && current_unit == myciv->units.end()) {
+			get_next_free_unit();
+		}
+		return success ? 2 : 1;
 	}
-	else {
+	return 0;
+}
+
+int main_window::handle_window_input(const SDL_Event& ev)
+{
+	city* c = NULL;
+	action a = internal_ai ? observer_action(ev) : input_to_action(ev);
+	int was_action = try_perform_action(a, &c);
+	if(!was_action) {
+		check_unit_movement_orders();
 		handle_input_gui_mod(ev, &c);
-	}
-	if(!internal_ai && current_unit == myciv->units.end()) {
-		get_next_free_unit();
 	}
 	update_view();
 	if(c) {
@@ -908,16 +932,79 @@ void main_window::mouse_coord_to_tiles(int mx, int my, int* sqx, int* sqy)
 	}
 }
 
-int main_window::handle_mouse_up(const SDL_Event& ev)
+void main_window::check_unit_movement_orders()
+{
+	while(1) {
+		if(current_unit == myciv->units.end()) {
+			return;
+		}
+		std::map<unsigned int, std::list<coord> >::iterator path =
+			unit_movement_orders.find(current_unit->second->unit_id);
+		if(path == unit_movement_orders.end()) {
+			return;
+		}
+		if(!current_unit->second->idle()) {
+			return;
+		}
+		if(path->second.empty()) {
+			unit_movement_orders.erase(path);
+			return;
+		}
+		for(int i = -1; i <= 1; i++) {
+			for(int j = -1; j <= 1; j++) {
+				int resident = data.m.get_spot_resident(current_unit->second->xpos + i,
+						current_unit->second->ypos + j);
+				if(resident != -1 && resident != (int)myciv->civ_id) {
+					// next to someone else
+					unit_movement_orders.erase(path);
+					return;
+				}
+			}
+		}
+		coord c = path->second.front();
+		path->second.pop_front();
+		int chx, chy;
+		chx = data.m.vector_from_to_x(c.x, current_unit->second->xpos);
+		chy = data.m.vector_from_to_y(c.y, current_unit->second->ypos);
+		if(abs(chx) <= 1 && abs(chy) <= 1) {
+			if(chx == 0 && chy == 0)
+				continue;
+			action a = move_unit_action(current_unit->second, chx, chy);
+			if(try_perform_action(a, NULL) != 2) {
+				// could not perform action
+				unit_movement_orders.erase(path);
+				return;
+			}
+		}
+		else {
+			// invalid path
+			unit_movement_orders.erase(path);
+			return;
+		}
+	}
+}
+
+void main_window::handle_action_mouse_up(const SDL_Event& ev)
+{
+	if(!path_to_draw.empty() && current_unit != myciv->units.end()) {
+		unit_movement_orders[current_unit->second->unit_id] = path_to_draw;
+	}
+	path_to_draw.clear();
+}
+
+void main_window::handle_action_mouse_down(const SDL_Event& ev)
 {
 	path_to_draw.clear();
+}
+
+int main_window::handle_mouse_up(const SDL_Event& ev)
+{
 	mouse_down_sqx = mouse_down_sqy = -1;
 	return 0;
 }
 
 int main_window::handle_mouse_down(const SDL_Event& ev, city** c)
 {
-	path_to_draw.clear();
 	mouse_coord_to_tiles(ev.button.x, ev.button.y, &mouse_down_sqx, &mouse_down_sqy);
 	if(mouse_down_sqx >= 0)
 		try_choose_with_mouse(c);
@@ -933,6 +1020,7 @@ int main_window::try_choose_with_mouse(city** c)
 		city *cn = it->second;
 		if(cn->xpos == mouse_down_sqx && cn->ypos == mouse_down_sqy) {
 			*c = cn;
+			mouse_down_sqx = mouse_down_sqy = -1;
 			break;
 		}
 	}
@@ -945,9 +1033,11 @@ int main_window::try_choose_with_mouse(city** c)
 			unit* u = it->second;
 			if(u->xpos == mouse_down_sqx && u->ypos == mouse_down_sqy) {
 				u->wake_up();
+				unit_movement_orders.erase(u->unit_id);
 				if(u->num_moves() > 0 || u->num_road_moves() > 0) {
 					current_unit = it;
 					blink_unit = false;
+					mouse_down_sqx = mouse_down_sqy = -1;
 				}
 			}
 		}
@@ -979,8 +1069,6 @@ void main_window::init_turn()
 			}
 			current_unit = myciv->units.end();
 			get_next_free_unit();
-			if(current_unit != myciv->units.end())
-				try_center_camera_to_unit(current_unit->second);
 		}
 	}
 }

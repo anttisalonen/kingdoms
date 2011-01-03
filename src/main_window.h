@@ -69,6 +69,10 @@ class main_window : public window {
 				boost::function<bool(const unit*)> unit_predicate,
 				bool cities);
 		bool draw_gui_unit(const unit* u) const;
+		void handle_action_mouse_down(const SDL_Event& ev);
+		void handle_action_mouse_up(const SDL_Event& ev);
+		void check_unit_movement_orders();
+		int try_perform_action(const action& a, city** c);
 		const int tile_w;
 		const int tile_h;
 		const int cam_total_tiles_x;
@@ -76,6 +80,7 @@ class main_window : public window {
 		const int sidebar_size;
 		camera cam;
 		std::map<unsigned int, unit*>::const_iterator current_unit;
+		std::map<unsigned int, std::list<coord> > unit_movement_orders;
 		bool blink_unit;
 		int timer;
 		civilization* myciv;
