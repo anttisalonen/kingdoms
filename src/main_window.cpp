@@ -257,7 +257,7 @@ int main_window::draw_city(const city& c) const
 		if(producing) {
 			if(num_turns_prod) {
 				snprintf(buf, 63, "%s (%d)", producing->c_str(), 
-						num_turns_prod > 0 ? num_turns_prod : 0);
+						num_turns_prod);
 			}
 			else {
 				snprintf(buf, 63, "%s (-)", producing->c_str());

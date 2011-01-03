@@ -722,7 +722,7 @@ unsigned int pompelmous::get_city_growth_turns(const city* c) const
 		return 0;
 	int needed_food = needed_food_for_growth(c->get_city_size()) - c->stored_food;
 	if(needed_food < 1)
-		return 0;
+		return 1;
 	return (needed_food + food - 1) / food;
 }
 
@@ -756,6 +756,8 @@ unsigned int pompelmous::get_city_production_turns(const city* c,
 	if(prod < 1)
 		return 0;
 	int needed_prod = uc.production_cost - c->stored_prod;
+	if(needed_prod < 1)
+		return 1;
 	return (needed_prod + prod - 1) / prod;
 }
 
@@ -767,6 +769,8 @@ unsigned int pompelmous::get_city_production_turns(const city* c,
 	if(prod < 1)
 		return 0;
 	int needed_prod = ci.cost - c->stored_prod;
+	if(needed_prod < 1)
+		return 1;
 	return (needed_prod + prod - 1) / prod;
 }
 
