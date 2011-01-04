@@ -207,9 +207,12 @@ bool main_window::write_unit_info(const unit* u, int* written_lines) const
 	std::string strength = unit_strength_info_string(u);
 	char buf[256];
 	buf[255] = '\0';
-	snprintf(buf, 255, "%s (%s)",
-			u->uconf->unit_name.c_str(),
-			strength.c_str());
+	if(!strength.empty())
+		snprintf(buf, 255, "%s (%s)",
+				u->uconf->unit_name.c_str(),
+				strength.c_str());
+	else
+		snprintf(buf, 255, "%s", u->uconf->unit_name.c_str());
 	draw_text(screen, &res.font, buf, 10,
 			screen_h - 160 + *written_lines * 16, 255, 255, 255);
 	(*written_lines)++;
@@ -269,7 +272,7 @@ void main_window::display_tile_info() const
 
 int main_window::draw_eot() const
 {
-	return draw_text(screen, &res.font, "End of turn", 10, screen_h - 100, 255, 255, 255);
+	return draw_text(screen, &res.font, "End of turn", 10, screen_h - 176, 255, 255, 255);
 }
 
 int main_window::draw_tile(const SDL_Surface* surf, int x, int y) const
