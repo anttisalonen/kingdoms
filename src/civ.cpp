@@ -150,12 +150,14 @@ void civilization::remove_unit(unit* u)
 		if(u->carried()) {
 			u->unload();
 		}
+		else {
+			fog.shade(u->xpos, u->ypos, 1);
+		}
 		std::list<unit*>::iterator it = u->carried_units.begin();
 		while(it != u->carried_units.end()) {
 			remove_unit(*it);
 			it = u->carried_units.begin();
 		}
-		fog.shade(u->xpos, u->ypos, 1);
 		m->remove_unit(u);
 		lost_units[uit->second->uconf_id]++;
 		units.erase(uit);
