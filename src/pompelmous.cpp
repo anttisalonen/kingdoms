@@ -115,7 +115,8 @@ pompelmous::pompelmous(const unit_configuration_map& uconfmap_,
 	road_moves(road_moves_),
 	food_eaten_per_citizen(food_eaten_per_citizen_),
 	num_turns(num_turns_),
-	winning_civ(-1)
+	winning_civ(-1),
+	victory(victory_none)
 {
 	current_civ = civs.begin();
 }
@@ -179,6 +180,7 @@ void pompelmous::check_for_victory_conditions()
 		printf("Win by score: %s - %d points!\n",
 				civs[highest_score_civid]->civname.c_str(),
 				highest_score);
+		victory = victory_score;
 		return;
 	}
 
@@ -201,6 +203,7 @@ void pompelmous::check_for_victory_conditions()
 		winning_civ = eliminator;
 		printf("Win by elimination: %s!\n",
 				civs[winning_civ]->civname.c_str());
+		victory = victory_elimination;
 		return;
 	}
 
@@ -226,10 +229,11 @@ void pompelmous::check_for_victory_conditions()
 		float area = controlled_area[i] / (float)total_controlled_area;
 		printf("Domination: %-20s %3.2f\n",
 				civs[i]->civname.c_str(), area);
-		if(area > 0.85f) {
+		if(area > 0.80f) {
 			winning_civ = i;
 			printf("Win by domination: %s!\n",
 					civs[i]->civname.c_str());
+			victory = victory_domination;
 			break;
 		}
 	}
@@ -238,6 +242,11 @@ void pompelmous::check_for_victory_conditions()
 bool pompelmous::finished() const
 {
 	return winning_civ != -1 || round_number >= num_turns;
+}
+
+victory_type pompelmous::get_victory_type() const
+{
+	return victory;
 }
 
 bool pompelmous::next_civ()

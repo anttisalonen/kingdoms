@@ -305,117 +305,6 @@ void automatic_play_until(pompelmous& r, std::map<unsigned int, ai>& ais, int nu
 	}
 }
 
-void play_game(pompelmous& r, std::map<unsigned int, ai>& ais)
-{
-	bool running = true;
-
-	if(use_gui) {
-		std::vector<std::string> terrain_files = get_file_list(KINGDOMS_GFXDIR, KINGDOMS_RULESDIR "terrain-gfx.txt");
-		std::vector<std::string> unit_files = get_file_list(KINGDOMS_GFXDIR, KINGDOMS_RULESDIR "units-gfx.txt");
-
-		std::vector<const char*> road_images;
-		road_images.push_back(KINGDOMS_GFXDIR "road_nw.png");
-		road_images.push_back(KINGDOMS_GFXDIR "road_w.png");
-		road_images.push_back(KINGDOMS_GFXDIR "road_sw.png");
-		road_images.push_back(KINGDOMS_GFXDIR "road_n.png");
-		road_images.push_back(KINGDOMS_GFXDIR "road.png");
-		road_images.push_back(KINGDOMS_GFXDIR "road_s.png");
-		road_images.push_back(KINGDOMS_GFXDIR "road_ne.png");
-		road_images.push_back(KINGDOMS_GFXDIR "road_e.png");
-		road_images.push_back(KINGDOMS_GFXDIR "road_se.png");
-		gui g(1024, 768, screen, r.get_map(), r, terrain_files, unit_files, KINGDOMS_GFXDIR "empty.png", 
-				KINGDOMS_GFXDIR "city.png", *font,
-				KINGDOMS_GFXDIR "food_icon.png",
-				KINGDOMS_GFXDIR "prod_icon.png",
-				KINGDOMS_GFXDIR "comm_icon.png",
-				KINGDOMS_GFXDIR "irrigation.png",
-				KINGDOMS_GFXDIR "mine.png",
-				road_images,
-				observer ? &ais.find(0)->second : NULL, r.civs[0]);
-		g.display();
-		g.init_turn();
-		if(observer && skip_rounds > 0)
-			automatic_play_until(r, ais, skip_rounds);
-		r.add_action_listener(&g);
-		while(running) {
-			if(r.current_civ_id() == (int)r.civs[0]->civ_id) {
-				SDL_Event event;
-				while(SDL_PollEvent(&event)) {
-					switch(event.type) {
-						case SDL_KEYDOWN:
-						case SDL_MOUSEBUTTONDOWN:
-						case SDL_MOUSEBUTTONUP:
-							if(g.handle_input(event))
-								running = false;
-							break;
-						case SDL_QUIT:
-							running = false;
-						default:
-							break;
-					}
-				}
-				SDL_Delay(50);
-				g.process(50);
-			}
-			else {
-				std::map<unsigned int, ai>::iterator ait = ais.find(r.current_civ_id());
-				if(ait != ais.end()) {
-					if(ait->second.play())
-						running = false;
-					else {
-						if(!observer && r.civs[0]->eliminated())
-							running = false;
-						else
-							g.init_turn();
-					}
-				}
-				else {
-					running = false;
-				}
-			}
-		}
-		r.remove_action_listener(&g);
-	}
-	else {
-		automatic_play_until(r, ais, r.get_num_turns());
-	}
-
-	for(unsigned int i = 0; i < r.civs.size(); i++) {
-		const std::map<unsigned int, int>& m1 = r.civs[i]->get_built_units();
-		const std::map<unsigned int, int>& m2 = r.civs[i]->get_lost_units();
-		printf("%-20s%-6d points    %4d cities\n%-20s%-6s%-6s\n", r.civs[i]->civname.c_str(),
-				r.civs[i]->get_points(), r.civs[i]->cities.size(),
-			       	"Unit", "Built", "Lost");
-		for(std::map<unsigned int, int>::const_iterator mit = m1.begin();
-				mit != m1.end();
-				++mit) {
-			unsigned int key = mit->first;
-			unit_configuration_map::const_iterator uit = r.uconfmap.find(key);
-			std::map<unsigned int, int>::const_iterator mit2 = m2.find(mit->first);
-			if(uit != r.uconfmap.end()) {
-				printf("%-20s%-6d%-6d\n", uit->second.unit_name.c_str(),
-						mit->second,
-						mit2 == m2.end() ? 0 : mit2->second);
-			}
-		}
-		printf("\n");
-	}
-}
-
-int run_game(pompelmous& r)
-{
-	std::map<unsigned int, ai> ais;
-	if(observer) {
-		ais.insert(std::make_pair(0, ai(r.get_map(), r, r.civs[0])));
-		if(ai_debug)
-			set_ai_debug_civ(0);
-	}
-	for(unsigned int i = 1; i < r.civs.size(); i++)
-		ais.insert(std::make_pair(i, ai(r.get_map(), r, r.civs[i])));
-	play_game(r, ais);
-	return 0;
-}
-
 class menu {
 	public:
 		menu(SDL_Surface* screen_,
@@ -481,6 +370,194 @@ int menu::run()
 					SDL_GetError());
 		}
 	}
+	return 0;
+}
+
+class end_screen : public menu {
+	public:
+		end_screen(SDL_Surface* screen_,
+				TTF_Font* font_,
+				const pompelmous& r_);
+	protected:
+		void draw_background();
+		void setup_buttons();
+	private:
+		int quit_button();
+		const pompelmous& r;
+};
+
+end_screen::end_screen(SDL_Surface* screen_,
+		TTF_Font* font_, const pompelmous& r_)
+	: menu(screen_, font_),
+	r(r_)
+{
+}
+
+void end_screen::draw_background()
+{
+	draw_plain_rectangle(screen, 50, 50, screen->w - 100, screen->h - 100,
+			color(20, 15, 37));
+	char buf[256];
+	buf[255] = '\0';
+	snprintf(buf, 255, "Game finished");
+	draw_text(screen, font, buf, screen->w / 2, 150, 255, 255, 255, true);
+	if(r.get_winning_civ() == -1)
+		snprintf(buf, 255, "Winner: unknown!");
+	else
+		snprintf(buf, 255, "Winner: %s", r.civs[r.get_winning_civ()]->civname.c_str());
+	draw_text(screen, font, buf, screen->w / 2, 300, 255, 255, 255, true);
+	switch(r.get_victory_type()) {
+		case victory_score:
+			snprintf(buf, 255, "Win by score");
+			break;
+		case victory_elimination:
+			snprintf(buf, 255, "Win by elimination");
+			break;
+		case victory_domination:
+			snprintf(buf, 255, "Win by domination");
+			break;
+		default:
+			snprintf(buf, 255, "Win by something unknown");
+			break;
+	}
+	draw_text(screen, font, buf, screen->w / 2, 400, 255, 255, 255, true);
+}
+
+void end_screen::setup_buttons()
+{
+	plain_button* quit_button = new plain_button(rect(412, 600, 200, 60),
+			"Exit", font, color(4, 0, 132),
+			color(200, 200, 200), boost::bind(&end_screen::quit_button, this));
+	buttons.push_back(quit_button);
+}
+
+int end_screen::quit_button()
+{
+	return 1;
+}
+
+void display_end_screen(const pompelmous& r)
+{
+	end_screen e(screen, font, r);
+	e.run();
+}
+
+void play_game(pompelmous& r, std::map<unsigned int, ai>& ais)
+{
+	bool running = true;
+
+	if(use_gui) {
+		std::vector<std::string> terrain_files = get_file_list(KINGDOMS_GFXDIR, KINGDOMS_RULESDIR "terrain-gfx.txt");
+		std::vector<std::string> unit_files = get_file_list(KINGDOMS_GFXDIR, KINGDOMS_RULESDIR "units-gfx.txt");
+
+		std::vector<const char*> road_images;
+		road_images.push_back(KINGDOMS_GFXDIR "road_nw.png");
+		road_images.push_back(KINGDOMS_GFXDIR "road_w.png");
+		road_images.push_back(KINGDOMS_GFXDIR "road_sw.png");
+		road_images.push_back(KINGDOMS_GFXDIR "road_n.png");
+		road_images.push_back(KINGDOMS_GFXDIR "road.png");
+		road_images.push_back(KINGDOMS_GFXDIR "road_s.png");
+		road_images.push_back(KINGDOMS_GFXDIR "road_ne.png");
+		road_images.push_back(KINGDOMS_GFXDIR "road_e.png");
+		road_images.push_back(KINGDOMS_GFXDIR "road_se.png");
+		gui g(1024, 768, screen, r.get_map(), r, terrain_files, unit_files, KINGDOMS_GFXDIR "empty.png", 
+				KINGDOMS_GFXDIR "city.png", *font,
+				KINGDOMS_GFXDIR "food_icon.png",
+				KINGDOMS_GFXDIR "prod_icon.png",
+				KINGDOMS_GFXDIR "comm_icon.png",
+				KINGDOMS_GFXDIR "irrigation.png",
+				KINGDOMS_GFXDIR "mine.png",
+				road_images,
+				observer ? &ais.find(0)->second : NULL, r.civs[0]);
+		g.display();
+		g.init_turn();
+		if(observer && skip_rounds > 0)
+			automatic_play_until(r, ais, skip_rounds);
+		r.add_action_listener(&g);
+		while(running) {
+			if(r.current_civ_id() == (int)r.civs[0]->civ_id) {
+				SDL_Event event;
+				while(SDL_PollEvent(&event)) {
+					switch(event.type) {
+						case SDL_KEYDOWN:
+						case SDL_MOUSEBUTTONDOWN:
+						case SDL_MOUSEBUTTONUP:
+							if(g.handle_input(event))
+								running = false;
+							break;
+						case SDL_QUIT:
+							running = false;
+						default:
+							break;
+					}
+				}
+				SDL_Delay(50);
+				g.process(50);
+			}
+			else {
+				std::map<unsigned int, ai>::iterator ait = ais.find(r.current_civ_id());
+				if(ait != ais.end()) {
+					if(ait->second.play()) {
+						running = false;
+					}
+					else {
+						if(!observer && r.civs[0]->eliminated()) {
+							running = false;
+						}
+						else {
+							g.init_turn();
+							if(r.finished()) {
+								running = false;
+							}
+						}
+					}
+				}
+				else {
+					running = false;
+				}
+			}
+		}
+		if(r.finished())
+			display_end_screen(r);
+		r.remove_action_listener(&g);
+	}
+	else {
+		automatic_play_until(r, ais, r.get_num_turns());
+	}
+
+	for(unsigned int i = 0; i < r.civs.size(); i++) {
+		const std::map<unsigned int, int>& m1 = r.civs[i]->get_built_units();
+		const std::map<unsigned int, int>& m2 = r.civs[i]->get_lost_units();
+		printf("%-20s%-6d points    %4d cities\n%-20s%-6s%-6s\n", r.civs[i]->civname.c_str(),
+				r.civs[i]->get_points(), r.civs[i]->cities.size(),
+			       	"Unit", "Built", "Lost");
+		for(std::map<unsigned int, int>::const_iterator mit = m1.begin();
+				mit != m1.end();
+				++mit) {
+			unsigned int key = mit->first;
+			unit_configuration_map::const_iterator uit = r.uconfmap.find(key);
+			std::map<unsigned int, int>::const_iterator mit2 = m2.find(mit->first);
+			if(uit != r.uconfmap.end()) {
+				printf("%-20s%-6d%-6d\n", uit->second.unit_name.c_str(),
+						mit->second,
+						mit2 == m2.end() ? 0 : mit2->second);
+			}
+		}
+		printf("\n");
+	}
+}
+
+int run_game(pompelmous& r)
+{
+	std::map<unsigned int, ai> ais;
+	if(observer) {
+		ais.insert(std::make_pair(0, ai(r.get_map(), r, r.civs[0])));
+		if(ai_debug)
+			set_ai_debug_civ(0);
+	}
+	for(unsigned int i = 1; i < r.civs.size(); i++)
+		ais.insert(std::make_pair(i, ai(r.get_map(), r, r.civs[i])));
+	play_game(r, ais);
 	return 0;
 }
 

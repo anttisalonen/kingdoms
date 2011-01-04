@@ -106,6 +106,13 @@ class action_listener {
 		virtual void handle_action(const visible_move_action& a) = 0;
 };
 
+enum victory_type {
+	victory_none,
+	victory_score,
+	victory_elimination,
+	victory_domination
+};
+
 class pompelmous
 {
 	public:
@@ -150,6 +157,7 @@ class pompelmous
 				unsigned int* u1chance,
 				unsigned int* u2chance) const;
 		int get_winning_civ() const;
+		victory_type get_victory_type() const;
 		bool finished() const;
 	private:
 		void broadcast_action(const visible_move_action& a) const;
@@ -179,6 +187,7 @@ class pompelmous
 		int num_turns;
 		std::list<action_listener*> action_listeners;
 		int winning_civ;
+		victory_type victory;
 
 		friend class boost::serialization::access;
 
@@ -196,6 +205,7 @@ class pompelmous
 			ar & const_cast<unsigned int&>(food_eaten_per_citizen);
 			ar & num_turns;
 			ar & winning_civ;
+			ar & victory;
 		}
 		template<class Archive>
 		void save(Archive& ar, const unsigned int version) const
