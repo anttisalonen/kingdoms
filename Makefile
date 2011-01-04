@@ -65,7 +65,7 @@ $(TMPDIR):
 	mkdir -p $(TMPDIR)
 
 discoveries: $(TMPDIR)
-	cat share/discoveries.txt | runhaskell utils/dot.hs | dot -Tpng > $(TMPDIR)/graph.png
+	cat share/rules/discoveries.txt | runhaskell utils/dot.hs | dot -Tpng > $(TMPDIR)/graph.png
 
 clean:
 	rm -f $(OBJS) $(DEPS) $(TARGET)
