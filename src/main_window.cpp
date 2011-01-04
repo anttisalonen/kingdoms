@@ -22,7 +22,8 @@ main_window::main_window(SDL_Surface* screen_, int x, int y, gui_data& data_, gu
 	myciv(myciv_),
 	mouse_down_sqx(-1),
 	mouse_down_sqy(-1),
-	internal_ai(ai_)
+	internal_ai(ai_),
+	sidebar_info_display(coord(-1, -1))
 {
 	cam.cam_x = cam.cam_y = 0;
 }
@@ -114,6 +115,7 @@ int main_window::draw_sidebar() const
 		draw_unit_info();
 	else
 		draw_eot();
+	display_tile_info();
 	return 0;
 }
 
@@ -154,6 +156,17 @@ int main_window::draw_civ_info() const
 	return 0;
 }
 
+std::string main_window::unit_strength_info_string(const unit* u) const
+{
+	if(u->uconf->max_strength == 0)
+		return std::string("");
+	char buf[256];
+	buf[255] = '\0';
+	snprintf(buf, 255, "%d.%d/%d.0", u->strength / 10, u->strength % 10,
+			u->uconf->max_strength);
+	return std::string(buf);
+}
+
 int main_window::draw_unit_info() const
 {
 	if(current_unit == myciv->units.end())
@@ -169,9 +182,8 @@ int main_window::draw_unit_info() const
 	if(current_unit->second->strength) {
 		snprintf(buf, 255, "Unit strength:");
 		draw_text(screen, &res.font, buf, 10, sidebar_size * tile_h / 2 + 140, 255, 255, 255);
-		snprintf(buf, 255, "%d.%d/%d.0", current_unit->second->strength / 10, current_unit->second->strength % 10,
-				uconf->max_strength);
-		draw_text(screen, &res.font, buf, 10, sidebar_size * tile_h / 2 + 160, 255, 255, 255);
+		draw_text(screen, &res.font, unit_strength_info_string(current_unit->second).c_str(),
+				10, sidebar_size * tile_h / 2 + 160, 255, 255, 255);
 	}
 	int drawn_carried_units = 0;
 	for(std::list<unit*>::const_iterator it = current_unit->second->carried_units.begin();
@@ -183,6 +195,76 @@ int main_window::draw_unit_info() const
 		drawn_carried_units++;
 	}
 	return 0;
+}
+
+bool main_window::write_unit_info(const unit* u, int* written_lines) const
+{
+	if(*written_lines >= 6) {
+		draw_text(screen, &res.font, "<More>", 10,
+				screen_h - 160 + *written_lines * 16, 255, 255, 255);
+		return true;
+	}
+	std::string strength = unit_strength_info_string(u);
+	char buf[256];
+	buf[255] = '\0';
+	snprintf(buf, 255, "%s (%s)",
+			u->uconf->unit_name.c_str(),
+			strength.c_str());
+	draw_text(screen, &res.font, buf, 10,
+			screen_h - 160 + *written_lines * 16, 255, 255, 255);
+	(*written_lines)++;
+	if(u->civ_id == (int)myciv->civ_id) {
+		for(std::list<unit*>::const_iterator it = u->carried_units.begin();
+				it != u->carried_units.end(); ++it) {
+			if(write_unit_info(*it, written_lines))
+				return true;
+		}
+	}
+	return false;
+}
+
+void main_window::display_tile_info() const
+{
+	if(sidebar_info_display.x < 0)
+		return;
+	char fog = myciv->fog_at(sidebar_info_display.x, sidebar_info_display.y);
+	if(fog == 0)
+		return;
+	int terr = data.m.get_data(sidebar_info_display.x, sidebar_info_display.y);
+	if(terr >= 0 && terr < num_terrain_types) {
+		draw_text(screen, &res.font, data.m.resconf.resource_name[terr].c_str(), 10, screen_h - 160, 255, 255, 255);
+	}
+	if(fog == 1)
+		return;
+	int written_lines = 1;
+	const std::list<unit*>& units = data.m.units_on_spot(sidebar_info_display.x,
+			sidebar_info_display.y);
+	for(std::list<unit*>::const_iterator it = units.begin();
+			it != units.end(); ++it) {
+		if(write_unit_info(*it, &written_lines))
+			break;
+	}
+	if(!units.empty()) {
+		std::list<unit*>::const_iterator it = units.begin();
+		if(current_unit != myciv->units.end() &&
+				(*it)->civ_id != (int)myciv->civ_id) {
+			unsigned int u1chance, u2chance;
+			if(data.r.combat_chances(current_unit->second, *it,
+						&u1chance, &u2chance)) {
+				if(u1chance || u2chance) {
+					char buf[256];
+					buf[255] = '\0';
+					snprintf(buf, 255, "%d vs %d => %2.2f",
+							current_unit->second->strength,
+							(*it)->strength, u1chance / (u1chance + (float)u2chance));
+					draw_text(screen, &res.font, "Combat:", 10,
+							screen_h - 160 + (written_lines + 1) * 16, 255, 255, 255);
+					draw_text(screen, &res.font, buf, 10,
+							screen_h - 160 + (written_lines + 2) * 16, 255, 255, 255);
+				}
+			}
+		}
+	}
 }
 
 int main_window::draw_eot() const
@@ -541,10 +623,12 @@ int main_window::process(int ms)
 	if(blink_unit != old_blink_unit) {
 		draw();
 	}
-	if(old_timer / 200 != timer / 200) {
-		int x, y;
-		SDL_GetMouseState(&x, &y);
-		handle_mousemotion(x, y);
+	if(num_subwindows() == 0) {
+		if(old_timer / 200 != timer / 200) {
+			int x, y;
+			SDL_GetMouseState(&x, &y);
+			handle_mousemotion(x, y);
+		}
 	}
 	handle_civ_messages(&myciv->messages);
 	return 0;
@@ -558,7 +642,18 @@ int main_window::handle_mousemotion(int x, int y)
 			y < border,
 			y > screen_h - border);
 	check_line_drawing(x, y);
+	update_tile_info(x, y);
 	return 0;
+}
+
+void main_window::update_tile_info(int x, int y)
+{
+	int sqx, sqy;
+	mouse_coord_to_tiles(x, y, &sqx, &sqy);
+	if(sqx >= 0) {
+		sidebar_info_display = coord(sqx, sqy);
+		draw_sidebar();
+	}
 }
 
 int main_window::check_line_drawing(int x, int y)

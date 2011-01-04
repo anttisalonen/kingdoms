@@ -29,44 +29,6 @@ bool can_attack(const map* m, const unit& u1, const unit& u2)
 	return u1.uconf->max_strength > 0;
 }
 
-void combat(const map* m, unit* u1, unit* u2, int off_bonus, int def_bonus)
-{
-	if(!can_attack(m, *u1, *u2))
-		return;
-	if(u1->strength == 0 || u2->strength == 0)
-		return;
-	if(u2->uconf->max_strength == 0) {
-		u2->strength = 0;
-		return;
-	}
-	unsigned int s1 = u1->strength;
-	unsigned int s2 = u2->strength;
-	unsigned int u1chance = s1 * s1;
-	unsigned int u2chance = s2 * s2;
-	if(u1->veteran)
-		u1chance *= 1.5f;
-	if(u2->veteran)
-		u2chance *= 1.5f;
-	u1chance *= (100 + off_bonus) / 100.0f;
-	u2chance *= (100 + def_bonus) / 100.0f;
-	if(u2->is_fortified())
-		u2chance *= 2;
-	unsigned int val = rand() % (u1chance + u2chance);
-	printf("Combat on (%d, %d) - chances: (%d vs %d - %3.2f) - ",
-			u2->xpos, u2->ypos, u1chance, u2chance,
-			u1chance / ((float)u1chance + u2chance));
-	if(val < u1chance) {
-		u1->strength = std::max<unsigned int>(1, u1->strength * (val + 1) / u1chance);
-		u2->strength = 0;
-		printf("attacker won\n");
-	}
-	else {
-		u1->strength = 0;
-		u2->strength = std::max<unsigned int>(1, u2->strength * (val + 1 - u1chance) / u2chance);
-		printf("defender won\n");
-	}
-}
-
 action::action(action_type t)
 	: type(t)
 {
@@ -535,8 +497,7 @@ bool pompelmous::try_move_unit(unit* u, int chx, int chy)
 				if(!can_attack(m, *u, *defender)) {
 					return false;
 				}
-				combat(m, u, defender, get_offense_bonus(u, defender),
-						get_defense_bonus(defender, u));
+				combat(u, defender);
 				fought = true;
 				if(u->strength == 0) {
 					// lost combat
@@ -780,4 +741,55 @@ const unsigned int pompelmous::get_food_eaten_per_citizen() const
 	return food_eaten_per_citizen;
 }
 
+void pompelmous::combat(unit* u1, unit* u2)
+{
+	unsigned int u1chance, u2chance;
+	if(!combat_chances(u1, u2, &u1chance, &u2chance))
+		return;
+	if(u2chance == 0) {
+		u2->strength = 0;
+		return;
+	}
+	unsigned int val = rand() % (u1chance + u2chance);
+	printf("Combat on (%d, %d) - chances: (%d vs %d - %3.2f) - ",
+			u2->xpos, u2->ypos, u1chance, u2chance,
+			u1chance / ((float)u1chance + u2chance));
+	if(val < u1chance) {
+		u1->strength = std::max<unsigned int>(1, u1->strength * (val + 1) / u1chance);
+		u2->strength = 0;
+		printf("attacker won\n");
+	}
+	else {
+		u1->strength = 0;
+		u2->strength = std::max<unsigned int>(1, u2->strength * (val + 1 - u1chance) / u2chance);
+		printf("defender won\n");
+	}
+}
+
+bool pompelmous::combat_chances(const unit* u1, const unit* u2,
+		unsigned int* u1chance,
+		unsigned int* u2chance) const
+{
+	int off_bonus = get_offense_bonus(u1, u2);
+	int def_bonus = get_defense_bonus(u2, u1);
+	if(!can_attack(m, *u1, *u2))
+		return false;
+	if(u1->strength == 0 || u2->strength == 0)
+		return false;
+	unsigned int s1 = u1->strength;
+	unsigned int s2 = u2->uconf->max_strength ? u2->strength : 0;
+	*u1chance = s1 * s1;
+	*u2chance = s2 * s2;
+	if(u1->veteran)
+		*u1chance *= 1.5f;
+	if(u2->veteran)
+		*u2chance *= 1.5f;
+	*u1chance *= (100 + off_bonus) / 100.0f;
+	if(s2) {
+		*u2chance *= (100 + def_bonus) / 100.0f;
+		if(u2->is_fortified())
+			*u2chance *= 2;
+	}
+	return true;
+}
 

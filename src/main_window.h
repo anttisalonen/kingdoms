@@ -73,6 +73,10 @@ class main_window : public window {
 		void handle_action_mouse_up(const SDL_Event& ev);
 		void check_unit_movement_orders();
 		int try_perform_action(const action& a, city** c);
+		void update_tile_info(int x, int y);
+		void display_tile_info() const;
+		std::string unit_strength_info_string(const unit* u) const;
+		bool write_unit_info(const unit* u, int* written_lines) const;
 		const int tile_w;
 		const int tile_h;
 		const int cam_total_tiles_x;
@@ -88,6 +92,7 @@ class main_window : public window {
 		int mouse_down_sqy;
 		std::list<coord> path_to_draw;
 		ai* internal_ai;
+		coord sidebar_info_display;
 };
 
 

@@ -145,6 +145,10 @@ class pompelmous
 		int needed_food_for_growth(int city_size) const;
 		int needed_culture_for_growth(int city_culture) const;
 		const unsigned int get_food_eaten_per_citizen() const;
+		void combat(unit* u1, unit* u2);
+		bool combat_chances(const unit* u1, const unit* u2,
+				unsigned int* u1chance,
+				unsigned int* u2chance) const;
 	private:
 		void broadcast_action(const visible_move_action& a) const;
 		bool next_civ();
