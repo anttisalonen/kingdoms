@@ -157,6 +157,84 @@ int draw_road_overlays(const map& m,
 	return 0;
 }
 
+#ifdef BLEND_TERRAIN
+color blend_colors(const color& c1, const color& c2, float bl)
+{
+	color blendcol;
+	blendcol.r = c2.r + ((c1.r - c2.r) * bl);
+	blendcol.g = c2.g + ((c1.g - c2.g) * bl);
+	blendcol.b = c2.b + ((c1.b - c2.b) * bl);
+	return blendcol;
+}
+
+void blend_terrain_colors(int x, int y, int xpos, int ypos,
+		const map& m,
+		const tileset& terrains,
+		SDL_Surface* screen)
+{
+	int val = m.get_data(x, y);
+	const int num_steps = BLEND_TERRAIN;
+	float blend_ratio[num_steps];
+	for(int j = 0; j < num_steps; j++)
+		blend_ratio[j] = (num_steps + j + 1) / (2.0f * num_steps + 1.0f);
+	int lval = m.get_data(x - 1, y);
+	if(lval >= 0 && lval < (int)terrains.textures.size()) {
+		for(int j = 0; j < num_steps; j++) {
+			for(int i = 0; i < terrains.tile_h; i++) {
+				color col1 = sdl_get_pixel(terrains.textures[val],
+						j, i);
+				color col2 = sdl_get_pixel(terrains.textures[lval],
+						terrains.tile_w - 1 - j, i);
+				color blendcol = blend_colors(col1, col2, blend_ratio[j]);
+				sdl_put_pixel(screen, xpos + j, ypos + i, blendcol);
+			}
+		}
+	}
+	int rval = m.get_data(x + 1, y);
+	if(rval >= 0 && rval < (int)terrains.textures.size()) {
+		for(int j = 0; j < num_steps; j++) {
+			for(int i = 0; i < terrains.tile_h; i++) {
+				color col1 = sdl_get_pixel(terrains.textures[val],
+						terrains.tile_w - j - 1, i);
+				color col2 = sdl_get_pixel(terrains.textures[rval],
+						j, i);
+				color blendcol = blend_colors(col1, col2, blend_ratio[j]);
+				sdl_put_pixel(screen, xpos + terrains.tile_w - 1 - j,
+						ypos + i, blendcol);
+			}
+		}
+	}
+	int uval = m.get_data(x, y - 1);
+	if(uval >= 0 && uval < (int)terrains.textures.size()) {
+		for(int j = 0; j < num_steps; j++) {
+			for(int i = 0; i < terrains.tile_w; i++) {
+				color col1 = sdl_get_pixel(terrains.textures[val],
+						i, j);
+				color col2 = sdl_get_pixel(terrains.textures[uval],
+						i, terrains.tile_h - 1 - j);
+				color blendcol = blend_colors(col1, col2, blend_ratio[j]);
+				sdl_put_pixel(screen, xpos + i,
+						ypos + j, blendcol);
+			}
+		}
+	}
+	int dval = m.get_data(x, y + 1);
+	if(dval >= 0 && dval < (int)terrains.textures.size()) {
+		for(int j = 0; j < num_steps; j++) {
+			for(int i = 0; i < terrains.tile_w; i++) {
+				color col1 = sdl_get_pixel(terrains.textures[val],
+						i, terrains.tile_h - 1 - j);
+				color col2 = sdl_get_pixel(terrains.textures[dval],
+						i, j);
+				color blendcol = blend_colors(col1, col2, blend_ratio[j]);
+				sdl_put_pixel(screen, xpos + i,
+						ypos + terrains.tile_h - 1 - j, blendcol);
+			}
+		}
+	}
+}
+#endif
+
 int draw_terrain_tile(int x, int y, int xpos, int ypos, bool shade,
 		const map& m, 
 		const tileset& terrains,
@@ -176,6 +254,9 @@ int draw_terrain_tile(int x, int y, int xpos, int ypos, bool shade,
 		fprintf(stderr, "Unable to blit surface: %s\n", SDL_GetError());
 		return 1;
 	}
+#ifdef BLEND_TERRAIN
+	blend_terrain_colors(x, y, xpos, ypos, m, terrains, screen);
+#endif
 
 	if(draw_improvements) {
 		int im = m.get_improvements_on(x, y);
