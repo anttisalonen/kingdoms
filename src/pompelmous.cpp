@@ -528,7 +528,7 @@ bool pompelmous::try_move_unit(unit* u, int chx, int chy)
 	// attack square?
 	int def_id = m->get_spot_resident(tgtxpos, tgtypos);
 	if(def_id >= 0 && def_id != u->civ_id) {
-		if(in_war(u->civ_id, def_id)) {
+		if(!u->carried() && in_war(u->civ_id, def_id)) {
 			const std::list<unit*>& units = m->units_on_spot(tgtxpos, tgtypos);
 			if(units.size() != 0) {
 				unit* defender = units.front();
