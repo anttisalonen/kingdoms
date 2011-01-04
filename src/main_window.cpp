@@ -1013,15 +1013,10 @@ int main_window::handle_mouse_down(const SDL_Event& ev, city** c)
 int main_window::try_choose_with_mouse(city** c)
 {
 	// choose city
-	for(std::map<unsigned int, city*>::const_iterator it = myciv->cities.begin();
-			it != myciv->cities.end();
-			++it) {
-		city *cn = it->second;
-		if(cn->xpos == mouse_down_sqx && cn->ypos == mouse_down_sqy) {
-			*c = cn;
-			mouse_down_sqx = mouse_down_sqy = -1;
-			break;
-		}
+	city* cn = data.m.city_on_spot(mouse_down_sqx, mouse_down_sqy);
+	if(cn && cn->civ_id == myciv->civ_id) {
+		*c = cn;
+		mouse_down_sqx = mouse_down_sqy = -1;
 	}
 
 	// if no city chosen, choose unit
