@@ -149,6 +149,8 @@ class pompelmous
 		bool combat_chances(const unit* u1, const unit* u2,
 				unsigned int* u1chance,
 				unsigned int* u2chance) const;
+		int get_winning_civ() const;
+		bool finished() const;
 	private:
 		void broadcast_action(const visible_move_action& a) const;
 		bool next_civ();
@@ -168,6 +170,7 @@ class pompelmous
 		void update_civ_points();
 		int get_offense_bonus(const unit* off, const unit* def) const;
 		int get_defense_bonus(const unit* def, const unit* off) const;
+		void check_for_victory_conditions();
 		std::vector<civilization*>::iterator current_civ;
 		map* m;
 		int round_number;
@@ -175,6 +178,7 @@ class pompelmous
 		const unsigned int food_eaten_per_citizen;
 		int num_turns;
 		std::list<action_listener*> action_listeners;
+		int winning_civ;
 
 		friend class boost::serialization::access;
 
@@ -191,6 +195,7 @@ class pompelmous
 			ar & const_cast<unsigned int&>(road_moves);
 			ar & const_cast<unsigned int&>(food_eaten_per_citizen);
 			ar & num_turns;
+			ar & winning_civ;
 		}
 		template<class Archive>
 		void save(Archive& ar, const unsigned int version) const

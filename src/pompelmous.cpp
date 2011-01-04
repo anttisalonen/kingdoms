@@ -114,7 +114,8 @@ pompelmous::pompelmous(const unit_configuration_map& uconfmap_,
 	round_number(0),
 	road_moves(road_moves_),
 	food_eaten_per_citizen(food_eaten_per_citizen_),
-	num_turns(num_turns_)
+	num_turns(num_turns_),
+	winning_civ(-1)
 {
 	current_civ = civs.begin();
 }
@@ -152,6 +153,93 @@ void pompelmous::increment_resources()
 	}
 }
 
+int pompelmous::get_winning_civ() const
+{
+	return winning_civ;
+}
+
+void pompelmous::check_for_victory_conditions()
+{
+	if(winning_civ != -1)
+		return;
+	if(winning_civ == -1 && round_number >= num_turns) {
+		// win by score
+		unsigned int highest_score_civid = 0;
+		int highest_score = civs[0]->get_points();
+		for(unsigned int i = 1; i < civs.size(); i++) {
+			if(civs[i]->eliminated())
+				continue;
+			int this_score = civs[i]->get_points();
+			if(this_score > highest_score) {
+				highest_score = this_score;
+				highest_score_civid = i;
+			}
+		}
+		winning_civ = highest_score_civid;
+		printf("Win by score: %s - %d points!\n",
+				civs[highest_score_civid]->civname.c_str(),
+				highest_score);
+		return;
+	}
+
+	// win by elimination
+	bool elimination_win = false;
+	unsigned int eliminator = 0;
+	for(unsigned int i = 0; i < civs.size(); i++) {
+		if(!civs[i]->eliminated()) {
+			if(elimination_win) {
+				elimination_win = false;
+				break;
+			}
+			else {
+				eliminator = i;
+				elimination_win = true;
+			}
+		}
+	}
+	if(elimination_win) {
+		winning_civ = eliminator;
+		printf("Win by elimination: %s!\n",
+				civs[winning_civ]->civname.c_str());
+		return;
+	}
+
+	// win by domination
+	int controlled_area[civs.size()];
+	for(unsigned int i = 0; i < civs.size(); i++) {
+		controlled_area[i] = 0;
+	}
+	int total_controlled_area = 0;
+	for(int i = 0; i < m->size_x(); i++) {
+		for(int j = 0; j < m->size_y(); j++) {
+			int val = m->get_data(i, j);
+			if(!m->resconf.is_water_tile(val)) {
+				int lo = m->get_land_owner(i, j);
+				if(lo >= 0 && lo < (int)civs.size()) {
+					total_controlled_area++;
+					controlled_area[lo]++;
+				}
+			}
+		}
+	}
+	for(unsigned int i = 0; i < civs.size(); i++) {
+		float area = controlled_area[i] / (float)total_controlled_area;
+		printf("Domination: %-20s %3.2f\n",
+				civs[i]->civname.c_str(), area);
+		if(area > 0.85f) {
+			winning_civ = i;
+			printf("Win by domination: %s!\n",
+					civs[i]->civname.c_str());
+			break;
+		}
+	}
+}
+
+bool pompelmous::finished() const
+{
+	return winning_civ != -1 || round_number >= num_turns;
+}
+
 bool pompelmous::next_civ()
 {
 	if(civs.empty())
@@ -160,6 +248,7 @@ bool pompelmous::next_civ()
 	if(current_civ == civs.end()) {
 		round_number++;
 		fprintf(stdout, "Round: %d\n", round_number);
+		check_for_victory_conditions();
 		current_civ = civs.begin();
 		increment_resources();
 		check_for_city_updates();
@@ -263,7 +352,7 @@ bool pompelmous::perform_action(int civid, const action& a)
 		return false;
 	}
 
-	if(round_number >= num_turns) {
+	if(finished()) {
 		return a.type == action_eot;
 	}
 
