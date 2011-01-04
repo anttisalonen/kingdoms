@@ -130,6 +130,7 @@ class civilization {
 		int get_points() const;
 		bool can_cross_oceans() const;
 		bool allowed_research_goal(const advance_map::const_iterator& amap) const;
+		void unload_unit(unit* loadee);
 		std::string civname;
 		const unsigned int civ_id;
 		color col;
@@ -156,7 +157,6 @@ class civilization {
 		void calculate_total_city_commerce(const city& c,
 				const city_improv_map& cimap,
 				int orig_comm, int* add_gold, int* add_science) const;
-		void unload_unit(unit* loadee);
 		std::vector<relationship> relationships;
 		buf2d<int> known_land_map;
 		std::vector<std::string> city_names;

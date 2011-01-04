@@ -307,6 +307,13 @@ bool pompelmous::perform_action(int civid, const action& a)
 					a.data.unit_data.u->skip_turn();
 					return true;
 				case action_fortify:
+					if(a.data.unit_data.u->carried() &&
+						m->terrain_allowed(*a.data.unit_data.u,
+							a.data.unit_data.u->xpos,
+							a.data.unit_data.u->ypos)) {
+						// in city => unload
+						(*current_civ)->unload_unit(a.data.unit_data.u);
+					}
 					a.data.unit_data.u->fortify();
 					return true;
 				case action_improvement:
