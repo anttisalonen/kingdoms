@@ -148,7 +148,7 @@ void civilization::remove_unit(unit* u)
 	std::map<unsigned int, unit*>::iterator uit = units.find(u->unit_id);
 	if(uit != units.end()) {
 		if(u->carried()) {
-			u->unload(u->xpos, u->ypos);
+			u->unload();
 		}
 		std::list<unit*>::iterator it = u->carried_units.begin();
 		while(it != u->carried_units.end()) {
@@ -596,13 +596,14 @@ void civilization::move_unit(unit* u, int chx, int chy, bool fought)
 {
 	int newx = m->wrap_x(u->xpos + chx);
 	int newy = m->wrap_y(u->ypos + chy);
+	if(u->carried()) {
+		unload_unit(u);
+	}
 	m->remove_unit(u);
-	if(!u->carried())
-		fog.shade(u->xpos, u->ypos, 1);
+	fog.shade(u->xpos, u->ypos, 1);
 	u->move_to(newx, newy, 
 			!fought && m->road_between(u->xpos, u->ypos, newx, newy));
-	if(!u->carried())
-		fog.reveal(u->xpos, u->ypos, 1);
+	fog.reveal(u->xpos, u->ypos, 1);
 	reveal_land(u->xpos, u->ypos, 1);
 	m->add_unit(u);
 	for(std::list<unit*>::iterator it = u->carried_units.begin();
@@ -610,9 +611,6 @@ void civilization::move_unit(unit* u, int chx, int chy, bool fought)
 			++it) {
 		(*it)->xpos = u->xpos;
 		(*it)->ypos = u->ypos;
-	}
-	if(u->carried()) {
-		unload_unit(u, newx, newy);
 	}
 }
 int civilization::get_known_land_owner(int x, int y) const
@@ -688,19 +686,20 @@ bool civilization::can_load_unit(unit* loadee, unit* loader) const
 
 void civilization::load_unit(unit* loadee, unit* loader)
 {
-	int oldx = loadee->xpos;
-	int oldy = loadee->ypos;
-	loadee->load_at(loader);
+	// NOTE: load_at must be the last call, because it may change the
+	// unit position. The unit must be removed at the map from the
+	// current position.
+	fog.shade(loadee->xpos, loadee->ypos, 1);
 	m->remove_unit(loadee);
-	fog.shade(oldx, oldy, 1);
+	loadee->load_at(loader);
 }
 
-void civilization::unload_unit(unit* unloadee, int x, int y)
+void civilization::unload_unit(unit* unloadee)
 {
-	unloadee->unload(x, y);
+	unloadee->unload();
 	m->add_unit(unloadee);
-	fog.reveal(x, y, 1);
-	reveal_land(x, y, 1);
+	fog.reveal(unloadee->xpos, unloadee->ypos, 1);
+	reveal_land(unloadee->xpos, unloadee->ypos, 1);
 }
 
 const std::map<unsigned int, int>& civilization::get_built_units() const

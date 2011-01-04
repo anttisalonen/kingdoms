@@ -205,7 +205,7 @@ void unit::load_at(unit* loader)
 	carrying_unit = loader;
 }
 
-void unit::unload(int x, int y)
+void unit::unload()
 {
 	for(std::list<unit*>::iterator it = carrying_unit->carried_units.begin();
 			it != carrying_unit->carried_units.end();
@@ -214,9 +214,6 @@ void unit::unload(int x, int y)
 			it = carrying_unit->carried_units.erase(it);
 		}
 	}
-	xpos = x;
-	ypos = y;
-	decrement_moves();
 	wake_up();
 	carrying_unit = NULL;
 }

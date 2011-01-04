@@ -37,7 +37,7 @@ class unit
 		bool is_military_unit() const;
 		bool can_load_at(unit* loader) const;
 		void load_at(unit* loader);
-		void unload(int x, int y);
+		void unload();
 		bool carried() const;
 		bool carrying() const;
 		bool is_land_unit() const;
