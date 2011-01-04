@@ -54,11 +54,11 @@ static TTF_Font* font = NULL;
 
 void segv_handler(int sig)
 {
-	void* array[10];
+	void* array[16];
 	size_t size;
 
 	// get void*'s for all entries on the stack
-	size = backtrace(array, 10);
+	size = backtrace(array, 16);
 
 	// print out all the frames to stderr
 	fprintf(stderr, "Signal %d:\n", sig);
