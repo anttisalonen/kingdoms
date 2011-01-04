@@ -404,6 +404,7 @@ void pompelmous::check_city_conquer(int tgtxpos, int tgtypos, int conquering_civ
 			destroy_improvements(c);
 			update_land_owners();
 			civ2->update_city_resource_workers(c);
+			set_default_city_production(c, uconfmap);
 		}
 		else {
 			civ->remove_city(c, true);
