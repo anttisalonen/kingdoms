@@ -461,7 +461,7 @@ void civilization::remove_city(city* c, bool del)
 {
 	std::map<unsigned int, city*>::iterator cit = cities.find(c->city_id);
 	if(cit != cities.end()) {
-		fog.shade(c->xpos, c->ypos, 2);
+		fog.shade(c->xpos, c->ypos, 1);
 		cities.erase(cit);
 		if(del) {
 			m->remove_city(c);
