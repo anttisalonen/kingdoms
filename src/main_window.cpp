@@ -169,15 +169,18 @@ int main_window::draw_unit_info() const
 	if(current_unit->second->strength) {
 		snprintf(buf, 255, "Unit strength:");
 		draw_text(screen, &res.font, buf, 10, sidebar_size * tile_h / 2 + 140, 255, 255, 255);
-		if(current_unit->second->strength % 10) {
-			snprintf(buf, 255, "%d.%d/%d", current_unit->second->strength / 10, current_unit->second->strength % 10,
-					uconf->max_strength);
-		}
-		else {
-			snprintf(buf, 255, "%d/%d", current_unit->second->strength / 10,
-					uconf->max_strength);
-		}
+		snprintf(buf, 255, "%d.%d/%d.0", current_unit->second->strength / 10, current_unit->second->strength % 10,
+				uconf->max_strength);
 		draw_text(screen, &res.font, buf, 10, sidebar_size * tile_h / 2 + 160, 255, 255, 255);
+	}
+	int drawn_carried_units = 0;
+	for(std::list<unit*>::const_iterator it = current_unit->second->carried_units.begin();
+			it != current_unit->second->carried_units.end();
+			++it) {
+		SDL_Surface* unit_tile = res.get_unit_tile(**it,
+				myciv->col);
+		draw_image(10, sidebar_size * tile_h / 2 + 180 + drawn_carried_units * 36, unit_tile, screen);
+		drawn_carried_units++;
 	}
 	return 0;
 }
