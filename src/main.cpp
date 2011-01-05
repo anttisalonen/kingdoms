@@ -703,11 +703,13 @@ void load_menu::setup_buttons()
 	for(std::vector<path>::const_iterator it = filenames.begin();
 			it != filenames.end();
 			++it) {
+		std::string s(it->string());
+		std::string fp(it->filename().string());
 		plain_button* load_game_button = new plain_button(fn_rect,
-				it->filename().c_str(), font, color(206, 187, 158),
+				fp.c_str(), font, color(206, 187, 158),
 				color(0, 0, 0),
 				boost::bind(&load_menu::load_game_button, 
-					this, std::string(it->c_str())));
+					this, s));
 		buttons.push_back(load_game_button);
 		fn_rect.y += 35;
 		if(fn_rect.y >= 560)
