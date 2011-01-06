@@ -1,4 +1,7 @@
 #include <fstream>
+#ifdef __MINGW32__
+#include <io.h>
+#endif
 #include <sys/stat.h>
 #include <time.h>
 #include <errno.h>
@@ -9,7 +12,11 @@ int create_dir_if_not_exist(const std::string& s)
 	struct stat buf;
 	if(stat(s.c_str(), &buf)) {
 		if(errno == ENOENT) {
-			if(mkdir(s.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)) {
+#ifdef __MINGW32__
+			if(mkdir(s.c_str())) {
+#else
+			if(mkdir(s.c_str(), S_IRWXU | S_IXGRP | S_IRGRP | S_IXOTH | S_IROTH)) {
+#endif
 				fprintf(stderr, "Could not create %s: %s\n",
 						s.c_str(), strerror(errno));
 				return 1;
@@ -26,31 +33,36 @@ int create_dir_if_not_exist(const std::string& s)
 
 std::string path_to_saved_games()
 {
+#ifdef __WIN32__
+	std::string s = "./saves/";
+	create_dir_if_not_exist(s);
+	return s;
+#else
 	const char* home = getenv("HOME");
 	if(home) {
 		std::string s(home);
 		s += "/.kingdoms";
-		if(create_dir_if_not_exist(s))
-			return std::string("");
+		create_dir_if_not_exist(s);
 		s += "/saves/";
-		if(create_dir_if_not_exist(s))
-			return std::string("");
+		create_dir_if_not_exist(s);
 		return s;
 	}
 	return std::string("");
+#endif
 }
 
 int save_game(const char* save_suffix, const pompelmous& g)
 {
 	char filename[256];
 	time_t curr_time = time(NULL);
-	struct tm gmt;
-	localtime_r(&curr_time, &gmt);
-	snprintf(filename, 256, "%s%02d-%02d-%02d_%02d-%02d-%02d-r%d-%s.game",
+	struct tm* gmt;
+	gmt = localtime(&curr_time);
+	snprintf(filename, 256, "%s%02d-%02d-%02d_%02d-%02d-%02d-r%d-%s%s",
 			path_to_saved_games().c_str(),
-			gmt.tm_year % 100, gmt.tm_mon + 1, gmt.tm_mday,
-			gmt.tm_hour, gmt.tm_min, gmt.tm_sec,
-			g.get_round_number(), save_suffix);
+			gmt->tm_year % 100, gmt->tm_mon + 1, gmt->tm_mday,
+			gmt->tm_hour, gmt->tm_min, gmt->tm_sec,
+			g.get_round_number(), save_suffix,
+			SAVE_FILE_EXTENSION);
 	std::ofstream ofs(filename);
 	boost::archive::text_oarchive oa(ofs);
 	oa << g;

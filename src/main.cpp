@@ -2,7 +2,9 @@
 #include <unistd.h>
 #include <signal.h>
 
+#ifdef __gnu_linux__
 #include <execinfo.h>
+#endif
 
 #include <list>
 #include <vector>
@@ -37,7 +39,12 @@
 #define PREFIX			.
 #endif
 
-#define KINGDOMS_SHAREDIR	QUOTE(PREFIX)"/share/kingdoms/"
+#ifdef __WIN32__
+#define KINGDOMS_SHAREDIR	"."
+#else
+#define KINGDOMS_SHAREDIR	QUOTE(PREFIX)"/share/kingdoms"
+#endif
+
 #define KINGDOMS_GFXDIR		KINGDOMS_SHAREDIR"/gfx/"
 #define KINGDOMS_RULESDIR	KINGDOMS_SHAREDIR"/rules/"
 
@@ -51,6 +58,7 @@ static int skip_rounds = 0;
 static SDL_Surface* screen = NULL;
 static TTF_Font* font = NULL;
 
+#ifdef __gnu_linux__
 void segv_handler(int sig)
 {
 	void* array[16];
@@ -64,6 +72,7 @@ void segv_handler(int sig)
 	backtrace_symbols_fd(array, size, 2);
 	exit(EXIT_FAILURE);
 }
+#endif
 
 void signal_handler(int sig)
 {
@@ -681,38 +690,40 @@ void load_menu::setup_buttons()
 {
 	using namespace boost::filesystem;
 	path svg_path = path(path_to_saved_games());
-	if(!exists(svg_path))
-		return;
 	directory_iterator end_itr;
 	rect fn_rect(320, 220, 360, 30);
 
-	std::vector<path> filenames;
-	for (directory_iterator itr(svg_path);
-			itr != end_itr;
-			++itr) {
-		if (is_regular_file(itr->status()))
-		{
-			filenames.push_back(itr->path());
+	if(exists(svg_path)) {
+		std::string save_file_ext = SAVE_FILE_EXTENSION;
+		std::vector<path> filenames;
+		for (directory_iterator itr(svg_path);
+				itr != end_itr;
+				++itr) {
+			if(is_regular_file(itr->status())) {
+				if(boost::algorithm::to_lower_copy(itr->path().extension().string()) 
+						== save_file_ext)
+					filenames.push_back(itr->path());
+			}
+		}
+		std::sort(filenames.begin(), filenames.end(), compare_filenames);
+		for(std::vector<path>::const_iterator it = filenames.begin();
+				it != filenames.end();
+				++it) {
+			std::string s(it->string());
+			std::string fp(it->filename().string());
+			plain_button* load_game_button = new plain_button(fn_rect,
+					fp.c_str(), font, color(206, 187, 158),
+					color(0, 0, 0),
+					boost::bind(&load_menu::load_game_button, 
+						this, s));
+			buttons.push_back(load_game_button);
+			fn_rect.y += 35;
+			if(fn_rect.y >= 560)
+				break;
 		}
 	}
 
-	std::sort(filenames.begin(), filenames.end(), compare_filenames);
-
-	for(std::vector<path>::const_iterator it = filenames.begin();
-			it != filenames.end();
-			++it) {
-		std::string s(it->string());
-		std::string fp(it->filename().string());
-		plain_button* load_game_button = new plain_button(fn_rect,
-				fp.c_str(), font, color(206, 187, 158),
-				color(0, 0, 0),
-				boost::bind(&load_menu::load_game_button, 
-					this, s));
-		buttons.push_back(load_game_button);
-		fn_rect.y += 35;
-		if(fn_rect.y >= 560)
-			break;
-	}
+	fn_rect.y = 575;
 	plain_button* exit_load_button = new plain_button(fn_rect,
 			"Cancel", font, color(206, 187, 158),
 			color(0, 0, 0),
@@ -801,6 +812,7 @@ void run_mainmenu()
 			fprintf(stderr, "Unable to set %dx%d video: %s\n", 1024, 768, SDL_GetError());
 			return;
 		}
+		SDL_WM_SetCaption("Kingdoms", NULL);
 		font = TTF_OpenFont(KINGDOMS_GFXDIR "DejaVuSans.ttf", 12);
 		if(!font) {
 			fprintf(stderr, "Could not open font: %s\n", TTF_GetError());
@@ -871,6 +883,10 @@ int main(int argc, char **argv)
 			fprintf(stderr, "Unable to init SDL: %s\n", SDL_GetError());
 			exit(1);
 		}
+#ifdef __WIN32__
+		freopen("CON", "w", stdout);
+		freopen("CON", "w", stderr);
+#endif
 		if(!IMG_Init(IMG_INIT_PNG)) {
 			fprintf(stderr, "Unable to init SDL_image: %s\n", IMG_GetError());
 		}
@@ -883,8 +899,19 @@ int main(int argc, char **argv)
 		signal(SIGINT, signal_handler);
 	}
 
+	if(seed) {
+		srand(seed);
+	}
+	else {
+		seed = time(NULL);
+		printf("Seed: %d\n", seed);
+		srand(seed);
+	}
+
+#ifdef __gnu_linux__
 	signal(SIGSEGV, segv_handler);
 	signal(SIGABRT, segv_handler);
+#endif
 
 	if(!use_gui)
 		observer = true;
