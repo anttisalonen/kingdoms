@@ -47,7 +47,6 @@ static bool observer = false;
 static bool use_gui = true;
 static bool ai_debug = false;
 static int skip_rounds = 0;
-static bool load = false;
 
 static SDL_Surface* screen = NULL;
 static TTF_Font* font = NULL;
@@ -296,8 +295,7 @@ government_map parse_government_config(const std::string& fp)
 void automatic_play_until(pompelmous& r, std::map<unsigned int, ai>& ais, int num_turns)
 {
 	while(!signal_received &&
-			r.get_round_number() <= num_turns &&
-			r.get_round_number() < r.get_num_turns()) {
+			r.get_round_number() <= num_turns && !r.finished()) {
 		std::map<unsigned int, ai>::iterator ait = ais.find(r.current_civ_id());
 		if(ait != ais.end()) {
 			ait->second.play();
@@ -754,7 +752,7 @@ int run_gamedata()
 	const int road_moves = 3;
 	const unsigned int food_eaten_per_citizen = 2;
 
-	const int num_turns = 400;
+	const int num_turns = 300;
 
 	resource_configuration resconf = parse_resource_config(KINGDOMS_RULESDIR "terrain.txt");
 	std::vector<civilization*> civs;
@@ -815,11 +813,9 @@ void run_mainmenu()
 				main_menu::main_menu_selection s = m.get_selection();
 				switch(s) {
 					case main_menu::main_menu_start:
-						load = false;
 						run_gamedata();
 						break;
 					case main_menu::main_menu_load:
-						load = true;
 						run_loaded_gamedata();
 						break;
 					default:
@@ -840,16 +836,13 @@ int main(int argc, char **argv)
 	int seed = 0;
 	int c;
 	bool succ = true;
-	while((c = getopt(argc, argv, "adloxS:s:")) != -1) {
+	while((c = getopt(argc, argv, "adoxS:s:")) != -1) {
 		switch(c) {
 			case 'S':
 				skip_rounds = atoi(optarg);
 				break;
 			case 'd':
 				ai_debug = true;
-				break;
-			case 'l':
-				load = true;
 				break;
 			case 'o':
 				observer = true;
@@ -868,17 +861,10 @@ int main(int argc, char **argv)
 				break;
 		}
 	}
-	if(!succ)
+	if(!succ) {
 		exit(2);
-	if(!load) {
-		if(seed)
-			srand(seed);
-		else {
-			seed = time(NULL);
-			printf("Seed: %d\n", seed);
-			srand(seed);
-		}
 	}
+
 	if(use_gui) {
 		int sdl_flags = SDL_INIT_EVERYTHING;
 		if (SDL_Init(sdl_flags) < 0) {
