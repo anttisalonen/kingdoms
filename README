@@ -1,0 +1,57 @@
+Kingdoms
+========
+
+Kingdoms is an open source strategy game, where you lead your civilization
+through the history.
+
+License
+=======
+
+The Kingdoms source code is licensed under GPLv3+. See LICENSE for more
+details.
+
+The artwork, unless otherwise noted, is licensed under Creative Commons
+Attribution-ShareAlike 3.0 (cc-by-sa-3.0) license. See
+http://creativecommons.org/licenses/by-sa/3.0/ for more details. For the
+license on DejaVu Sans font, see http://dejavu-fonts.org/wiki/License.
+
+Installation
+============
+
+Installation on Linux/Unix:
+
+- make sure you have the dependencies. These include the Boost C++
+libraries, SDL, SDL_image and SDL_ttf. You need the headers in addition
+to the libraries.
+- get the source either using git (git clone
+git://github.com/anttisalonen/kingdoms.git) or download the tarball
+from https://github.com/anttisalonen/kingdoms/archives/master.
+- change to the cloned/unpacked directory.
+- to install Kingdoms in /usr/local, first run (as a normal user):
+
+$ make
+
+then, as root, run:
+
+# make install
+
+- to install in another directory, first run
+
+make PREFIX=/path/to/install/directory
+
+then run
+
+make PREFIX=/path/to/install/directory install
+
+After installation, make sure $PREFIX/bin is in your path, then run
+"kingdoms" to start the game.
+
+To run Kingdoms on Windows, compile the source code using MinGW.
+
+Contact
+=======
+
+For any bug reports, feedback or questions: <ajsalonen at gmail dot com>
+
+Antti Salonen
+
