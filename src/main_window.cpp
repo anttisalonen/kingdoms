@@ -1042,8 +1042,8 @@ void main_window::handle_input_gui_mod(const SDL_Event& ev, city** c)
 					try_move_camera(k == SDLK_LEFT, k == SDLK_RIGHT, k == SDLK_UP, k == SDLK_DOWN);
 				}
 				if(k == SDLK_s && (ev.key.keysym.mod & KMOD_CTRL)) {
-					printf("Saving.\n");
 					save_game("manual", data.r);
+					add_gui_msg("Saved game.");
 				}
 				if(!internal_ai && current_unit != myciv->units.end()) {
 					if(k == SDLK_c) {
