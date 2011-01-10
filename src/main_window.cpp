@@ -1177,7 +1177,7 @@ void main_window::handle_action(const visible_move_action& a)
 	if((myciv->fog_at(a.u->xpos, a.u->ypos) != 2 || myciv->fog_at(newx, newy) != 2) &&
 			!internal_ai)
 		return;
-	if(a.u->civ_id != (int)myciv->civ_id) {
+	if(!internal_ai && a.u->civ_id != (int)myciv->civ_id) {
 		try_center_camera_to_unit(a.u);
 		draw();
 	}
