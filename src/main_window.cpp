@@ -1,3 +1,4 @@
+#include <sstream>
 #include <boost/bind.hpp>
 #include <boost/lambda/lambda.hpp>
 #include "main_window.h"
@@ -72,6 +73,7 @@ int main_window::draw_window()
 	draw_sidebar();
 	clear_main_map();
 	draw_main_map();
+	draw_overlays();
 	if (SDL_MUSTLOCK(screen)) {
 		SDL_UnlockSurface(screen);
 	}
@@ -609,6 +611,20 @@ int main_window::try_center_camera_to_unit(const unit* u)
 	return false;
 }
 
+void main_window::draw_overlays()
+{
+	int xp = sidebar_size * tile_w + 10;
+	int yp = screen->h - 32;
+	for(std::list<std::string>::const_reverse_iterator it = gui_msg_queue.rbegin();
+			it != gui_msg_queue.rend();
+			++it) {
+		draw_text(screen, &res.font, it->c_str(), xp, yp, 255, 255, 255);
+		yp -= 16;
+		if(yp < 32)
+			break;
+	}
+}
+
 int main_window::process(int ms)
 {
 	if(internal_ai)
@@ -934,6 +950,13 @@ int main_window::handle_window_input(const SDL_Event& ev)
 	return a.type == action_give_up;
 }
 
+void main_window::add_gui_msg(const std::string& s)
+{
+	gui_msg_queue.push_back(s);
+	if(gui_msg_queue.size() >= 7)
+		gui_msg_queue.pop_front();
+}
+
 int main_window::handle_civ_messages(std::list<msg>* messages)
 {
 	while(!messages->empty()) {
@@ -943,24 +966,29 @@ int main_window::handle_civ_messages(std::list<msg>* messages)
 				{
 					unit_configuration_map::const_iterator it = data.r.uconfmap.find(m.msg_data.city_prod_data.prod_id);
 					if(it != data.r.uconfmap.end()) {
-						printf("New unit '%s' produced.\n",
-								it->second.unit_name.c_str());
+						std::stringstream s;
+						s << "New unit '" << it->second.unit_name << "' produced.";
+						add_gui_msg(s.str());
 					}
 				}
 				break;
 			case msg_civ_discovery:
-				printf("Discovered civilization '%s'.\n",
-						data.r.civs[m.msg_data.discovered_civ_id]->civname.c_str());
-				add_subwindow(new diplomacy_window(screen, screen_w, screen_h, data, res, myciv,
-							m.msg_data.discovered_civ_id));
+				{
+					std::stringstream s;
+					s << "Discovered the civilization of the " << data.r.civs[m.msg_data.discovered_civ_id]->civname << ".";
+					add_gui_msg(s.str());
+					add_subwindow(new diplomacy_window(screen, screen_w, screen_h, data, res, myciv,
+								m.msg_data.discovered_civ_id));
+				}
 				break;
 			case msg_new_advance:
 				{
 					unsigned int adv_id = m.msg_data.new_advance_id;
 					advance_map::const_iterator it = data.r.amap.find(adv_id);
 					if(it != data.r.amap.end()) {
-						printf("Discovered advance '%s'.\n",
-								it->second.advance_name.c_str());
+						std::stringstream s;
+						s << "Discovered advance '" << it->second.advance_name << "'.";
+						add_gui_msg(s.str());
 					}
 					if(myciv->cities.size() > 0)
 						add_subwindow(new discovery_window(screen, screen_w, screen_h,
@@ -974,8 +1002,9 @@ int main_window::handle_civ_messages(std::list<msg>* messages)
 				{
 					city_improv_map::const_iterator it = data.r.cimap.find(m.msg_data.city_prod_data.prod_id);
 					if(it != data.r.cimap.end()) {
-						printf("New improvement '%s' built.\n",
-								it->second.improv_name.c_str());
+						std::stringstream s;
+						s << "New improvement '" << it->second.improv_name << "' built.";
+						add_gui_msg(s.str());
 					}
 					std::map<unsigned int, city*>::const_iterator c =
 						myciv->cities.find(m.msg_data.city_prod_data.building_city_id);
@@ -1001,10 +1030,29 @@ int main_window::handle_civ_messages(std::list<msg>* messages)
 				}
 				break;
 			case msg_unit_disbanded:
-				printf("Unit disbanded.\n");
+				add_gui_msg("Unit disbanded.");
+				break;
+			case msg_new_relationship:
+				{
+					std::stringstream s;
+					s << "The " << data.r.civs[m.msg_data.relationship_data.other_civ_id]->civname;
+					switch(m.msg_data.relationship_data.new_relationship) {
+						case relationship_war:
+							s << " are in war with us!";
+							break;
+						case relationship_peace:
+							s << " are in peace with us.";
+							break;
+						case relationship_unknown:
+						default:
+							s << " are forgotten.";
+							break;
+					}
+					add_gui_msg(s.str());
+				}
 				break;
 			default:
-				printf("Unknown message received: %d\n",
+				fprintf(stderr, "Unknown message received: %d\n",
 						m.type);
 				break;
 		}
@@ -1137,6 +1185,7 @@ int main_window::try_choose_with_mouse(city** c)
 
 void main_window::init_turn()
 {
+	gui_msg_queue.clear();
 	draw_window();
 	if(internal_ai) {
 		if(data.r.get_round_number() == 0 && myciv->units.begin() != myciv->units.end())

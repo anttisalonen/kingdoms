@@ -23,12 +23,19 @@
 #include "advance.h"
 #include "government.h"
 
+enum relationship {
+	relationship_unknown,
+	relationship_peace,
+	relationship_war,
+};
+
 enum msg_type {
 	msg_new_unit,
 	msg_civ_discovery,
 	msg_new_advance,
 	msg_new_city_improv,
 	msg_unit_disbanded,
+	msg_new_relationship,
 };
 
 struct msg {
@@ -42,6 +49,10 @@ struct msg {
 		int discovered_civ_id;
 		unsigned int new_advance_id;
 		unsigned int disbanded_unit_id;
+		struct {
+			int other_civ_id;
+			relationship new_relationship;
+		} relationship_data;
 	} msg_data;
 
 	friend class boost::serialization::access;
@@ -65,14 +76,12 @@ struct msg {
 			case msg_unit_disbanded:
 				ar & msg_data.disbanded_unit_id;
 				break;
+			case msg_new_relationship:
+				ar & msg_data.relationship_data.other_civ_id;
+				ar & msg_data.relationship_data.new_relationship;
+				break;
 		}
 	}
-};
-
-enum relationship {
-	relationship_unknown,
-	relationship_peace,
-	relationship_war,
 };
 
 class civilization {

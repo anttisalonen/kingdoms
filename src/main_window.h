@@ -77,6 +77,8 @@ class main_window : public window {
 		void display_tile_info() const;
 		std::string unit_strength_info_string(const unit* u) const;
 		bool write_unit_info(const unit* u, int* written_lines) const;
+		void add_gui_msg(const std::string& s);
+		void draw_overlays();
 		const int tile_w;
 		const int tile_h;
 		const int cam_total_tiles_x;
@@ -93,6 +95,7 @@ class main_window : public window {
 		std::list<coord> path_to_draw;
 		ai* internal_ai;
 		coord sidebar_info_display;
+		std::list<std::string> gui_msg_queue;
 };
 
 

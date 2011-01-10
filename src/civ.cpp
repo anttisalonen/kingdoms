@@ -246,6 +246,15 @@ msg unit_disbanded(unsigned int uit)
 	return m;
 }
 
+msg new_relationship(int civid, relationship val)
+{
+	msg m;
+	m.type = msg_new_relationship;
+	m.msg_data.relationship_data.other_civ_id = civid;
+	m.msg_data.relationship_data.new_relationship = val;
+	return m;
+}
+
 void civilization::update_national_income()
 {
 	int total_commerce = 0;
@@ -488,14 +497,16 @@ void civilization::set_relationship_to_civ(unsigned int civid, relationship val)
 	if(relationships.size() <= civid) {
 		relationships.resize(civid + 1, relationship_unknown);
 	}
+	if(val != relationships[civid])
+		add_message(new_relationship(civid, val));
 	relationships[civid] = val;
 }
 
 bool civilization::discover(unsigned int civid)
 {
 	if(civid != civ_id && get_relationship_to_civ(civid) == relationship_unknown) {
-		set_relationship_to_civ(civid, relationship_peace);
 		add_message(discovered_civ(civid));
+		set_relationship_to_civ(civid, relationship_peace);
 		return 1;
 	}
 	return 0;
