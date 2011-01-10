@@ -876,18 +876,48 @@ bool pompelmous::combat_chances(const unit* u1, const unit* u2,
 		return false;
 	unsigned int s1 = u1->strength;
 	unsigned int s2 = u2->uconf->max_strength ? u2->strength : 0;
+	for(unsigned int i = 0; i < max_num_unit_boni; i++) {
+		switch(u1->uconf->unit_boni[i].type) {
+			case unit_bonus_group:
+				if(u1->uconf->unit_boni[i].bonus_data.group_mask & u2->uconf->unit_group_mask) {
+					s1 *= (100 + u1->uconf->unit_boni[i].bonus_amount) / 100.0f;
+				}
+				break;
+			case unit_bonus_city:
+				if(m->city_on_spot(u2->xpos, u2->ypos) != NULL) {
+					s1 *= (100 + u1->uconf->unit_boni[i].bonus_amount) / 100.0f;
+				}
+				break;
+			case unit_bonus_none:
+			default:
+				break;
+		}
+	}
+	for(unsigned int i = 0; i < max_num_unit_boni; i++) {
+		switch(u2->uconf->unit_boni[i].type) {
+			case unit_bonus_group:
+				if(u2->uconf->unit_boni[i].bonus_data.group_mask & u1->uconf->unit_group_mask) {
+					s2 *= (100 + u2->uconf->unit_boni[i].bonus_amount) / 100.0f;
+				}
+				break;
+			case unit_bonus_city:
+			case unit_bonus_none:
+			default:
+				break;
+		}
+	}
+	if(u1->veteran)
+		s1 *= 1.5f;
+	if(u2->veteran)
+		s2 *= 1.5f;
+	s1 *= (100 + off_bonus) / 100.0f;
+	if(s2) {
+		s2 *= (100 + def_bonus) / 100.0f;
+		if(u2->is_fortified())
+			s2 *= 2;
+	}
 	*u1chance = s1 * s1;
 	*u2chance = s2 * s2;
-	if(u1->veteran)
-		*u1chance *= 1.5f;
-	if(u2->veteran)
-		*u2chance *= 1.5f;
-	*u1chance *= (100 + off_bonus) / 100.0f;
-	if(s2) {
-		*u2chance *= (100 + def_bonus) / 100.0f;
-		if(u2->is_fortified())
-			*u2chance *= 2;
-	}
 	return true;
 }
 

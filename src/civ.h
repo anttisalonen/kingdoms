@@ -55,7 +55,6 @@ struct msg {
 		} relationship_data;
 	} msg_data;
 
-	friend class boost::serialization::access;
 	template<class Archive>
 	void serialize(Archive& ar, const unsigned int version)
 	{

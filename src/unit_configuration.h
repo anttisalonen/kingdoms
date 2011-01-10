@@ -7,6 +7,38 @@
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/serialization/string.hpp>
 
+const unsigned int max_num_unit_boni = 4;
+
+enum unit_bonus_type {
+	unit_bonus_group,
+	unit_bonus_city, // attack only
+	unit_bonus_none
+};
+
+struct unit_bonus {
+	unit_bonus_type type;
+	union {
+		int group_mask;
+	} bonus_data;
+	int bonus_amount;
+
+	template<class Archive>
+	void serialize(Archive& ar, const unsigned int version)
+	{
+		ar & type;
+		switch(type) {
+			case unit_bonus_group:
+				ar & bonus_data.group_mask;
+				break;
+			case unit_bonus_city:
+			case unit_bonus_none:
+			default:
+				break;
+		}
+		ar & bonus_amount;
+	}
+};
+
 class unit_configuration {
 	public:
 		std::string unit_name;
@@ -19,6 +51,8 @@ class unit_configuration {
 		bool sea_unit;
 		bool ocean_unit;
 		unsigned int carry_units;
+		int unit_group_mask;
+		unit_bonus unit_boni[max_num_unit_boni];
 		bool is_land_unit() const;
 		bool is_water_unit() const;
 
@@ -35,6 +69,7 @@ class unit_configuration {
 			ar & sea_unit;
 			ar & ocean_unit;
 			ar & carry_units;
+			ar & unit_boni;
 		}
 };
 

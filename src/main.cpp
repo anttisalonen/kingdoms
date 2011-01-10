@@ -212,9 +212,36 @@ std::vector<civilization*> parse_civs_config(const std::string& fp)
 	return civs;
 }
 
+unit_bonus get_unit_bonus(const std::string& s)
+{
+	unit_bonus b;
+	b.type = unit_bonus_none;
+	size_t ind = s.find_first_of(":");
+	if(ind == std::string::npos) {
+		return b;
+	}
+	std::string type(s, 0, ind);
+	std::string value(s, ind + 1);
+	if(type[0] == 'c') {
+		b.type = unit_bonus_city;
+	}
+	else {
+		int grps = stoi(type);
+		if(grps == 0) {
+			return b;
+		}
+		else {
+			b.type = unit_bonus_group;
+			b.bonus_data.group_mask = grps;
+		}
+	}
+	b.bonus_amount = stoi(value);
+	return b;
+}
+
 unit_configuration_map parse_unit_config(const std::string& fp)
 {
-	parse_result units = parser(fp, 7);
+	parse_result units = parser(fp, 12);
 	unit_configuration_map uconfmap;
 	for(unsigned int i = 0; i < units.size(); i++) {
 		unit_configuration u;
@@ -224,10 +251,14 @@ unit_configuration_map parse_unit_config(const std::string& fp)
 		u.production_cost = stoi(units[i][3]);
 		u.needed_advance = stoi(units[i][4]);
 		u.carry_units = stoi(units[i][5]);
-		u.settler = get_flag(units[i][6], 0);
-		u.worker = get_flag(units[i][6], 1);
-		u.sea_unit = get_flag(units[i][6], 2);
-		u.ocean_unit = get_flag(units[i][6], 3);
+		u.unit_group_mask = stoi(units[i][6]);
+		for(unsigned int j = 0; j < max_num_unit_boni; j++) {
+			u.unit_boni[j] = get_unit_bonus(units[i][7 + j]);
+		}
+		u.settler = get_flag(units[i][11], 0);
+		u.worker = get_flag(units[i][11], 1);
+		u.sea_unit = get_flag(units[i][11], 2);
+		u.ocean_unit = get_flag(units[i][11], 3);
 		uconfmap.insert(std::make_pair(i, u));
 	}
 	return uconfmap;
