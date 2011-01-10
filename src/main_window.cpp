@@ -649,6 +649,13 @@ int main_window::process(int ms)
 			handle_mousemotion(x, y);
 		}
 	}
+	else {
+		// check if a unit was activated in a city
+		if((current_unit == myciv->units.end()) &&
+			(old_timer / 200 != timer / 200)) {
+			get_next_free_unit();
+		}
+	}
 	handle_civ_messages(&myciv->messages);
 	return 0;
 }
