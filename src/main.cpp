@@ -398,30 +398,63 @@ int menu::run()
 	return 0;
 }
 
-class end_screen : public menu {
+class simple_info_screen : public menu {
 	public:
-		end_screen(SDL_Surface* screen_,
+		simple_info_screen(SDL_Surface* screen_,
 				TTF_Font* font_,
 				const pompelmous& r_);
 	protected:
-		void draw_background();
-		void setup_buttons();
+		virtual void draw_background();
+		virtual void setup_buttons();
+		const pompelmous& r;
 	private:
 		int quit_button();
-		const pompelmous& r;
 };
 
-end_screen::end_screen(SDL_Surface* screen_,
+simple_info_screen::simple_info_screen(SDL_Surface* screen_,
 		TTF_Font* font_, const pompelmous& r_)
 	: menu(screen_, font_),
 	r(r_)
 {
 }
 
-void end_screen::draw_background()
+void simple_info_screen::draw_background()
 {
 	draw_plain_rectangle(screen, 50, 50, screen->w - 100, screen->h - 100,
 			color(20, 15, 37));
+}
+
+void simple_info_screen::setup_buttons()
+{
+	plain_button* quit_button = new plain_button(rect(412, 600, 200, 60),
+			"Exit", font, color(4, 0, 132),
+			color(200, 200, 200), boost::bind(&simple_info_screen::quit_button, this));
+	buttons.push_back(quit_button);
+}
+
+int simple_info_screen::quit_button()
+{
+	return 1;
+}
+
+class end_screen : public simple_info_screen {
+	public:
+		end_screen(SDL_Surface* screen_,
+				TTF_Font* font_,
+				const pompelmous& r_);
+	protected:
+		void draw_background();
+};
+
+end_screen::end_screen(SDL_Surface* screen_,
+		TTF_Font* font_, const pompelmous& r_)
+	: simple_info_screen(screen_, font_, r_)
+{
+}
+
+void end_screen::draw_background()
+{
+	simple_info_screen::draw_background();
 	char buf[256];
 	buf[255] = '\0';
 	snprintf(buf, 255, "Game finished");
@@ -448,17 +481,50 @@ void end_screen::draw_background()
 	draw_text(screen, font, buf, screen->w / 2, 400, 255, 255, 255, true);
 }
 
-void end_screen::setup_buttons()
+class score_screen : public simple_info_screen {
+	public:
+		score_screen(SDL_Surface* screen_,
+				TTF_Font* font_,
+				const pompelmous& r_);
+	protected:
+		void draw_background();
+};
+
+score_screen::score_screen(SDL_Surface* screen_,
+		TTF_Font* font_, const pompelmous& r_)
+	: simple_info_screen(screen_, font_, r_)
 {
-	plain_button* quit_button = new plain_button(rect(412, 600, 200, 60),
-			"Exit", font, color(4, 0, 132),
-			color(200, 200, 200), boost::bind(&end_screen::quit_button, this));
-	buttons.push_back(quit_button);
 }
 
-int end_screen::quit_button()
+bool compare_score(const civilization* c1, const civilization* c2)
 {
-	return 1;
+	return c1->get_points() > c2->get_points();
+}
+
+void score_screen::draw_background()
+{
+	simple_info_screen::draw_background();
+	char buf[256];
+	buf[255] = '\0';
+	std::vector<civilization*> civs(r.civs);
+	std::sort(civs.begin(), civs.end(), compare_score);
+	int yp = 100;
+	for(std::vector<civilization*>::const_iterator it = civs.begin();
+			it != civs.end();
+			++it) {
+		draw_text(screen, font, (*it)->civname.c_str(), 70, yp, 255, 255, 255, false);
+		snprintf(buf, 255, "%d", (*it)->get_points());
+		draw_text(screen, font, buf, screen->w - 150, yp, 255, 255, 255, false);
+		yp += 32;
+		if(yp > 580)
+			break;
+	}
+}
+
+void display_score_screen(const pompelmous& r)
+{
+	score_screen e(screen, font, r);
+	e.run();
 }
 
 void display_end_screen(const pompelmous& r)
@@ -544,6 +610,8 @@ void play_game(pompelmous& r, std::map<unsigned int, ai>& ais)
 		}
 		if(r.finished())
 			display_end_screen(r);
+		else
+			display_score_screen(r);
 		r.remove_action_listener(&g);
 	}
 	else {
