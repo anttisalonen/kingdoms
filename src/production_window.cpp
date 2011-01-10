@@ -107,8 +107,17 @@ int production_window::change_production(int num)
 						boost::bind(&production_window::change_production, this, listed - 1)));
 			return 0;
 		}
+		char buf[256];
+		buf[255] = '\0';
+		if(it->second.max_strength)
+			snprintf(buf, 255, "%s - Strength: %d (Cost: %d)", it->second.unit_name.c_str(),
+					it->second.max_strength,
+					it->second.production_cost);
+		else
+			snprintf(buf, 255, "%s (Cost: %d)", it->second.unit_name.c_str(),
+					it->second.production_cost);
 		change_prod_buttons.push_back(new plain_button(option_rect,
-				it->second.unit_name.c_str(), &res.font, color(160, 160, 160), color(0, 0, 0),
+				buf, &res.font, color(160, 160, 160), color(0, 0, 0),
 				boost::bind(&production_window::choose_unit_production, this, *it)));
 		option_rect.y += button_dist_y;
 	}
@@ -126,8 +135,12 @@ int production_window::change_production(int num)
 						boost::bind(&production_window::change_production, this, listed - 1)));
 			return 0;
 		}
+		char buf[256];
+		buf[255] = '\0';
+		snprintf(buf, 255, "%s (Cost: %d)", it->second.improv_name.c_str(),
+				it->second.cost);
 		change_prod_buttons.push_back(new plain_button(option_rect,
-				it->second.improv_name.c_str(), &res.font, color(200, 200, 200), color(0, 0, 0),
+				buf, &res.font, color(200, 200, 200), color(0, 0, 0),
 				boost::bind(&production_window::choose_improv_production, this, *it)));
 		option_rect.y += button_dist_y;
 	}
