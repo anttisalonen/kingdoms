@@ -227,8 +227,6 @@ void pompelmous::check_for_victory_conditions()
 	}
 	for(unsigned int i = 0; i < civs.size(); i++) {
 		float area = controlled_area[i] / (float)total_controlled_area;
-		printf("Domination: %-20s %3.2f\n",
-				civs[i]->civname.c_str(), area);
 		if(area > 0.80f) {
 			winning_civ = i;
 			printf("Win by domination: %s!\n",
