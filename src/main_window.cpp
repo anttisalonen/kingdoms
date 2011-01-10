@@ -592,23 +592,33 @@ int main_window::try_move_camera(bool left, bool right, bool up, bool down)
 	return redraw;
 }
 
+void main_window::center_camera_at(int x, int y)
+{
+	cam.cam_x = clamp(0, data.m.wrap_x(x - (-sidebar_size + cam_total_tiles_x) / 2), 
+			data.m.size_x() - (data.m.x_wrapped() ? 0 : cam_total_tiles_x));
+	cam.cam_y = clamp(0, data.m.wrap_y(y - cam_total_tiles_y / 2), 
+			data.m.size_y() - (data.m.y_wrapped() ? 0 : cam_total_tiles_y));
+}
+
 void main_window::center_camera_to_unit(const unit* u)
 {
-	cam.cam_x = clamp(0, data.m.wrap_x(u->xpos - (-sidebar_size + cam_total_tiles_x) / 2), 
-			data.m.size_x() - (data.m.x_wrapped() ? 0 : cam_total_tiles_x));
-	cam.cam_y = clamp(0, data.m.wrap_y(u->ypos - cam_total_tiles_y / 2), 
-			data.m.size_y() - (data.m.y_wrapped() ? 0 : cam_total_tiles_y));
+	center_camera_at(u->xpos, u->ypos);
+}
+
+int main_window::try_center_camera_at(int x, int y)
+{
+	const int border = 3;
+	if(!in_bounds(cam.cam_x + border, x, cam.cam_x - sidebar_size + cam_total_tiles_x - border) ||
+	   !in_bounds(cam.cam_y + border, y, cam.cam_y + cam_total_tiles_y - border)) {
+		center_camera_at(x, y);
+		return true;
+	}
+	return false;
 }
 
 int main_window::try_center_camera_to_unit(const unit* u)
 {
-	const int border = 3;
-	if(!in_bounds(cam.cam_x + border, u->xpos, cam.cam_x - sidebar_size + cam_total_tiles_x - border) ||
-	   !in_bounds(cam.cam_y + border, u->ypos, cam.cam_y + cam_total_tiles_y - border)) {
-		center_camera_to_unit(u);
-		return true;
-	}
-	return false;
+	return try_center_camera_at(u->xpos, u->ypos);
 }
 
 void main_window::draw_overlays()
@@ -1016,6 +1026,9 @@ int main_window::handle_civ_messages(std::list<msg>* messages)
 					std::map<unsigned int, city*>::const_iterator c =
 						myciv->cities.find(m.msg_data.city_prod_data.building_city_id);
 					if(c != myciv->cities.end()) {
+						if(try_center_camera_at(c->second->xpos, c->second->ypos)) {
+							draw();
+						}
 						char buf[256];
 						buf[255] = '\0';
 						snprintf(buf, 256, "%s has built a %s.\n\n"

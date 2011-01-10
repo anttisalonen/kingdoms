@@ -43,7 +43,9 @@ class main_window : public window {
 				bool draw_improvements, bool shade);
 		int handle_mousemotion(int x, int y);
 		int try_move_camera(bool left, bool right, bool up, bool down);
+		void center_camera_at(int x, int y);
 		void center_camera_to_unit(const unit* u);
+		int try_center_camera_at(int x, int y);
 		int try_center_camera_to_unit(const unit* u);
 		void numpad_to_move(SDLKey k, int* chx, int* chy) const;
 		int handle_civ_messages(std::list<msg>* messages);
