@@ -424,8 +424,8 @@ int main_window::draw_complete_tile(int x, int y, int shx, int shy, bool terrain
 			return 1;
 	}
 	const std::list<unit*>& units = data.m.units_on_spot(x, y);
-	for(std::list<unit*>::const_iterator it = units.begin();
-			it != units.end(); ++it) {
+	std::list<unit*>::const_iterator it = units.begin();
+	if(it != units.end()) {
 		if((internal_ai || fog == 2) && unit_predicate(*it)) {
 			if(draw_unit(*it))
 				return 1;
