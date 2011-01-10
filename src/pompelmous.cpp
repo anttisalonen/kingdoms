@@ -377,8 +377,6 @@ bool pompelmous::perform_action(int civid, const action& a)
 					{
 						bool can_build = a.data.unit_data.u->uconf->settler;
 						if(can_build && 
-							m->city_on_spot(a.data.unit_data.u->xpos, 
-								a.data.unit_data.u->ypos) == NULL && 
 							m->can_found_city_on(a.data.unit_data.u->xpos,
 								a.data.unit_data.u->ypos)) {
 							city* c = (*current_civ)->add_city(a.data.unit_data.u->xpos,
@@ -428,8 +426,6 @@ bool pompelmous::perform_action(int civid, const action& a)
 							m->get_needed_turns_for_improvement(a.data.unit_data.unit_action_data.improv));
 					return true;
 				case action_load:
-					if(!a.data.unit_data.u->is_land_unit())
-						return false;
 					if(can_load_unit(a.data.unit_data.u,
 							a.data.unit_data.u->xpos, 
 							a.data.unit_data.u->ypos)) {
@@ -575,15 +571,10 @@ bool pompelmous::try_move_unit(unit* u, int chx, int chy)
 				return false;
 			}
 		}
-		else if(!u->carried() && u->is_land_unit()) {
-			if(can_load_unit(u, tgtxpos, tgtypos)) {
-				broadcast_action(visible_move_action(u, chx, chy, combat_result_none, NULL));
-				load_unit(u, tgtxpos, tgtypos);
-				return true;
-			}
-			else {
-				return false;
-			}
+		else if(can_load_unit(u, tgtxpos, tgtypos)) {
+			broadcast_action(visible_move_action(u, chx, chy, combat_result_none, NULL));
+			load_unit(u, tgtxpos, tgtypos);
+			return true;
 		}
 		else {
 			return false;
@@ -697,6 +688,10 @@ unsigned int pompelmous::get_num_road_moves() const
 
 bool pompelmous::can_load_unit(unit* u, int x, int y) const
 {
+	if(!u->is_land_unit())
+		return false;
+	if(u->carried())
+		return false;
 	const std::list<unit*>& units = m->units_on_spot(x, y);
 	for(std::list<unit*>::const_iterator it = units.begin();
 			it != units.end();

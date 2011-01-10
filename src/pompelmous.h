@@ -159,6 +159,7 @@ class pompelmous
 		int get_winning_civ() const;
 		victory_type get_victory_type() const;
 		bool finished() const;
+		bool can_load_unit(unit* u, int x, int y) const;
 	private:
 		void broadcast_action(const visible_move_action& a) const;
 		bool next_civ();
@@ -170,7 +171,6 @@ class pompelmous
 		void check_for_city_updates();
 		void update_land_owners();
 		void destroy_improvements(city* c);
-		bool can_load_unit(unit* u, int x, int y) const;
 		void load_unit(unit* u, int x, int y);
 		bool can_unload_unit(unit* u, int chx, int chy) const;
 		void unload_unit(unit* u, int chx, int chy);

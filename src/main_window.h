@@ -72,7 +72,7 @@ class main_window : public window {
 				bool cities);
 		bool draw_gui_unit(const unit* u) const;
 		void handle_action_mouse_down(const SDL_Event& ev);
-		void handle_action_mouse_up(const SDL_Event& ev);
+		action handle_action_mouse_up(const SDL_Event& ev);
 		void check_unit_movement_orders();
 		int try_perform_action(const action& a, city** c);
 		void update_tile_info(int x, int y);
@@ -80,7 +80,19 @@ class main_window : public window {
 		std::string unit_strength_info_string(const unit* u) const;
 		bool write_unit_info(const unit* u, int* written_lines) const;
 		void add_gui_msg(const std::string& s);
+		void update_action_buttons();
+		int unit_wait();
+		int unit_center();
+		int unit_skip();
+		int unit_fortify();
+		int unit_found_city();
+		int unit_improve(improvement_type i);
+		int unit_load();
+		int unit_unload();
 		void draw_overlays();
+		void draw_action_buttons();
+		void clear_action_buttons();
+		rect action_button_dim(int num) const;
 		const int tile_w;
 		const int tile_h;
 		const int cam_total_tiles_x;
@@ -98,6 +110,8 @@ class main_window : public window {
 		ai* internal_ai;
 		coord sidebar_info_display;
 		std::list<std::string> gui_msg_queue;
+		std::list<button*> action_buttons;
+		action action_button_action;
 };
 
 

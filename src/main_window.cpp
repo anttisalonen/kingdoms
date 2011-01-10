@@ -24,17 +24,20 @@ main_window::main_window(SDL_Surface* screen_, int x, int y, gui_data& data_, gu
 	mouse_down_sqx(-1),
 	mouse_down_sqy(-1),
 	internal_ai(ai_),
-	sidebar_info_display(coord(-1, -1))
+	sidebar_info_display(coord(-1, -1)),
+	action_button_action(action_none)
 {
 	cam.cam_x = cam.cam_y = 0;
 }
 
 main_window::~main_window()
 {
+	clear_action_buttons();
 }
 
 void main_window::get_next_free_unit()
 {
+	clear_action_buttons();
 	if(myciv->units.empty())
 		return;
 	std::map<unsigned int, unit*>::const_iterator uit = current_unit;
@@ -45,6 +48,7 @@ void main_window::get_next_free_unit()
 			try_center_camera_to_unit(current_unit->second);
 			draw();
 			check_unit_movement_orders();
+			update_action_buttons();
 			return;
 		}
 	}
@@ -57,6 +61,7 @@ void main_window::get_next_free_unit()
 			try_center_camera_to_unit(current_unit->second);
 			draw();
 			check_unit_movement_orders();
+			update_action_buttons();
 			return;
 		}
 	}
@@ -633,6 +638,158 @@ void main_window::draw_overlays()
 		if(yp < 32)
 			break;
 	}
+	draw_action_buttons();
+}
+
+void main_window::draw_action_buttons()
+{
+	std::for_each(action_buttons.begin(), action_buttons.end(), std::bind2nd(std::mem_fun(&button::draw), screen));
+}
+
+void main_window::clear_action_buttons()
+{
+	while(!action_buttons.empty()) {
+		delete action_buttons.front();
+		action_buttons.pop_front();
+	}
+}
+
+rect main_window::action_button_dim(int num) const
+{
+	static const int button_width = 48;
+	int button_num = num % 3;
+	int button_col = button_num == 0 ? 0 : button_num == 1 ? -1 : 1;
+	return rect(screen->w / 2 - button_width / 2 + button_col * button_width,
+			screen->h - 64 - 32 * (num / 3),
+			button_width,
+			32);
+}
+
+void main_window::update_action_buttons()
+{
+	clear_action_buttons();
+	if(current_unit != myciv->units.end()) {
+		static const color action_button_color(158, 86, 0);
+		if(current_unit->second->idle()) {
+			// wait
+			action_buttons.push_back(new plain_button(action_button_dim(0),
+						"Wait", &res.font, action_button_color, color(0, 0, 0),
+						boost::bind(&main_window::unit_wait, this)));
+			// center
+			action_buttons.push_back(new plain_button(action_button_dim(1),
+						"Center", &res.font, action_button_color, color(0, 0, 0),
+						boost::bind(&main_window::unit_center, this)));
+			// skip turn
+			action_buttons.push_back(new plain_button(action_button_dim(2),
+						"Skip", &res.font, action_button_color, color(0, 0, 0),
+						boost::bind(&main_window::unit_skip, this)));
+			// fortify
+			action_buttons.push_back(new plain_button(action_button_dim(3),
+						"Fortify", &res.font, action_button_color, color(0, 0, 0),
+						boost::bind(&main_window::unit_fortify, this)));
+			// found city
+			if(current_unit->second->is_settler() &&
+					data.m.can_found_city_on(current_unit->second->xpos,
+						current_unit->second->ypos)) {
+				action_buttons.push_back(new plain_button(action_button_dim(4),
+							"Found", &res.font, action_button_color, color(0, 0, 0),
+							boost::bind(&main_window::unit_found_city, this)));
+			}
+			// load
+			if(data.r.can_load_unit(current_unit->second,
+						current_unit->second->xpos,
+						current_unit->second->ypos)) {
+					action_buttons.push_back(new plain_button(action_button_dim(5),
+								"Load", &res.font, action_button_color, color(0, 0, 0),
+								boost::bind(&main_window::unit_load, this)));
+			}
+			if(current_unit->second->uconf->worker) {
+				// road
+				if(data.m.can_improve_terrain(current_unit->second->xpos,
+						current_unit->second->ypos,
+						myciv->civ_id, improv_road)) {
+					action_buttons.push_back(new plain_button(action_button_dim(6),
+								"Road", &res.font, action_button_color, color(0, 0, 0),
+								boost::bind(&main_window::unit_improve, this, improv_road)));
+				}
+				// irrigate
+				if(data.m.can_improve_terrain(current_unit->second->xpos,
+						current_unit->second->ypos,
+						myciv->civ_id, improv_irrigation)) {
+					action_buttons.push_back(new plain_button(action_button_dim(7),
+								"Irrigate", &res.font, action_button_color, color(0, 0, 0),
+								boost::bind(&main_window::unit_improve, this, improv_irrigation)));
+				}
+				// mine
+				if(data.m.can_improve_terrain(current_unit->second->xpos,
+						current_unit->second->ypos,
+						myciv->civ_id, improv_mine)) {
+					action_buttons.push_back(new plain_button(action_button_dim(8),
+								"Mine", &res.font, action_button_color, color(0, 0, 0),
+								boost::bind(&main_window::unit_improve, this, improv_mine)));
+				}
+			}
+			// unload
+			if(current_unit->second->carrying()) {
+					action_buttons.push_back(new plain_button(action_button_dim(9),
+								"Unload", &res.font, action_button_color, color(0, 0, 0),
+								boost::bind(&main_window::unit_unload, this)));
+			}
+		}
+	}
+}
+
+int main_window::unit_wait()
+{
+	std::map<unsigned int, unit*>::const_iterator old_it = current_unit;
+	get_next_free_unit();
+	if(current_unit == myciv->units.end()) {
+		current_unit = old_it;
+		update_action_buttons();
+	}
+	return 0;
+}
+
+int main_window::unit_center()
+{
+	center_camera_to_unit(current_unit->second);
+	return 0;
+}
+
+int main_window::unit_skip()
+{
+	action_button_action = unit_action(action_skip, current_unit->second);
+	return 1;
+}
+
+int main_window::unit_fortify()
+{
+	action_button_action = unit_action(action_fortify, current_unit->second);
+	return 1;
+}
+
+int main_window::unit_found_city()
+{
+	action_button_action = unit_action(action_found_city, current_unit->second);
+	return 1;
+}
+
+int main_window::unit_improve(improvement_type i)
+{
+	action_button_action = improve_unit_action(current_unit->second, i);
+	return 1;
+}
+
+int main_window::unit_load()
+{
+	action_button_action = unit_action(action_load, current_unit->second);
+	return 1;
+}
+
+int main_window::unit_unload()
+{
+	action_button_action = unit_action(action_unload, current_unit->second);
+	return 1;
 }
 
 int main_window::process(int ms)
@@ -804,8 +961,9 @@ action main_window::input_to_action(const SDL_Event& ev)
 			break;
 		case SDL_MOUSEBUTTONDOWN:
 			handle_action_mouse_down(ev);
+			break;
 		case SDL_MOUSEBUTTONUP:
-			handle_action_mouse_up(ev);
+			return handle_action_mouse_up(ev);
 		default:
 			break;
 	}
@@ -892,10 +1050,7 @@ void main_window::handle_input_gui_mod(const SDL_Event& ev, city** c)
 						center_camera_to_unit(current_unit->second);
 					}
 					else if(k == SDLK_w) {
-						std::map<unsigned int, unit*>::const_iterator old_it = current_unit;
-						get_next_free_unit();
-						if(current_unit == myciv->units.end())
-							current_unit = old_it;
+						unit_wait();
 					}
 					else if(k == SDLK_KP_ENTER) {
 						*c = data.m.city_on_spot(current_unit->second->xpos, current_unit->second->ypos);
@@ -938,6 +1093,8 @@ int main_window::try_perform_action(const action& a, city** c)
 		}
 		if(success) {
 			handle_successful_action(a, c);
+			path_to_draw.clear();
+			update_action_buttons();
 		}
 		else {
 			printf("Unable to perform action.\n");
@@ -1147,12 +1304,20 @@ void main_window::check_unit_movement_orders()
 	}
 }
 
-void main_window::handle_action_mouse_up(const SDL_Event& ev)
+action main_window::handle_action_mouse_up(const SDL_Event& ev)
 {
 	if(!path_to_draw.empty() && current_unit != myciv->units.end()) {
 		unit_movement_orders[current_unit->second->unit_id] = path_to_draw;
 	}
 	path_to_draw.clear();
+	if(current_unit != myciv->units.end()) {
+		if(check_button_click(action_buttons, ev)) {
+			action a = action_button_action;
+			action_button_action = action_none;
+			return a;
+		}
+	}
+	return action_none;
 }
 
 void main_window::handle_action_mouse_down(const SDL_Event& ev)
@@ -1196,6 +1361,7 @@ int main_window::try_choose_with_mouse(city** c)
 					current_unit = it;
 					blink_unit = false;
 					mouse_down_sqx = mouse_down_sqy = -1;
+					update_action_buttons();
 				}
 			}
 		}
@@ -1216,6 +1382,7 @@ void main_window::init_turn()
 		if(data.r.get_round_number() == 0) {
 			current_unit = myciv->units.begin();
 			try_center_camera_to_unit(current_unit->second);
+			update_action_buttons();
 		}
 		else {
 			// initial research goal
