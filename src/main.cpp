@@ -252,8 +252,8 @@ unit_configuration_map parse_unit_config(const std::string& fp)
 		u.needed_advance = stoi(units[i][4]);
 		u.carry_units = stoi(units[i][5]);
 		u.unit_group_mask = stoi(units[i][6]);
-		for(unsigned int j = 0; j < max_num_unit_boni; j++) {
-			u.unit_boni[j] = get_unit_bonus(units[i][7 + j]);
+		for(unsigned int j = 0; j < max_num_unit_bonuses; j++) {
+			u.unit_bonuses[j] = get_unit_bonus(units[i][7 + j]);
 		}
 		u.settler = get_flag(units[i][11], 0);
 		u.worker = get_flag(units[i][11], 1);

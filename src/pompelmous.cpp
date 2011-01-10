@@ -876,16 +876,16 @@ bool pompelmous::combat_chances(const unit* u1, const unit* u2,
 		return false;
 	unsigned int s1 = u1->strength;
 	unsigned int s2 = u2->uconf->max_strength ? u2->strength : 0;
-	for(unsigned int i = 0; i < max_num_unit_boni; i++) {
-		switch(u1->uconf->unit_boni[i].type) {
+	for(unsigned int i = 0; i < max_num_unit_bonuses; i++) {
+		switch(u1->uconf->unit_bonuses[i].type) {
 			case unit_bonus_group:
-				if(u1->uconf->unit_boni[i].bonus_data.group_mask & u2->uconf->unit_group_mask) {
-					s1 *= (100 + u1->uconf->unit_boni[i].bonus_amount) / 100.0f;
+				if(u1->uconf->unit_bonuses[i].bonus_data.group_mask & u2->uconf->unit_group_mask) {
+					s1 *= (100 + u1->uconf->unit_bonuses[i].bonus_amount) / 100.0f;
 				}
 				break;
 			case unit_bonus_city:
 				if(m->city_on_spot(u2->xpos, u2->ypos) != NULL) {
-					s1 *= (100 + u1->uconf->unit_boni[i].bonus_amount) / 100.0f;
+					s1 *= (100 + u1->uconf->unit_bonuses[i].bonus_amount) / 100.0f;
 				}
 				break;
 			case unit_bonus_none:
@@ -893,11 +893,11 @@ bool pompelmous::combat_chances(const unit* u1, const unit* u2,
 				break;
 		}
 	}
-	for(unsigned int i = 0; i < max_num_unit_boni; i++) {
-		switch(u2->uconf->unit_boni[i].type) {
+	for(unsigned int i = 0; i < max_num_unit_bonuses; i++) {
+		switch(u2->uconf->unit_bonuses[i].type) {
 			case unit_bonus_group:
-				if(u2->uconf->unit_boni[i].bonus_data.group_mask & u1->uconf->unit_group_mask) {
-					s2 *= (100 + u2->uconf->unit_boni[i].bonus_amount) / 100.0f;
+				if(u2->uconf->unit_bonuses[i].bonus_data.group_mask & u1->uconf->unit_group_mask) {
+					s2 *= (100 + u2->uconf->unit_bonuses[i].bonus_amount) / 100.0f;
 				}
 				break;
 			case unit_bonus_city:

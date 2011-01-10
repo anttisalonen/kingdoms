@@ -7,7 +7,7 @@
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/serialization/string.hpp>
 
-const unsigned int max_num_unit_boni = 4;
+const unsigned int max_num_unit_bonuses = 4;
 
 enum unit_bonus_type {
 	unit_bonus_group,
@@ -52,7 +52,7 @@ class unit_configuration {
 		bool ocean_unit;
 		unsigned int carry_units;
 		int unit_group_mask;
-		unit_bonus unit_boni[max_num_unit_boni];
+		unit_bonus unit_bonuses[max_num_unit_bonuses];
 		bool is_land_unit() const;
 		bool is_water_unit() const;
 
@@ -69,7 +69,7 @@ class unit_configuration {
 			ar & sea_unit;
 			ar & ocean_unit;
 			ar & carry_units;
-			ar & unit_boni;
+			ar & unit_bonuses;
 		}
 };
 
