@@ -73,6 +73,8 @@ static bool use_gui = true;
 static bool ai_debug = false;
 static int skip_rounds = 0;
 
+static int given_seed = 0;
+
 static SDL_Surface* screen = NULL;
 static TTF_Font* font = NULL;
 
@@ -653,10 +655,16 @@ void play_game(pompelmous& r, std::map<unsigned int, ai>& ais)
 						if(!observer && r.civs[0]->eliminated()) {
 							running = false;
 						}
-						else {
+						else if(r.current_civ_id() == (int)r.civs[0]->civ_id) {
 							g.init_turn();
 							if(r.finished()) {
 								running = false;
+							}
+							else {
+								if(r.get_round_number() % 4 == 0) {
+									printf("Auto-saving.\n");
+									save_game("auto", r);
+								}
 							}
 						}
 					}
@@ -949,6 +957,19 @@ int run_gamedata()
 	return ret;
 }
 
+void setup_seed()
+{
+	if(given_seed) {
+		srand(given_seed);
+		printf("Seed (given): %d\n", given_seed);
+	}
+	else {
+		int seed = time(NULL);
+		printf("Seed: %d\n", seed);
+		srand(seed);
+	}
+}
+
 void run_mainmenu()
 {
 	if(use_gui) {
@@ -970,9 +991,11 @@ void run_mainmenu()
 				main_menu::main_menu_selection s = m.get_selection();
 				switch(s) {
 					case main_menu::main_menu_start:
+						setup_seed();
 						run_gamedata();
 						break;
 					case main_menu::main_menu_load:
+						setup_seed();
 						run_loaded_gamedata();
 						break;
 					default:
@@ -984,13 +1007,13 @@ void run_mainmenu()
 		}
 	}
 	else {
+		setup_seed();
 		run_gamedata();
 	}
 }
 
 int main(int argc, char **argv)
 {
-	int seed = 0;
 	int c;
 	bool succ = true;
 	while((c = getopt(argc, argv, "adoxS:s:")) != -1) {
@@ -1008,7 +1031,7 @@ int main(int argc, char **argv)
 				use_gui = false;
 				break;
 			case 's':
-				seed = atoi(optarg);
+				given_seed = atoi(optarg);
 				break;
 			case '?':
 			default:
@@ -1042,15 +1065,6 @@ int main(int argc, char **argv)
 	}
 	else {
 		signal(SIGINT, signal_handler);
-	}
-
-	if(seed) {
-		srand(seed);
-	}
-	else {
-		seed = time(NULL);
-		printf("Seed: %d\n", seed);
-		srand(seed);
 	}
 
 #ifdef __gnu_linux__
