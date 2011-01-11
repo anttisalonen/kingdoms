@@ -1002,10 +1002,6 @@ void main_window::handle_successful_action(const action& a, city** c)
 	switch(a.type) {
 		case action_eot:
 			// end of turn for this civ
-			if(data.r.get_round_number() % 4 == 0) {
-				printf("Auto-saving.\n");
-				save_game("auto", data.r);
-			}
 			get_next_free_unit();
 			break;
 		case action_unit_action:
