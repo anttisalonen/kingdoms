@@ -35,6 +35,7 @@ struct gui_resources {
 	UnitImageMap unit_images;
 	const TTF_Font& font;
 	std::vector<SDL_Surface*> city_images;
+	std::map<unsigned int, SDL_Surface*> resource_images;
 	SDL_Surface* food_icon;
 	SDL_Surface* prod_icon;
 	SDL_Surface* comm_icon;
@@ -110,7 +111,10 @@ int draw_image(int x, int y, const SDL_Surface* tile, SDL_Surface* screen);
 int draw_terrain_tile(int x, int y, int xpos, int ypos, bool shade,
 		const map& m, 
 		const tileset& terrains,
+		const std::map<unsigned int, SDL_Surface*>& resource_images,
 		bool draw_improvements,
+		bool draw_resources,
+		std::set<unsigned int>* researched_advances,
 		SDL_Surface* screen);
 SDL_Surface* make_label(const char* text, const TTF_Font* font, int w, int h, const color& bg_col, const color& text_col);
 int check_button_click(const std::list<button*>& buttons,

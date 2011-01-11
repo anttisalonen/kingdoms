@@ -1,0 +1,5 @@
+# name - food bonus - prod bonus - comm bonus - luxury bonus - needed advance - terrain 1 - terrain 1 abundance - terrain 2 - terrain 2 abundance - terrain 3 - terrain 3 abundance - terrain 4 - terrain 4 abundance
+"Wheat"		1	0	0	0	0	3	8	5	10	0	0	0	0
+"Horses"	0	1	0	0	14	3	60	4	50	5	50	0	0
+"Iron"		0	1	0	0	21	6	10	0	0	0	0	0	0
+"Fish"		1	0	0	0	0	1	8	0	0	0	0	0	0

@@ -3,6 +3,7 @@
 gui::gui(int x, int y, SDL_Surface* screen_, const map& mm, pompelmous& rr,
 	       	const std::vector<std::string>& terrain_files,
 		const std::vector<std::string>& unit_files,
+		const std::vector<std::string>& resource_files,
 		const char* default_unit_file,
 		const char* city_file,
 		const TTF_Font& font_,
@@ -23,16 +24,21 @@ gui::gui(int x, int y, SDL_Surface* screen_, const map& mm, pompelmous& rr,
 			sdl_load_image(curr_icon_name)),
 	mw(screen, x, y, data, res, ai_, myciv_)
 {
+	// terrain files
 	res.terrains.textures.resize(terrain_files.size());
 	for(unsigned int i = 0; i < terrain_files.size(); i++) {
 		res.terrains.textures[i] = sdl_load_image(terrain_files[i].c_str());
 	}
+
+	// terrain overlays
 	res.terrains.irrigation_overlay = sdl_load_image(irrigation_name);
 	res.terrains.mine_overlay = sdl_load_image(mine_name);
 	for(unsigned int i = 0; i < 9; i++) {
 		res.terrains.road_overlays[i] = road_names.size() > i ? 
 			sdl_load_image(road_names[i]) : NULL;
 	}
+
+	// unit images
 	res.plain_unit_images.resize(rr.uconfmap.size());
 	for(unsigned int i = 0; i < unit_files.size(); i++) {
 		res.plain_unit_images[i] = sdl_load_image(unit_files[i].c_str());
@@ -57,12 +63,19 @@ gui::gui(int x, int y, SDL_Surface* screen_, const map& mm, pompelmous& rr,
 					unit_files.size());
 		}
 	}
+
+	// city images (one for each civ)
 	res.city_images.resize(rr.civs.size());
 	for(unsigned int i = 0; i < rr.civs.size(); i++) {
 		SDL_Surface* plain = sdl_load_image(city_file);
 		res.city_images[i] = SDL_DisplayFormat(plain);
 		SDL_FreeSurface(plain);
 		sdl_change_pixel_color(res.city_images[i], color(0, 255, 255), data.r.civs[i]->col);
+	}
+
+	// resource images
+	for(unsigned int i = 0; i < resource_files.size(); i++) {
+		res.resource_images[i + 1] = sdl_load_image(resource_files[i].c_str());
 	}
 }
 
@@ -82,6 +95,10 @@ gui::~gui()
 	}
 	for(unsigned int i = 0; i < res.plain_unit_images.size(); i++) {
 		SDL_FreeSurface(res.plain_unit_images[i]);
+	}
+	while(!res.resource_images.empty()) {
+		SDL_FreeSurface(res.resource_images.begin()->second);
+		res.resource_images.erase(res.resource_images.begin());
 	}
 	SDL_FreeSurface(res.food_icon);
 	SDL_FreeSurface(res.prod_icon);

@@ -5,7 +5,8 @@
 #include <stdio.h>
 
 void total_resources(const city& c, const map& m, 
-		int* food, int* prod, int* comm)
+		int* food, int* prod, int* comm,
+		const std::set<unsigned int>* researched_advances)
 {
 	*food = 0; *prod = 0; *comm = 0;
 	const std::list<coord>& resource_coords = c.get_resource_coords();
@@ -14,17 +15,20 @@ void total_resources(const city& c, const map& m,
 			++it) {
 		int f, p, cm;
 		m.get_resources_on_spot(c.xpos + it->x,
-				c.ypos + it->y, &f, &p, &cm);
+				c.ypos + it->y, &f, &p, &cm,
+				researched_advances);
 		*food += f;
 		*prod += p;
 		*comm += cm;
 	}
 }
 
-coord next_good_resource_spot(const city* c, const map* m)
+coord next_good_resource_spot(const city* c, const map* m,
+		const std::set<unsigned int>* researched_advances)
 {
 	int curr_food, curr_prod, curr_comm;
-	total_resources(*c, *m, &curr_food, &curr_prod, &curr_comm);
+	total_resources(*c, *m, &curr_food, &curr_prod, &curr_comm,
+			researched_advances);
 	int req_food = c->get_city_size() * 2 + 2 - curr_food;
 	coord ret(0, 0);
 	int opt_food = -1;
@@ -46,10 +50,13 @@ coord next_good_resource_spot(const city* c, const map* m)
 			if(m->get_land_owner(c->xpos + i, c->ypos + j) != (int)c->civ_id)
 				continue;
 			int tf, tp, tc;
-			m->get_resources_on_spot(c->xpos + i, c->ypos + j, &tf, &tp, &tc);
+			m->get_resources_on_spot(c->xpos + i, c->ypos + j, &tf, &tp, &tc,
+					researched_advances);
 			if((tf >= opt_food && opt_food < req_food) || 
 				 (tf >= req_food &&
-				 (tp > opt_prod || (tp == opt_prod && tc > opt_comm)))) {
+				 (tp > opt_prod || 
+				  (tp == opt_prod && 
+				   (tc > opt_comm || tf > opt_food))))) {
 				ret.x = i;
 				ret.y = j;
 				opt_food = tf;
@@ -263,7 +270,8 @@ void civilization::update_national_income()
 			++cit) {
 		int food, prod, comm;
 		city* this_city = cit->second;
-		total_resources(*this_city, *m, &food, &prod, &comm);
+		total_resources(*this_city, *m, &food, &prod, &comm,
+				&researched_advances);
 		total_commerce += comm;
 	}
 	national_income = total_commerce * alloc_gold / 10;
@@ -314,7 +322,8 @@ void civilization::increment_resources(const unit_configuration_map& uconfmap,
 			++cit) {
 		int food, prod, comm;
 		city* this_city = cit->second;
-		total_resources(*this_city, *m, &food, &prod, &comm);
+		total_resources(*this_city, *m, &food, &prod, &comm,
+				&researched_advances);
 		int add_gold = comm;
 		int add_science = comm;
 		calculate_total_city_commerce(*this_city, cimap, comm, &add_gold, &add_science);
@@ -453,7 +462,7 @@ city* civilization::add_city(int x, int y)
 void civilization::update_city_resource_workers(city* c)
 {
 	c->clear_resource_workers();
-	while(c->add_resource_worker(next_good_resource_spot(c, m)))
+	while(c->add_resource_worker(next_good_resource_spot(c, m, &researched_advances)))
 		;
 }
 

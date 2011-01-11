@@ -25,6 +25,7 @@ class gui : public action_listener
 		gui(int x, int y, SDL_Surface* screen, const map& mm, pompelmous& rr,
 				const std::vector<std::string>& terrain_files,
 				const std::vector<std::string>& unit_files,
+				const std::vector<std::string>& resource_files,
 				const char* default_unit_file,
 				const char* cityfile,
 				const TTF_Font& font_,

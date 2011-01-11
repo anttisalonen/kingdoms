@@ -7,13 +7,16 @@
 
 const std::list<unit*> map::empty_unit_spot = std::list<unit*>();
 
-map::map(int x, int y, const resource_configuration& resconf_)
+map::map(int x, int y, const resource_configuration& resconf_,
+		const resource_map& rmap_)
 	: data(buf2d<int>(x, y, 0)),
 	unit_map(buf2d<std::list<unit*> >(x, y, std::list<unit*>())),
 	city_map(buf2d<city*>(x, y, NULL)),
 	land_map(buf2d<int>(x, y, -1)),
 	improv_map(buf2d<int>(x, y, 0)),
-	resconf(resconf_)
+	res_map(buf2d<int>(x, y, 0)),
+	resconf(resconf_),
+	rmap(rmap_)
 {
 	x_wrap = true;
 	y_wrap = false;
@@ -104,6 +107,33 @@ map::map(int x, int y, const resource_configuration& resconf_)
 			std::vector<int> candidates = get_terrain_candidates(types, humidity);
 			int chosen_type_index = rand() % candidates.size();
 			data.set(i, j, candidates[chosen_type_index]);
+		}
+	}
+
+	// create resources
+	for(int j = 0; j < y; j++) {
+		for(int i = 0; i < x; i++) {
+			std::vector<unsigned int> selected_resources;
+			int this_data = get_data(i, j);
+			for(resource_map::const_iterator it = rmap.begin();
+					it != rmap.end();
+					++it) {
+				for(unsigned int k = 0; k < max_num_resource_terrains; k++) {
+					if(it->second.terrain[k] &&
+						it->second.terrain[k] - 1 == (unsigned int)this_data &&
+						it->second.terrain_abundance[k]) {
+						if(rand() % it->second.terrain_abundance[k] == 0)
+							selected_resources.push_back(it->first);
+					}
+				}
+			}
+			if(selected_resources.size() == 1) {
+				res_map.set(i, j, selected_resources[0]);
+			}
+			else if(selected_resources.size() > 1) {
+				unsigned int ind = rand() % selected_resources.size();
+				res_map.set(i, j, selected_resources[ind]);
+			}
 		}
 	}
 }
@@ -281,6 +311,14 @@ int map::get_data(int x, int y) const
 	return *v;
 }
 
+unsigned int map::get_resource(int x, int y) const
+{
+	const int* v = res_map.get(wrap_x(x), wrap_y(y));
+	if(!v)
+		return 0;
+	return *v;
+}
+
 int map::size_x() const
 {
 	return data.size_x;
@@ -301,7 +339,8 @@ void map::get_resources_by_terrain(int terr, bool city, int* food, int* prod, in
 	*comm = resconf.terrain_comm_values[terr] + (city ? resconf.city_comm_bonus : 0);
 }
 
-void map::get_resources_on_spot(int x, int y, int* food, int* prod, int* comm) const
+void map::get_resources_on_spot(int x, int y, int* food, int* prod, int* comm,
+		const std::set<unsigned int>* advances) const
 {
 	get_resources_by_terrain(get_data(x, y), city_on_spot(x, y) != NULL, 
 			food, prod, comm);
@@ -312,6 +351,22 @@ void map::get_resources_on_spot(int x, int y, int* food, int* prod, int* comm) c
 		(*prod)++;
 	if(imps & improv_road)
 		(*comm)++;
+	if(advances) {
+		int res = get_resource(x, y);
+		if(res) {
+			resource_map::const_iterator rit = rmap.find(res);
+			if(rit != rmap.end()) {
+				std::set<unsigned int>::const_iterator it =
+					advances->find(rit->second.needed_advance);
+				if(rit->second.needed_advance == 0 ||
+						it != advances->end()) {
+					*food = *food + rit->second.food_bonus;
+					*prod = *prod + rit->second.prod_bonus;
+					*comm = *comm + rit->second.comm_bonus;
+				}
+			}
+		}
+	}
 }
 
 void map::add_unit(unit* u)
@@ -511,7 +566,7 @@ std::vector<coord> map::get_starting_places(int num) const
 		if(resconf.can_found_city_on(get_data(xp, yp))) {
 			coord v(xp, yp);
 			int f, p, c;
-			get_total_city_resources(xp, yp, &f, &p, &c);
+			get_total_city_resources(xp, yp, &f, &p, &c, NULL);
 			if(f < 10 || p < 4 || c < 3)
 				continue;
 			int at_least_two_food = 0;
@@ -553,7 +608,8 @@ std::vector<coord> map::get_starting_places(int num) const
 }
 
 void map::get_total_city_resources(int x, int y, int* food_points, 
-		int* prod_points, int* comm_points) const
+		int* prod_points, int* comm_points,
+		const std::set<unsigned int>* advances) const
 {
 	*food_points = *prod_points = *comm_points = 0;
 	for(int i = -2; i <= 2; i++) {
@@ -561,10 +617,10 @@ void map::get_total_city_resources(int x, int y, int* food_points,
 			if(abs(i) == 2 && abs(j) == 2)
 				continue;
 
-			int terr = get_data(x + i, y + j);
 			int food = 0, prod = 0, comm = 0;
-			get_resources_by_terrain(terr, false,
-					&food, &prod, &comm);
+			get_resources_on_spot(x + i, y + j,
+					&food, &prod, &comm,
+					advances);
 			*food_points += food;
 			*prod_points += prod;
 			*comm_points += comm;

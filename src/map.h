@@ -1,6 +1,8 @@
 #ifndef CIV_MAP_H
 #define CIV_MAP_H
 
+#include <set>
+
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/serialization/list.hpp>
@@ -9,20 +11,25 @@
 #include "unit.h"
 #include "coord.h"
 #include "buf2d.h"
+#include "resource.h"
 #include "resource_configuration.h"
 #include "city.h"
 
 class map {
 	public:
-		map(int x, int y, const resource_configuration& resconf_);
+		map(int x, int y, const resource_configuration& resconf_,
+				const resource_map& rmap_);
 		map(); // for serialization
 		int get_data(int x, int y) const;
 		int size_x() const;
 		int size_y() const;
 		void get_resources_by_terrain(int terr, bool city, int* food, int* prod, int* comm) const;
-		void get_resources_on_spot(int x, int y, int* food, int* prod, int* comm) const;
+		void get_resources_on_spot(int x, int y, int* food, int* prod, int* comm,
+				const std::set<unsigned int>* advances) const;
 		void get_total_city_resources(int x, int y, int* food_points,
-				int* prod_points, int* comm_points) const;
+				int* prod_points, int* comm_points,
+				const std::set<unsigned int>* advances) const;
+		unsigned int get_resource(int x, int y) const;
 		void add_unit(unit* u);
 		void remove_unit(unit* u);
 		int get_spot_owner(int x, int y) const; // land, unit or city
@@ -72,8 +79,10 @@ class map {
 		buf2d<city*> city_map;
 		buf2d<int> land_map;
 		buf2d<int> improv_map;
+		buf2d<int> res_map;
 	public:
 		const resource_configuration resconf;
+		const resource_map rmap;
 	private:
 		bool x_wrap;
 		bool y_wrap;
@@ -88,7 +97,9 @@ class map {
 			ar & city_map;
 			ar & land_map;
 			ar & improv_map;
+			ar & res_map;
 			ar & const_cast<resource_configuration&>(resconf);
+			ar & const_cast<resource_map&>(rmap);
 			ar & x_wrap;
 			ar & y_wrap;
 		}

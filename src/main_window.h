@@ -40,7 +40,8 @@ class main_window : public window {
 		int draw_city(const city& c) const;
 		int test_draw_border(int x, int y, int xpos, int ypos);
 		int show_terrain_image(int x, int y, int xpos, int ypos,
-				bool draw_improvements, bool shade);
+				bool draw_improvements, bool draw_resources,
+				bool check_resource_discovered, bool shade);
 		int handle_mousemotion(int x, int y);
 		int try_move_camera(bool left, bool right, bool up, bool down);
 		void center_camera_at(int x, int y);
@@ -66,7 +67,7 @@ class main_window : public window {
 		int tile_visible(int x, int y) const;
 		bool unit_not_at(int x, int y, const unit* u) const;
 		int draw_complete_tile(int x, int y, int shx, int shy,
-				bool terrain,
+				bool terrain, bool resources,
 				bool improvements, bool borders,
 				boost::function<bool(const unit*)> unit_predicate,
 				bool cities);

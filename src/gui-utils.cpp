@@ -238,7 +238,10 @@ void blend_terrain_colors(int x, int y, int xpos, int ypos,
 int draw_terrain_tile(int x, int y, int xpos, int ypos, bool shade,
 		const map& m, 
 		const tileset& terrains,
+		const std::map<unsigned int, SDL_Surface*>& resource_images,
 		bool draw_improvements,
+		bool draw_resources,
+		std::set<unsigned int>* researched_advances,
 		SDL_Surface* screen)
 {
 	SDL_Rect dest;
@@ -274,6 +277,36 @@ int draw_terrain_tile(int x, int y, int xpos, int ypos, bool shade,
 		if(im & improv_road) {
 			if(draw_road_overlays(m, x, y, xpos, ypos, terrains, screen))
 				return 1;
+		}
+	}
+
+	if(draw_resources) {
+		int res = m.get_resource(x, y);
+		if(res) {
+			std::map<unsigned int, SDL_Surface*>::const_iterator it =
+				resource_images.find(res);
+			if(it != resource_images.end()) {
+				bool draw = false;
+				if(researched_advances == NULL) {
+					draw = true;
+				}
+				else {
+					resource_map::const_iterator it = m.rmap.find(res);
+					if(it != m.rmap.end()) {
+						if(it->second.needed_advance == 0 ||
+						researched_advances->find(it->second.needed_advance) !=
+						researched_advances->end()) {
+							draw = true;
+						}
+					}
+				}
+				if(draw) {
+					if(SDL_BlitSurface(it->second, NULL, screen, &dest)) {
+						fprintf(stderr, "Unable to blit resource surface: %s\n", SDL_GetError());
+						return 1;
+					}
+				}
+			}
 		}
 	}
 

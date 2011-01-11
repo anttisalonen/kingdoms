@@ -108,7 +108,8 @@ int points_for_city_founding(const civilization* civ,
 	int prod_points = 0;
 	int comm_points = 0;
 	civ->m->get_total_city_resources(co.x, co.y, &food_points,
-			&prod_points, &comm_points);
+			&prod_points, &comm_points,
+			&civ->researched_advances);
 	food_points *= found_city.food_coeff;
 	prod_points *= found_city.prod_coeff;
 	comm_points *= found_city.comm_coeff;

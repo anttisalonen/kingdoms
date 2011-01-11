@@ -93,7 +93,9 @@ int city_window::draw_city_resources_screen(int xpos, int ypos)
 				if(in_bounds(0, xp, data.m.size_x() - 1) &&
 				   in_bounds(0, yp, data.m.size_y() - 1) && myciv->fog_at(xp, yp)) {
 					draw_terrain_tile(xp, yp, x, y, false,
-							data.m, res.terrains, true, screen);
+							data.m, res.terrains,
+							res.resource_images, true,
+							true, &myciv->researched_advances, screen);
 				}
 			}
 		}
@@ -120,7 +122,7 @@ int city_window::draw_city_resources_screen(int xpos, int ypos)
 		int tile_ycoord = data.m.wrap_y(c->ypos + it->y);
 		int food, prod, comm;
 		data.m.get_resources_on_spot(tile_xcoord, tile_ycoord,
-				&food, &prod, &comm);
+				&food, &prod, &comm, &myciv->researched_advances);
 		for(int i = 0; i < food; i++)
 			draw_image(tile_x + i * res.terrains.tile_w / (food * 2),
 				   tile_y, res.food_icon, screen);
@@ -153,7 +155,7 @@ int city_window::draw_window()
 
 	// statistics
 	int food, prod, comm;
-	total_resources(*c, data.m, &food, &prod, &comm);
+	total_resources(*c, data.m, &food, &prod, &comm, &myciv->researched_advances);
 	char buf[64];
 	buf[63] = '\0';
 	unsigned int num_turns_growth = data.r.get_city_growth_turns(c);

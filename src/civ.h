@@ -216,8 +216,10 @@ class civilization {
 
 
 void total_resources(const city& c, const map& m,
-		int* food, int* prod, int* comm);
-coord next_good_resource_spot(const city* c, const map* m);
+		int* food, int* prod, int* comm,
+		const std::set<unsigned int>* researched_advances);
+coord next_good_resource_spot(const city* c, const map* m,
+		const std::set<unsigned int>* researched_advances);
 
 
 #endif

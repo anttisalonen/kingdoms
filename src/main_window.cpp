@@ -415,7 +415,7 @@ int main_window::draw_unit(const unit* u)
 }
 
 int main_window::draw_complete_tile(int x, int y, int shx, int shy, bool terrain,
-		bool improvements, bool borders,
+		bool resources, bool improvements, bool borders,
 		boost::function<bool(const unit*)> unit_predicate,
 		bool cities)
 {
@@ -423,7 +423,9 @@ int main_window::draw_complete_tile(int x, int y, int shx, int shy, bool terrain
 	if(fog == 0 && !internal_ai)
 		return 0;
 	if(terrain) {
-		if(show_terrain_image(x, y, shx, shy, improvements, !internal_ai && fog == 1))
+		if(show_terrain_image(x, y, shx, shy, improvements, resources,
+					internal_ai == NULL,
+					!internal_ai && fog == 1))
 			return 1;
 	}
 	if(borders) {
@@ -468,7 +470,7 @@ int main_window::draw_main_map()
 			if(draw_complete_tile(data.m.wrap_x(j),
 						data.m.wrap_y(i),
 						x, y,
-						true, true, true,
+						true, true, true, true,
 						boost::bind(&main_window::draw_gui_unit,
 							this, boost::lambda::_1),
 						true))
@@ -494,10 +496,14 @@ int main_window::draw_main_map()
 }
 
 int main_window::show_terrain_image(int x, int y, int xpos, int ypos,
-		bool draw_improvements, bool shade)
+		bool draw_improvements, bool draw_resources,
+		bool check_resource_discovered, bool shade)
 {
 	return draw_terrain_tile(x, y, xpos * tile_w, ypos * tile_h, shade,
-			data.m, res.terrains, draw_improvements, screen);
+			data.m, res.terrains, res.resource_images, draw_improvements,
+			draw_resources,
+			check_resource_discovered ? &myciv->researched_advances : NULL,
+			screen);
 }
 
 int main_window::test_draw_border(int x, int y, int xpos, int ypos)
@@ -1441,7 +1447,7 @@ void main_window::handle_action(const visible_move_action& a)
 				int shx = data.m.wrap_x(it->x - cam.cam_x + sidebar_size);
 				int shy = data.m.wrap_y(it->y - cam.cam_y);
 				draw_complete_tile(it->x, it->y, shx, shy,
-						true, true, true,
+						true, true, true, true,
 						boost::bind(&main_window::unit_not_at, 
 							this,
 							a.u->xpos, a.u->ypos, 

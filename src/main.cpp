@@ -241,7 +241,7 @@ unit_bonus get_unit_bonus(const std::string& s)
 
 unit_configuration_map parse_unit_config(const std::string& fp)
 {
-	parse_result units = parser(fp, 12);
+	parse_result units = parser(fp, 8 + max_num_unit_needed_resources + max_num_unit_bonuses);
 	unit_configuration_map uconfmap;
 	for(unsigned int i = 0; i < units.size(); i++) {
 		unit_configuration u;
@@ -250,15 +250,18 @@ unit_configuration_map parse_unit_config(const std::string& fp)
 		u.max_strength = stoi(units[i][2]);
 		u.production_cost = stoi(units[i][3]);
 		u.needed_advance = stoi(units[i][4]);
-		u.carry_units = stoi(units[i][5]);
-		u.unit_group_mask = stoi(units[i][6]);
-		for(unsigned int j = 0; j < max_num_unit_bonuses; j++) {
-			u.unit_bonuses[j] = get_unit_bonus(units[i][7 + j]);
+		for(unsigned int j = 0; j < max_num_unit_needed_resources; j++) {
+			u.needed_resources[j] = stoi(units[i][5 + j]);
 		}
-		u.settler = get_flag(units[i][11], 0);
-		u.worker = get_flag(units[i][11], 1);
-		u.sea_unit = get_flag(units[i][11], 2);
-		u.ocean_unit = get_flag(units[i][11], 3);
+		u.carry_units = stoi(units[i][5 + max_num_unit_needed_resources]);
+		u.unit_group_mask = stoi(units[i][6 + max_num_unit_needed_resources]);
+		for(unsigned int j = 0; j < max_num_unit_bonuses; j++) {
+			u.unit_bonuses[j] = get_unit_bonus(units[i][7 + max_num_unit_needed_resources + j]);
+		}
+		u.settler = get_flag(units[i][7 + max_num_unit_needed_resources + max_num_unit_bonuses], 0);
+		u.worker = get_flag(units[i][7 + max_num_unit_needed_resources + max_num_unit_bonuses], 1);
+		u.sea_unit = get_flag(units[i][7 + max_num_unit_needed_resources + max_num_unit_bonuses], 2);
+		u.ocean_unit = get_flag(units[i][7 + max_num_unit_needed_resources + max_num_unit_bonuses], 3);
 		uconfmap.insert(std::make_pair(i, u));
 	}
 	return uconfmap;
@@ -304,7 +307,7 @@ city_improv_map parse_city_improv_config(const std::string& fp)
 	return cimap;
 }
 
-resource_configuration parse_resource_config(const std::string& fp)
+resource_configuration parse_terrain_config(const std::string& fp)
 {
 	resource_configuration resconf;
 	resconf.city_food_bonus = 1;
@@ -348,6 +351,28 @@ government_map parse_government_config(const std::string& fp)
 		govmap.insert(std::make_pair(gov.gov_id, gov));
 	}
 	return govmap;
+}
+
+resource_map parse_resource_config(const std::string& fp)
+{
+	resource_map rmap;
+	parse_result resources = parser(fp, 6 + max_num_resource_terrains * 2);
+
+	for(unsigned int i = 0; i < resources.size(); i++) {
+		resource r;
+		r.name = resources[i][0];
+		r.food_bonus = stoi(resources[i][1]);
+		r.prod_bonus = stoi(resources[i][2]);
+		r.comm_bonus = stoi(resources[i][3]);
+		r.luxury_bonus = stoi(resources[i][4]);
+		r.needed_advance = stoi(resources[i][5]);
+		for(unsigned int j = 0; j < max_num_resource_terrains; j++) {
+			r.terrain[j] = stoi(resources[i][6 + j * 2]);
+			r.terrain_abundance[j] = stoi(resources[i][7 + j * 2]);
+		}
+		rmap.insert(std::make_pair(i + 1, r));
+	}
+	return rmap;
 }
 
 void automatic_play_until(pompelmous& r, std::map<unsigned int, ai>& ais, int num_turns)
@@ -571,6 +596,7 @@ void play_game(pompelmous& r, std::map<unsigned int, ai>& ais)
 	if(use_gui) {
 		std::vector<std::string> terrain_files = get_file_list(KINGDOMS_GFXDIR, KINGDOMS_RULESDIR "terrain-gfx.txt");
 		std::vector<std::string> unit_files = get_file_list(KINGDOMS_GFXDIR, KINGDOMS_RULESDIR "units-gfx.txt");
+		std::vector<std::string> resource_files = get_file_list(KINGDOMS_GFXDIR, KINGDOMS_RULESDIR "resources-gfx.txt");
 
 		std::vector<const char*> road_images;
 		road_images.push_back(KINGDOMS_GFXDIR "road_nw.png");
@@ -582,7 +608,8 @@ void play_game(pompelmous& r, std::map<unsigned int, ai>& ais)
 		road_images.push_back(KINGDOMS_GFXDIR "road_ne.png");
 		road_images.push_back(KINGDOMS_GFXDIR "road_e.png");
 		road_images.push_back(KINGDOMS_GFXDIR "road_se.png");
-		gui g(1024, 768, screen, r.get_map(), r, terrain_files, unit_files, KINGDOMS_GFXDIR "empty.png", 
+		gui g(1024, 768, screen, r.get_map(), r, terrain_files, unit_files,
+				resource_files, KINGDOMS_GFXDIR "empty.png", 
 				KINGDOMS_GFXDIR "city.png", *font,
 				KINGDOMS_GFXDIR "food_icon.png",
 				KINGDOMS_GFXDIR "prod_icon.png",
@@ -882,14 +909,15 @@ int run_gamedata()
 
 	const int num_turns = 300;
 
-	resource_configuration resconf = parse_resource_config(KINGDOMS_RULESDIR "terrain.txt");
+	resource_configuration resconf = parse_terrain_config(KINGDOMS_RULESDIR "terrain.txt");
 	std::vector<civilization*> civs;
 	civs = parse_civs_config(KINGDOMS_RULESDIR "civs.txt");
 	unit_configuration_map uconfmap = parse_unit_config(KINGDOMS_RULESDIR "units.txt");
 	advance_map amap = parse_advance_config(KINGDOMS_RULESDIR "discoveries.txt");
 	city_improv_map cimap = parse_city_improv_config(KINGDOMS_RULESDIR "improvs.txt");
 	government_map govmap = parse_government_config(KINGDOMS_RULESDIR "governments.txt");
-	map m(map_x, map_y, resconf);
+	resource_map rmap = parse_resource_config(KINGDOMS_RULESDIR "resources.txt");
+	map m(map_x, map_y, resconf, rmap);
 	for(unsigned int i = 0; i < civs.size(); i++) {
 		civs[i]->set_map(&m);
 		civs[i]->set_government(&govmap.begin()->second);
