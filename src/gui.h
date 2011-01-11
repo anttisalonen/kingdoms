@@ -35,6 +35,7 @@ class gui : public action_listener
 				const char* irrigation_name,
 				const char* mine_name,
 				const std::vector<const char*>& road_names,
+				const std::vector<const char*>& river_names,
 				ai* ai_,
 				civilization* myciv_);
 		~gui();

@@ -13,6 +13,7 @@ gui::gui(int x, int y, SDL_Surface* screen_, const map& mm, pompelmous& rr,
 		const char* irrigation_name,
 		const char* mine_name,
 		const std::vector<const char*>& road_names,
+		const std::vector<const char*>& river_names,
 		ai* ai_,
 		civilization* myciv_)
 	: screen_w(x),
@@ -36,6 +37,11 @@ gui::gui(int x, int y, SDL_Surface* screen_, const map& mm, pompelmous& rr,
 	for(unsigned int i = 0; i < 9; i++) {
 		res.terrains.road_overlays[i] = road_names.size() > i ? 
 			sdl_load_image(road_names[i]) : NULL;
+	}
+
+	for(unsigned int i = 0; i < 4; i++) {
+		res.terrains.river_overlays[i] = river_names.size() > i ? 
+			sdl_load_image(river_names[i]) : NULL;
 	}
 
 	// unit images

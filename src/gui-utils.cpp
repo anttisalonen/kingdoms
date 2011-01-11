@@ -235,6 +235,28 @@ void blend_terrain_colors(int x, int y, int xpos, int ypos,
 }
 #endif
 
+int draw_rivers(int x, int y, const map& m, const tileset& terrains,
+		const SDL_Rect& dest, SDL_Surface* screen)
+{
+	if(m.has_river(x, y)) {
+		for(int n = 0; n < 4; n++) {
+			int i = n == 1 ? -1 : n == 2 ? 1 : 0;
+			int j = n == 0 ? -1 : n == 3 ? 1 : 0;
+			if(m.has_river(x + i, y + j) ||
+					m.resconf.is_water_tile(m.get_data(x + i, y + j))) {
+				SDL_Surface* s = terrains.river_overlays[n];
+				if(s) {
+					if(SDL_BlitSurface(s, NULL, screen, (SDL_Rect*)&dest)) {
+						fprintf(stderr, "Unable to blit river surface: %s\n", SDL_GetError());
+						return 1;
+					}
+				}
+			}
+		}
+	}
+	return 0;
+}
+
 int draw_terrain_tile(int x, int y, int xpos, int ypos, bool shade,
 		const map& m, 
 		const tileset& terrains,
@@ -257,6 +279,10 @@ int draw_terrain_tile(int x, int y, int xpos, int ypos, bool shade,
 		fprintf(stderr, "Unable to blit surface: %s\n", SDL_GetError());
 		return 1;
 	}
+	if(draw_rivers(x, y, m, terrains, dest, screen)) {
+		return 1;
+	}
+
 #ifdef BLEND_TERRAIN
 	blend_terrain_colors(x, y, xpos, ypos, m, terrains, screen);
 #endif

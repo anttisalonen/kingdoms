@@ -32,6 +32,7 @@ class map {
 		unsigned int get_resource(int x, int y) const;
 		void add_unit(unit* u);
 		void remove_unit(unit* u);
+		bool has_river(int x, int y) const;
 		int get_spot_owner(int x, int y) const; // land, unit or city
 		int get_spot_resident(int x, int y) const; // unit or city
 		const std::list<unit*>& units_on_spot(int x, int y) const;
@@ -80,6 +81,7 @@ class map {
 		buf2d<int> land_map;
 		buf2d<int> improv_map;
 		buf2d<int> res_map;
+		buf2d<bool> river_map;
 	public:
 		const resource_configuration resconf;
 		const resource_map rmap;
@@ -98,6 +100,7 @@ class map {
 			ar & land_map;
 			ar & improv_map;
 			ar & res_map;
+			ar & river_map;
 			ar & const_cast<resource_configuration&>(resconf);
 			ar & const_cast<resource_map&>(rmap);
 			ar & x_wrap;

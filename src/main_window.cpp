@@ -1045,7 +1045,7 @@ void main_window::handle_input_gui_mod(const SDL_Event& ev, city** c)
 				}
 				if(k == SDLK_s && (ev.key.keysym.mod & KMOD_CTRL)) {
 					save_game("manual", data.r);
-					add_gui_msg("Saved game.");
+					add_gui_msg("Game saved.");
 				}
 				if(!internal_ai && current_unit != myciv->units.end()) {
 					if(k == SDLK_c) {

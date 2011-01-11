@@ -19,6 +19,7 @@ struct tileset {
 	SDL_Surface* irrigation_overlay;
 	SDL_Surface* mine_overlay;
 	SDL_Surface* road_overlays[9];
+	SDL_Surface* river_overlays[4];
 	const int tile_w;
 	const int tile_h;
 };

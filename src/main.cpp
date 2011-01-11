@@ -610,6 +610,13 @@ void play_game(pompelmous& r, std::map<unsigned int, ai>& ais)
 		road_images.push_back(KINGDOMS_GFXDIR "road_ne.png");
 		road_images.push_back(KINGDOMS_GFXDIR "road_e.png");
 		road_images.push_back(KINGDOMS_GFXDIR "road_se.png");
+
+		std::vector<const char*> river_images;
+		river_images.push_back(KINGDOMS_GFXDIR "river_n.png");
+		river_images.push_back(KINGDOMS_GFXDIR "river_w.png");
+		river_images.push_back(KINGDOMS_GFXDIR "river_e.png");
+		river_images.push_back(KINGDOMS_GFXDIR "river_s.png");
+
 		gui g(1024, 768, screen, r.get_map(), r, terrain_files, unit_files,
 				resource_files, KINGDOMS_GFXDIR "empty.png", 
 				KINGDOMS_GFXDIR "city.png", *font,
@@ -619,6 +626,7 @@ void play_game(pompelmous& r, std::map<unsigned int, ai>& ais)
 				KINGDOMS_GFXDIR "irrigation.png",
 				KINGDOMS_GFXDIR "mine.png",
 				road_images,
+				river_images,
 				observer ? &ais.find(0)->second : NULL, r.civs[0]);
 		g.display();
 		g.init_turn();

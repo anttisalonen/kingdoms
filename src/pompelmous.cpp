@@ -916,6 +916,8 @@ bool pompelmous::combat_chances(const unit* u1, const unit* u2,
 		s2 *= (100 + def_bonus) / 100.0f;
 		if(u2->is_fortified())
 			s2 *= 2;
+		if(m->has_river(u2->xpos, u2->ypos))
+			s2 *= 1.25f;
 	}
 	*u1chance = s1 * s1;
 	*u2chance = s2 * s2;

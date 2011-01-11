@@ -15,6 +15,7 @@ map::map(int x, int y, const resource_configuration& resconf_,
 	land_map(buf2d<int>(x, y, -1)),
 	improv_map(buf2d<int>(x, y, 0)),
 	res_map(buf2d<int>(x, y, 0)),
+	river_map(buf2d<bool>(x, y, false)),
 	resconf(resconf_),
 	rmap(rmap_)
 {
@@ -110,6 +111,66 @@ map::map(int x, int y, const resource_configuration& resconf_,
 		}
 	}
 
+	// create rivers
+	int num_rivers = x * y / 20;
+	for(int i = 0; i < num_rivers; i++) {
+		int river_x = rand() % x;
+		int river_y = rand() % y;
+		int terr = get_data(river_x, river_y);
+		if(!resconf.is_water_tile(terr)) {
+			int gendir = rand() % 4;
+			std::vector<coord> river_path;
+			river_path.push_back(coord(river_x, river_y));
+			bool success = false;
+			while(1) {
+				if(data.get(river_x, river_y) == NULL) {
+					// map border
+					break;
+				}
+
+				terr = get_data(river_x, river_y);
+				if(get_humidity_at(river_x, river_y) < 3) {
+					// too dry
+					break;
+				}
+				bool go_right = rand() % 2 == 0;
+				bool on_hill = resconf.is_hill_tile(terr);
+				bool on_flatland = !on_hill && !resconf.is_mountain_tile(terr);
+
+				if((gendir == 0 && !go_right) || (gendir == 2 && go_right))
+					river_x--;
+				else if((gendir == 1 && go_right) || (gendir == 3 && !go_right))
+					river_x++;
+				else if((gendir == 0 && go_right) || (gendir == 1 && !go_right))
+					river_y--;
+				else // if(gendir == 2 && !go_right || gendir == 3 && go_right)
+					river_y++;
+
+				river_x = wrap_x(river_x);
+				river_y = wrap_y(river_y);
+				int new_terr = get_data(river_x, river_y);
+				if(resconf.is_water_tile(new_terr)) {
+					success = true;
+					break;
+				}
+				bool new_on_mountain = resconf.is_mountain_tile(new_terr);
+				if(on_hill && new_on_mountain) {
+					break;
+				}
+				bool new_on_hill = resconf.is_hill_tile(new_terr);
+				if(on_flatland && (new_on_hill || new_on_mountain)) {
+					break;
+				}
+				river_path.push_back(coord(river_x, river_y));
+			}
+			if(success) {
+				for(unsigned int ind = 0; ind < river_path.size(); ind++) {
+					river_map.set(river_path[ind].x, river_path[ind].y, true);
+				}
+			}
+		}
+	}
+
 	// create resources
 	for(int j = 0; j < y; j++) {
 		for(int i = 0; i < x; i++) {
@@ -149,7 +210,7 @@ void map::sea_around_land(int x, int y, int sea_tile)
 			if(!j && !k)
 				continue;
 			if(resconf.is_ocean_tile(get_data(x + j, y + k))) {
-				data.set(x + j, y + k, sea_tile);
+				data.set(wrap_x(x + j), wrap_y(y + k), sea_tile);
 			}
 		}
 	}
@@ -319,6 +380,14 @@ unsigned int map::get_resource(int x, int y) const
 	return *v;
 }
 
+bool map::has_river(int x, int y) const
+{
+	const bool* v = river_map.get(wrap_x(x), wrap_y(y));
+	if(!v)
+		return 0;
+	return *v;
+}
+
 int map::size_x() const
 {
 	return data.size_x;
@@ -350,6 +419,8 @@ void map::get_resources_on_spot(int x, int y, int* food, int* prod, int* comm,
 	if(imps & improv_mine)
 		(*prod)++;
 	if(imps & improv_road)
+		(*comm)++;
+	if(has_river(x, y))
 		(*comm)++;
 	if(advances) {
 		int res = get_resource(x, y);
