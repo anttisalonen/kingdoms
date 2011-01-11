@@ -66,6 +66,35 @@ std::set<coord> map_bird_graph(const coord& a)
 	return ret;
 }
 
+std::set<coord> graph_along_roads(const civilization& civ,
+		bool no_enemy_territory, bool known_territory,
+		const coord& a)
+{
+	std::set<coord> ret;
+	for(int i = -1; i <= 1; i++) {
+		for(int j = -1; j <= 1; j++) {
+			if(i || j) {
+				int x = a.x + i;
+				int y = a.y + j;
+				if(civ.m->get_improvements_on(x, y) & improv_road) {
+					if(known_territory && civ.fog_at(x, y) == 0)
+						continue;
+					if(no_enemy_territory) {
+						int civid = civ.m->get_land_owner(x, y);
+						if(civid != -1 &&
+							civid != (int)civ.civ_id &&
+							civ.get_relationship_to_civ(civid) == relationship_war) {
+							continue;
+						}
+					}
+					ret.insert(coord(x, y));
+				}
+			}
+		}
+	}
+	return ret;
+}
+
 int map_cost(const map& m, const unit& u, const coord& a, const coord& b)
 {
 	bool road;
@@ -130,6 +159,24 @@ std::list<coord> map_birds_path_to_nearest(const coord& start,
 	using boost::lambda::_2;
 	using boost::ref;
 	return astar(bind(map_bird_graph, _1),
+			boost::lambda::constant(1),
+			boost::lambda::constant(0),
+			goaltestfunc, start);
+}
+
+std::list<coord> map_along_roads(const coord& start,
+		const civilization& civ,
+		bool no_enemy_territory, bool known_territory,
+		boost::function<bool(const coord& a)> goaltestfunc)
+{
+	using boost::bind;
+	using boost::lambda::_1;
+	using boost::lambda::_2;
+	using boost::ref;
+	return astar(bind(graph_along_roads, ref(civ),
+				no_enemy_territory,
+				known_territory,
+				_1),
 			boost::lambda::constant(1),
 			boost::lambda::constant(0),
 			goaltestfunc, start);

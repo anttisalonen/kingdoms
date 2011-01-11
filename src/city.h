@@ -8,6 +8,7 @@
 #include <boost/serialization/set.hpp>
 
 #include "city_improvement.h"
+#include "resource.h"
 #include "coord.h"
 
 struct city_production {

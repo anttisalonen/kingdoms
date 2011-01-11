@@ -165,6 +165,7 @@ class civilization {
 		void calculate_total_city_commerce(const city& c,
 				const city_improv_map& cimap,
 				int orig_comm, int* add_gold, int* add_science) const;
+		bool has_access_to_resource(const city& c, unsigned int res_id) const;
 		std::vector<relationship> relationships;
 		buf2d<int> known_land_map;
 		std::vector<std::string> city_names;

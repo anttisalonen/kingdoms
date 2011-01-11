@@ -1,8 +1,9 @@
-#include "civ.h"
 #include <string.h>
 #include <algorithm>
 #include <math.h>
 #include <stdio.h>
+#include "civ.h"
+#include "map-astar.h"
 
 void total_resources(const city& c, const map& m, 
 		int* food, int* prod, int* comm,
@@ -689,7 +690,45 @@ bool civilization::can_build_unit(const unit_configuration& uc, const city& c) c
 		return false;
 	if(uc.is_water_unit() && !m->connected_to_sea(c.xpos, c.ypos))
 		return false;
+	for(unsigned int i = 0; i < max_num_unit_needed_resources; i++) {
+		if(uc.needed_resources[i] != 0) {
+			resource_map::const_iterator it = m->rmap.find(uc.needed_resources[i]);
+			if(it != m->rmap.end()) {
+				if(researched_advances.find(it->second.needed_advance) ==
+						researched_advances.end())
+					return false;
+				if(!has_access_to_resource(c, uc.needed_resources[i]))
+					return false;
+			}
+			else {
+				return false;
+			}
+		}
+	}
 	return true;
+}
+
+class check_resource {
+	public:
+		check_resource(const map& m_, unsigned int civ_id_, unsigned int res_id_)
+			: m(m_), civ_id(civ_id_), res_id(res_id_) { }
+		bool operator()(const coord& c)
+		{
+			return m.get_resource(c.x, c.y) == res_id &&
+				m.get_land_owner(c.x, c.y) == (int)civ_id;
+		}
+	private:
+		const map& m;
+		unsigned int civ_id;
+		unsigned int res_id;
+};
+
+bool civilization::has_access_to_resource(const city& c, unsigned int res_id) const
+{
+	check_resource cr(*m, civ_id, res_id);
+	std::list<coord> path_to_resource = map_along_roads(coord(c.xpos, c.ypos),
+			*this, true, true, cr);
+	return !path_to_resource.empty();
 }
 
 bool civilization::can_build_improvement(const city_improvement& ci, const city& c) const
