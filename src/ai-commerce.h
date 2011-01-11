@@ -22,14 +22,45 @@ class commerce_objective : public objective {
 class improve_orders : public goto_orders {
 	public:
 		improve_orders(const civilization* civ_, unit* u_);
-		action get_action();
+		~improve_orders() { }
+		virtual action get_action();
 		void drop_action();
-		bool finished();
-		bool replan();
+		virtual bool finished();
+		virtual bool replan() = 0;
 		void clear();
+	protected:
+		improvement_type tgt_imp;
+};
+
+class improve_city_orders : public improve_orders {
+	public:
+		improve_city_orders(const civilization* civ_, unit* u_);
+		bool replan();
 	private:
 		city* base_city;
-		improvement_type tgt_imp;
+};
+
+class build_road_orders : public improve_orders {
+	public:
+		build_road_orders(const civilization* civ_, unit* u_);
+		~build_road_orders() { }
+		bool replan();
+	protected:
+		std::list<coord> road_path;
+};
+
+class connect_cities_orders : public build_road_orders {
+	public:
+		connect_cities_orders(const civilization* civ_, unit* u_);
+	protected:
+		void setup_road_path();
+};
+
+class connect_resources_orders : public build_road_orders {
+	public:
+		connect_resources_orders(const civilization* civ_, unit* u_);
+	protected:
+		void setup_road_path();
 };
 
 #endif

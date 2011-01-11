@@ -12,7 +12,8 @@ bool terrain_allowed(const map& m, const unit& u, int x, int y)
 }
 
 void check_insert(std::set<coord>& s, const civilization& civ,
-		const unit& u, bool ignore_enemy, int x, int y)
+		const unit& u, bool ignore_enemy, bool only_roads,
+		int x, int y)
 {
 	x = civ.m->wrap_x(x);
 	y = civ.m->wrap_y(y);
@@ -23,7 +24,9 @@ void check_insert(std::set<coord>& s, const civilization& civ,
 				if((!civ.blocked_by_land(x, y) && 
 					(fogval == 1 || civ.move_acceptable_by_land_and_units(x, y))) || ignore_enemy) { 
 					// terrain visible and no enemy on it
-					s.insert(coord(x, y));
+					if(!only_roads || (civ.m->get_improvements_on(x, y) & improv_road)) {
+						s.insert(coord(x, y));
+					}
 				}
 			}
 		}
@@ -31,7 +34,9 @@ void check_insert(std::set<coord>& s, const civilization& civ,
 }
 
 std::set<coord> map_graph(const civilization& civ, const unit& u, 
-		bool ignore_enemy, const coord& a, const coord* coastal_goal)
+		boost::function<bool(const coord& a)> filterfunc,
+		bool ignore_enemy, bool only_roads,
+		const coord& a, const coord* coastal_goal)
 {
 	std::set<coord> ret;
 	for(int i = -1; i <= 1; i++) {
@@ -44,13 +49,25 @@ std::set<coord> map_graph(const civilization& civ, const unit& u,
 					ret.insert(coord(ax, ay));
 				}
 				else {
-					check_insert(ret, civ, u, ignore_enemy,
-							ax, ay);
+					if(filterfunc(a))
+						check_insert(ret, civ, u, ignore_enemy,
+								only_roads,
+								ax, ay);
 				}
 			}
 		}
 	}
 	return ret;
+}
+
+std::set<coord> map_graph(const civilization& civ, const unit& u, 
+		bool ignore_enemy, bool only_roads,
+		const coord& a, const coord* coastal_goal)
+{
+	return map_graph(civ, u, 
+			boost::lambda::constant(true),
+			ignore_enemy, only_roads,
+			a, coastal_goal);
 }
 
 std::set<coord> map_bird_graph(const coord& a)
@@ -95,16 +112,16 @@ std::set<coord> graph_along_roads(const civilization& civ,
 	return ret;
 }
 
-int map_cost(const map& m, const unit& u, const coord& a, const coord& b)
+int map_cost(const map& m, const unit& u, bool coastal, const coord& a, const coord& b)
 {
 	bool road;
 	int cost = m.get_move_cost(u, a.x, a.y, b.x, b.y, &road);
-	if(cost < 0) // for the coastal case
-		cost = 100000000;
+	if(cost < 0 && coastal)
+		cost = 1;
 	if(!road)
 		return cost * 10;
 	else
-		return 4;
+		return 4; // TODO: make this dependent of road_moves in pompelmous
 }
 
 int map_heur(const coord& b, const coord& a)
@@ -120,16 +137,28 @@ bool map_goaltest(const coord& b, const coord& a)
 std::list<coord> map_astar(const civilization& civ,
 		const unit& u, bool ignore_enemy,
 		const coord& start, const coord& goal,
-		bool coastal)
+		bool coastal, bool only_roads)
+{
+	return map_astar(civ, u, ignore_enemy, start, goal,
+			coastal, only_roads, 
+			boost::lambda::constant(true));
+}
+
+std::list<coord> map_astar(const civilization& civ,
+		const unit& u, bool ignore_enemy,
+		const coord& start, const coord& goal,
+		bool coastal, bool only_roads,
+		boost::function<bool(const coord& a)> filterfunc)
 {
 	using boost::bind;
 	using boost::lambda::_1;
 	using boost::lambda::_2;
 	using boost::ref;
 	const coord* coastal_goal = coastal ? &goal : NULL;
-	return astar(bind(map_graph, ref(civ), ref(u), ignore_enemy, _1, 
+	return astar(bind(map_graph, ref(civ), ref(u), filterfunc, ignore_enemy,
+				only_roads, _1, 
 				coastal_goal),
-			bind(map_cost, ref(*civ.m), ref(u), _1, _2),
+			bind(map_cost, ref(*civ.m), ref(u), coastal, _1, _2),
 			bind(map_heur, ref(goal), _1),
 			bind(map_goaltest, ref(goal), _1), start);
 }
@@ -145,7 +174,7 @@ std::list<coord> map_path_to_nearest(const civilization& civ,
 	using boost::ref;
 	const coord* coastal_goal = NULL;
 	return astar(bind(map_graph, ref(civ), ref(u), ignore_enemy, 
-				_1, coastal_goal),
+				false, _1, coastal_goal),
 			boost::lambda::constant(1),
 			boost::lambda::constant(0),
 			goaltestfunc, start);

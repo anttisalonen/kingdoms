@@ -8,7 +8,13 @@
 std::list<coord> map_astar(const civilization& civ,
 		const unit& u, bool ignore_enemy,
 		const coord& start, const coord& goal,
-		bool coastal = false);
+		bool coastal = false, bool only_roads = false);
+
+std::list<coord> map_astar(const civilization& civ,
+		const unit& u, bool ignore_enemy,
+		const coord& start, const coord& goal,
+		bool coastal, bool only_roads,
+		boost::function<bool(const coord& a)> filterfunc);
 
 // simple BFS, but respecting whether the terrain is allowed for the unit
 std::list<coord> map_path_to_nearest(const civilization& civ, 
