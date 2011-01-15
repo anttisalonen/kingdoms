@@ -305,6 +305,9 @@ city_production expansion_objective::get_city_production(const city& c, int* poi
 
 int expansion_objective::get_unit_points(const unit& u) const
 {
+	if(!u.is_settler() && !u.uconf->ocean_unit && u.uconf->max_strength == 0) {
+		return -1;
+	}
 	if(myciv->cities.size() == 0) {
 		return 1000;
 	}
