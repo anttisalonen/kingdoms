@@ -4,9 +4,9 @@
 #include "production_window.h"
 #include "city_window.h"
 
-production_window::production_window(SDL_Surface* screen_, int x, int y, gui_data& data_, gui_resources& res_, city* c_,
+production_window::production_window(SDL_Surface* screen_, gui_data& data_, gui_resources& res_, city* c_,
 		civilization* myciv_, const rect& bg_, const color& bgcol_, const std::string& text_, bool allow_zoom_)
-	: window(screen_, x, y, data_, res_),
+	: window(screen_, data_, res_),
 	c(c_),
 	myciv(myciv_),
 	bg(bg_),
@@ -25,7 +25,7 @@ production_window::~production_window()
 
 int production_window::zoom_to_city()
 {
-	add_subwindow(new city_window(screen, screen_w, screen_h, data, res, c,
+	add_subwindow(new city_window(screen, data, res, c,
 				NULL, myciv));
 	zoomed_in = true;
 	return 0;

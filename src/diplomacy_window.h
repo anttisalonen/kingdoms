@@ -16,7 +16,7 @@
 
 class diplomacy_window : public window {
 	public:
-		diplomacy_window(SDL_Surface* screen_, int x, int y, gui_data& data_, gui_resources& res_, 
+		diplomacy_window(SDL_Surface* screen_, gui_data& data_, gui_resources& res_, 
 				civilization* myciv_, int other_civ_id_);
 		~diplomacy_window();
 		int handle_window_input(const SDL_Event& ev);

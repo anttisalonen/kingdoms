@@ -18,7 +18,7 @@
 
 class city_window : public window {
 	public:
-		city_window(SDL_Surface* screen_, int x, int y, gui_data& data_, gui_resources& res_, city* c_,
+		city_window(SDL_Surface* screen_, gui_data& data_, gui_resources& res_, city* c_,
 				ai* ai_, civilization* myciv_);
 		~city_window();
 		int handle_window_input(const SDL_Event& ev);

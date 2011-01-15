@@ -2,25 +2,25 @@
 
 #include <boost/bind.hpp>
 
-city_window::city_window(SDL_Surface* screen_, int x, int y, gui_data& data_, gui_resources& res_, city* c_,
+city_window::city_window(SDL_Surface* screen_, gui_data& data_, gui_resources& res_, city* c_,
 		ai* ai_, civilization* myciv_)
-	: window(screen_, x, y, data_, res_),
+	: window(screen_, data_, res_),
 	c(c_),
 	myciv(myciv_),
 	internal_ai(ai_)
 {
-	buttons.push_back(new plain_button(rect(screen_w * 0.30, screen_h * 0.1, screen_w * 0.40, screen_h * 0.08),
+	buttons.push_back(new plain_button(rect(screen->w * 0.30, screen->h * 0.1, screen->w * 0.40, screen->h * 0.08),
 				c->cityname.c_str(), &res.font, color(200, 200, 200), color(0, 0, 0),
 				NULL));
-	buttons.push_back(new plain_button(rect(screen_w * 0.75, screen_h * 0.8, screen_w * 0.15, screen_h * 0.08),
+	buttons.push_back(new plain_button(rect(screen->w * 0.75, screen->h * 0.8, screen->w * 0.15, screen->h * 0.08),
 				"Exit", &res.font, color(128, 60, 60), color(0, 0, 0),
 			       	boost::bind(&city_window::on_exit, this)));
-	buttons.push_back(new plain_button(rect(screen_w * 0.75, screen_h * 0.6, screen_w * 0.15, screen_h * 0.08),
+	buttons.push_back(new plain_button(rect(screen->w * 0.75, screen->h * 0.6, screen->w * 0.15, screen->h * 0.08),
 				"Change production", &res.font, color(128, 60, 60), color(0, 0, 0),
 				boost::bind(&city_window::change_production, this)));
 
 	// create "buttons" for unit icons
-	rect unit_box = rect(screen_w * 0.8, screen_h * 0.1, screen_w * 0.1, screen_h * 0.4);
+	rect unit_box = rect(screen->w * 0.8, screen->h * 0.1, screen->w * 0.1, screen->h * 0.4);
 	int unit_x = unit_box.x;
 	int unit_y = unit_box.y;
 	rect unit_coord = rect(unit_x, unit_y, res.terrains.tile_w, res.terrains.tile_h);
@@ -57,12 +57,11 @@ city_window::~city_window()
 int city_window::change_production()
 {
 	add_subwindow(new production_window(screen,
-				screen_w, screen_h,
 				data, res, c,
-				myciv, rect(screen_w * 0.25,
-					screen_h * 0.15,
-					screen_w * 0.50f,
-					screen_h * 0.74f),
+				myciv, rect(screen->w * 0.25,
+					screen->h * 0.15,
+					screen->w * 0.50f,
+					screen->h * 0.74f),
 				color(180, 180, 180),
 				std::string("Choose production"), false));
 	return 0;
@@ -140,10 +139,10 @@ int city_window::draw_city_resources_screen(int xpos, int ypos)
 int city_window::draw_window()
 {
 	// background
-	draw_plain_rectangle(screen, screen_w * 0.05f,
-			screen_h * 0.05f,
-			screen_w * 0.90f,
-			screen_h * 0.90f, color(255, 255, 255));
+	draw_plain_rectangle(screen, screen->w * 0.05f,
+			screen->h * 0.05f,
+			screen->w * 0.90f,
+			screen->h * 0.90f, color(255, 255, 255));
 
 	// buttons (including residing units)
 	std::for_each(buttons.begin(),
@@ -151,7 +150,7 @@ int city_window::draw_window()
 			std::bind2nd(std::mem_fun(&button::draw), screen));
 
 	// city resources screen
-	draw_city_resources_screen(screen_w * 0.3, screen_h * 0.2);
+	draw_city_resources_screen(screen->w * 0.3, screen->h * 0.2);
 
 	// statistics
 	int food, prod, comm;
@@ -170,7 +169,7 @@ int city_window::draw_window()
 		snprintf(buf, 63, "Food: (%d) %d/turn (Total: %d/%d - no growth)",
 				food, food_surplus, c->stored_food,
 				data.r.needed_food_for_growth(c->get_city_size()));
-	draw_text(screen, &res.font, buf, screen_w * 0.3, screen_h * 0.60, 0, 0, 0);
+	draw_text(screen, &res.font, buf, screen->w * 0.3, screen->h * 0.60, 0, 0, 0);
 	{
 		const char* prod_tgt = NULL;
 		int prod_cost = 0;
@@ -209,18 +208,18 @@ int city_window::draw_window()
 						c->stored_prod, 
 						prod_cost);
 		}
-		draw_text(screen, &res.font, buf, screen_w * 0.3, screen_h * 0.66, 0, 0, 0);
+		draw_text(screen, &res.font, buf, screen->w * 0.3, screen->h * 0.66, 0, 0, 0);
 	}
 	snprintf(buf, 63, "Commerce: %d/turn", comm);
-	draw_text(screen, &res.font, buf, screen_w * 0.3, screen_h * 0.72, 0, 0, 0);
+	draw_text(screen, &res.font, buf, screen->w * 0.3, screen->h * 0.72, 0, 0, 0);
 	snprintf(buf, 63, "City Size: %d", c->get_city_size());
-	draw_text(screen, &res.font, buf, screen_w * 0.3, screen_h * 0.78, 0, 0, 0);
+	draw_text(screen, &res.font, buf, screen->w * 0.3, screen->h * 0.78, 0, 0, 0);
 	snprintf(buf, 63, "Culture: %d (Level %d)", c->accum_culture, 
 			c->culture_level);
-	draw_text(screen, &res.font, buf, screen_w * 0.3, screen_h * 0.84, 0, 0, 0);
+	draw_text(screen, &res.font, buf, screen->w * 0.3, screen->h * 0.84, 0, 0, 0);
 
 	// built city improvements
-	int improv_y = screen_w * 0.05 + 10;
+	int improv_y = screen->w * 0.05 + 10;
 	for(std::set<unsigned int>::const_iterator it = c->built_improvements.begin();
 			it != c->built_improvements.end();
 			++it) {
@@ -231,7 +230,7 @@ int city_window::draw_window()
 		else {
 			snprintf(buf, 63, "<unknown>");
 		}
-		draw_text(screen, &res.font, buf, screen_w * 0.10, improv_y, 0, 0, 0);
+		draw_text(screen, &res.font, buf, screen->w * 0.10, improv_y, 0, 0, 0);
 		improv_y += 20;
 	}
 

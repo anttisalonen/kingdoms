@@ -16,7 +16,7 @@ struct camera {
 
 class main_window : public window {
 	public:
-		main_window(SDL_Surface* screen_, int x, int y, gui_data& data_, gui_resources& res_,
+		main_window(SDL_Surface* screen_, gui_data& data_, gui_resources& res_,
 				ai* ai_, civilization* myciv_);
 		~main_window();
 		int draw_window();

@@ -84,7 +84,7 @@ class plain_button : public button {
 
 class window {
 	public:
-		window(SDL_Surface* screen_, int w, int h, gui_data& data_, gui_resources& res_);
+		window(SDL_Surface* screen_, gui_data& data_, gui_resources& res_);
 		virtual ~window() { } 
 		int draw();
 		int process(int ms);
@@ -98,8 +98,6 @@ class window {
 		virtual void init_window_turn() { }
 		int num_subwindows() const;
 		SDL_Surface* screen;
-		const int screen_w;
-		const int screen_h;
 		gui_data& data;
 		gui_resources& res;
 	private:

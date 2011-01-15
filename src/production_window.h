@@ -18,7 +18,7 @@
 class production_window : public window {
 	typedef int(production_window::*production_window_fun)();
 	public:
-		production_window(SDL_Surface* screen_, int x, int y,
+		production_window(SDL_Surface* screen_,
 				gui_data& data_, gui_resources& res_, city* c_,
 				civilization* myciv_, const rect& bg_, 
 				const color& bgcol_,

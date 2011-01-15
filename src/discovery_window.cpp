@@ -2,14 +2,14 @@
 
 #include <boost/bind.hpp>
 
-discovery_window::discovery_window(SDL_Surface* screen_, int x, int y, gui_data& data_, gui_resources& res_,
+discovery_window::discovery_window(SDL_Surface* screen_, gui_data& data_, gui_resources& res_,
 		civilization* myciv_, unsigned int discovered_id_)
-	: window(screen_, x, y, data_, res_),
+	: window(screen_, data_, res_),
 	myciv(myciv_),
 	discovered_id(discovered_id_)
 {
 	const float button_dist_y = 0.07f;
-	rect option_rect = rect(screen_w * 0.30, screen_h * 0.4, screen_w * 0.38, screen_h * 0.06);
+	rect option_rect = rect(screen->w * 0.30, screen->h * 0.4, screen->w * 0.38, screen->h * 0.06);
 	for(advance_map::const_iterator it = data.r.amap.begin();
 			it != data.r.amap.end();
 			++it) {
@@ -19,8 +19,8 @@ discovery_window::discovery_window(SDL_Surface* screen_, int x, int y, gui_data&
 						color(70, 150, 255), 
 						color(0, 0, 0),
 						boost::bind(&discovery_window::on_button, this, it)));
-			option_rect.y += screen_h * button_dist_y;
-			if(option_rect.y > screen_h * 0.8) {
+			option_rect.y += screen->h * button_dist_y;
+			if(option_rect.y > screen->h * 0.8) {
 				// that's too much
 				break;
 			}
@@ -35,10 +35,10 @@ discovery_window::~discovery_window()
 int discovery_window::draw_window()
 {
 	// background
-	draw_plain_rectangle(screen, screen_w * 0.05f,
-			screen_h * 0.05f,
-			screen_w * 0.90f,
-			screen_h * 0.90f, color(255, 255, 255));
+	draw_plain_rectangle(screen, screen->w * 0.05f,
+			screen->h * 0.05f,
+			screen->w * 0.90f,
+			screen->h * 0.90f, color(255, 255, 255));
 	const std::string* discovered = NULL;
 	if(discovered_id != 0) {
 		advance_map::const_iterator it = data.r.amap.find(discovered_id);
@@ -54,7 +54,7 @@ int discovery_window::draw_window()
 	else
 		sprintf(question, "What should our wise men research, sire? Pick one...");
 
-	draw_text(screen, &res.font, question, screen_w * 0.2, screen_h * 0.2, 0, 0, 0);
+	draw_text(screen, &res.font, question, screen->w * 0.2, screen->h * 0.2, 0, 0, 0);
 	std::for_each(buttons.begin(),
 			buttons.end(),
 			std::bind2nd(std::mem_fun(&button::draw), screen));

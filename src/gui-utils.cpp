@@ -434,10 +434,8 @@ int check_button_click(const std::list<button*>& buttons,
 	return 0;
 }
 
-window::window(SDL_Surface* screen_, int w, int h, gui_data& data_, gui_resources& res_)
+window::window(SDL_Surface* screen_, gui_data& data_, gui_resources& res_)
 	: screen(screen_),
-	screen_w(w),
-	screen_h(h),
 	data(data_),
 	res(res_)
 {

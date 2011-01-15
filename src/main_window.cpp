@@ -9,13 +9,13 @@
 #include "production_window.h"
 #include "serialize.h"
 
-main_window::main_window(SDL_Surface* screen_, int x, int y, gui_data& data_, gui_resources& res_,
+main_window::main_window(SDL_Surface* screen_, gui_data& data_, gui_resources& res_,
 		ai* ai_, civilization* myciv_)
-	: window(screen_, x, y, data_, res_),
+	: window(screen_, data_, res_),
 	tile_w(32),
 	tile_h(32),
-	cam_total_tiles_x((screen_w + tile_w - 1) / tile_w),
-	cam_total_tiles_y((screen_h + tile_h - 1) / tile_h),
+	cam_total_tiles_x((screen->w + tile_w - 1) / tile_w),
+	cam_total_tiles_y((screen->h + tile_h - 1) / tile_h),
 	sidebar_size(4),
 	current_unit(myciv_->units.end()),
 	blink_unit(false),
@@ -94,8 +94,8 @@ int main_window::clear_main_map() const
 	SDL_Rect dest;
 	dest.x = sidebar_size * tile_w;
 	dest.y = 0;
-	dest.w = screen_w - sidebar_size * tile_w;
-	dest.h = screen_h;
+	dest.w = screen->w - sidebar_size * tile_w;
+	dest.h = screen->h;
 	Uint32 color = SDL_MapRGB(screen->format, 0, 0, 0);
 	SDL_FillRect(screen, &dest, color);
 	return 0;
@@ -107,7 +107,7 @@ int main_window::clear_sidebar() const
 	dest.x = 0;
 	dest.y = 0;
 	dest.w = sidebar_size * tile_w;
-	dest.h = screen_h;
+	dest.h = screen->h;
 	Uint32 color = SDL_MapRGB(screen->format, 0, 0, 0);
 	SDL_FillRect(screen, &dest, color);
 	return 0;
@@ -208,7 +208,7 @@ bool main_window::write_unit_info(const unit* u, int* written_lines) const
 {
 	if(*written_lines >= 6) {
 		draw_text(screen, &res.font, "<More>", 10,
-				screen_h - 160 + *written_lines * 16, 255, 255, 255);
+				screen->h - 160 + *written_lines * 16, 255, 255, 255);
 		return true;
 	}
 	std::string strength = unit_strength_info_string(u);
@@ -221,7 +221,7 @@ bool main_window::write_unit_info(const unit* u, int* written_lines) const
 	else
 		snprintf(buf, 255, "%s", u->uconf->unit_name.c_str());
 	draw_text(screen, &res.font, buf, 10,
-			screen_h - 160 + *written_lines * 16, 255, 255, 255);
+			screen->h - 160 + *written_lines * 16, 255, 255, 255);
 	(*written_lines)++;
 	if(u->civ_id == (int)myciv->civ_id) {
 		for(std::list<unit*>::const_iterator it = u->carried_units.begin();
@@ -242,7 +242,7 @@ void main_window::display_tile_info() const
 		return;
 	int terr = data.m.get_data(sidebar_info_display.x, sidebar_info_display.y);
 	if(terr >= 0 && terr < num_terrain_types) {
-		draw_text(screen, &res.font, data.m.resconf.resource_name[terr].c_str(), 10, screen_h - 160, 255, 255, 255);
+		draw_text(screen, &res.font, data.m.resconf.resource_name[terr].c_str(), 10, screen->h - 160, 255, 255, 255);
 	}
 	if(fog == 1)
 		return;
@@ -268,9 +268,9 @@ void main_window::display_tile_info() const
 							current_unit->second->strength,
 							(*it)->strength, u1chance / (u1chance + (float)u2chance));
 					draw_text(screen, &res.font, "Combat:", 10,
-							screen_h - 160 + (written_lines + 1) * 16, 255, 255, 255);
+							screen->h - 160 + (written_lines + 1) * 16, 255, 255, 255);
 					draw_text(screen, &res.font, buf, 10,
-							screen_h - 160 + (written_lines + 2) * 16, 255, 255, 255);
+							screen->h - 160 + (written_lines + 2) * 16, 255, 255, 255);
 				}
 			}
 		}
@@ -279,7 +279,7 @@ void main_window::display_tile_info() const
 
 int main_window::draw_eot() const
 {
-	return draw_text(screen, &res.font, "End of turn", 10, screen_h - 176, 255, 255, 255);
+	return draw_text(screen, &res.font, "End of turn", 10, screen->h - 176, 255, 255, 255);
 }
 
 int main_window::draw_tile(const SDL_Surface* surf, int x, int y) const
@@ -837,9 +837,9 @@ int main_window::handle_mousemotion(int x, int y)
 {
 	const int border = tile_w;
 	try_move_camera(x >= sidebar_size * tile_w && x < sidebar_size * tile_w + border,
-			x > screen_w - border,
+			x > screen->w - border,
 			y < border,
-			y > screen_h - border);
+			y > screen->h - border);
 	check_line_drawing(x, y);
 	update_tile_info(x, y);
 	return 0;
@@ -1120,7 +1120,7 @@ int main_window::handle_window_input(const SDL_Event& ev)
 	}
 	update_view();
 	if(c) {
-		add_subwindow(new city_window(screen, screen_w, screen_h, data, res, c,
+		add_subwindow(new city_window(screen, data, res, c,
 					internal_ai, myciv));
 	}
 	return a.type == action_give_up;
@@ -1153,7 +1153,7 @@ int main_window::handle_civ_messages(std::list<msg>* messages)
 					std::stringstream s;
 					s << "Discovered the civilization of the " << data.r.civs[m.msg_data.discovered_civ_id]->civname << ".";
 					add_gui_msg(s.str());
-					add_subwindow(new diplomacy_window(screen, screen_w, screen_h, data, res, myciv,
+					add_subwindow(new diplomacy_window(screen, data, res, myciv,
 								m.msg_data.discovered_civ_id));
 				}
 				break;
@@ -1167,7 +1167,7 @@ int main_window::handle_civ_messages(std::list<msg>* messages)
 						add_gui_msg(s.str());
 					}
 					if(myciv->cities.size() > 0)
-						add_subwindow(new discovery_window(screen, screen_w, screen_h,
+						add_subwindow(new discovery_window(screen,
 									data, res, myciv,
 									m.msg_data.new_advance_id));
 					else
@@ -1196,13 +1196,12 @@ int main_window::handle_civ_messages(std::list<msg>* messages)
 								it == data.r.cimap.end() ? "<something>" :
 								it->second.improv_name.c_str());
 						add_subwindow(new production_window(screen,
-									screen_w, screen_h,
 									data, res, c->second,
 									myciv,
-									rect(screen_w * 0.6,
-										screen_h * 0.15,
-										screen_w * 0.35,
-										screen_h * 0.7),
+									rect(screen->w * 0.6,
+										screen->h * 0.15,
+										screen->w * 0.35,
+										screen->h * 0.7),
 									color(50, 200, 255),
 									std::string(buf), true));
 					}
@@ -1391,7 +1390,7 @@ void main_window::init_turn()
 			if(myciv->research_goal_id == 0 &&
 					myciv->cities.size() > 0 &&
 					myciv->researched_advances.empty()) {
-				add_subwindow(new discovery_window(screen, screen_w, screen_h,
+				add_subwindow(new discovery_window(screen,
 							data, res, myciv,
 							0));
 			}

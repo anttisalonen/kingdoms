@@ -23,7 +23,7 @@ gui::gui(int x, int y, SDL_Surface* screen_, const map& mm, pompelmous& rr,
 	res(font_, 32, 32, sdl_load_image(food_icon_name), 
 			sdl_load_image(prod_icon_name), 
 			sdl_load_image(curr_icon_name)),
-	mw(screen, x, y, data, res, ai_, myciv_)
+	mw(screen, data, res, ai_, myciv_)
 {
 	// terrain files
 	res.terrains.textures.resize(terrain_files.size());

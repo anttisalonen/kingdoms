@@ -16,7 +16,7 @@
 
 class discovery_window : public window {
 	public:
-		discovery_window(SDL_Surface* screen_, int x, int y, gui_data& data_, gui_resources& res_, 
+		discovery_window(SDL_Surface* screen_, gui_data& data_, gui_resources& res_, 
 				civilization* myciv_, unsigned int discovered_id_);
 		~discovery_window();
 		int handle_window_input(const SDL_Event& ev);
