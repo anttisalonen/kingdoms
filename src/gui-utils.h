@@ -50,12 +50,24 @@ class gui_data {
 		pompelmous& r;
 };
 
-class button {
+class widget {
 	public:
-		button(const rect& dim_, boost::function<int()> onclick_);
-		~button() { }
+		widget(const std::string& name_, const rect& dim_);
+		virtual ~widget() { }
 		virtual int draw(SDL_Surface* screen) = 0;
+		virtual int handle_input(const SDL_Event& ev) = 0;
+		virtual const std::string& get_name() const;
+	protected:
+		std::string name;
+	public:
 		rect dim;
+};
+
+class button : public widget {
+	public:
+		button(const std::string& name_, const rect& dim_, boost::function<int()> onclick_);
+		virtual ~button() { }
+		virtual int handle_input(const SDL_Event& ev);
 		boost::function<int()>onclick;
 	protected:
 		int draw_surface(SDL_Surface* screen, SDL_Surface* surf);
@@ -63,7 +75,7 @@ class button {
 
 class texture_button : public button {
 	public:
-		texture_button(const rect& dim_, SDL_Surface* surf_, 
+		texture_button(const std::string& name_, const rect& dim_, SDL_Surface* surf_, 
 				boost::function<int()> onclick_);
 		~texture_button();
 		int draw(SDL_Surface* screen);
@@ -104,28 +116,32 @@ class window {
 		std::list<window*> subwindows;
 };
 
-class widget {
-	public:
-		widget() { }
-		virtual ~widget() { }
-		virtual int draw(SDL_Surface* screen) = 0;
-		virtual int handle_input(const SDL_Event& ev) = 0;
-};
-
 class textbox : public widget {
 	public:
 		textbox(const TTF_Font* font_, const rect& dim_,
 				const color& bg_color_, const color& text_color_,
+				const std::string& name_,
 				const std::string& default_string_);
 		int draw(SDL_Surface* screen);
-		int handle_input(const SDL_Event& ev);
+		virtual int handle_input(const SDL_Event& ev);
 		const std::string& get_text() const;
+	protected:
+		std::string text;
 	private:
 		const TTF_Font* font;
-		rect dim;
+	private:
 		color bg_color;
 		color text_color;
-		std::string text;
+};
+
+class numeric_textbox : public textbox {
+	public:
+		numeric_textbox(const TTF_Font* font_, const rect& dim_,
+				const color& bg_color_, const color& text_color_,
+				const std::string& name_,
+				int default_num);
+		int handle_input(const SDL_Event& ev);
+		int get_numeric_value() const;
 };
 
 class input_text_window : public window {
@@ -156,6 +172,36 @@ class input_text_window : public window {
 		textbox tb;
 };
 
+class widget_window : public window {
+	public:
+		widget_window(SDL_Surface* screen_, gui_data& data_,
+				gui_resources& res_,
+				const rect& rect_,
+				const color& bg_color_);
+		~widget_window();
+		int handle_window_input(const SDL_Event& ev);
+		int draw_window();
+		void set_text_color(const color& c);
+		void set_button_color(const color& c);
+		void add_label(int x, int y, int w, int h, const std::string& text);
+		void add_numeric_textbox(int x, int y, const std::string& text, int val);
+		void add_button(int x, int y, const std::string& text,
+				boost::function<int(const widget_window*)> cb);
+		void add_key_handler(SDLKey k, boost::function<int(const widget_window*)> cb);
+		std::list<numeric_textbox*> numeric_textboxes;
+		std::list<button*> buttons;
+	private:
+		int on_button_click(boost::function<int(const widget_window*)> cb);
+		void set_focus_widget(int x, int y);
+		rect dim;
+		color bg_color;
+		color text_color;
+		color button_color;
+		widget* focus_widget;
+		std::map<SDLKey, boost::function<int(const widget_window*)> > key_handlers;
+};
+
+int widget_close(const widget_window* w);
 int empty_click_handler(const std::string& s);
 
 int draw_rect(int x, int y, int w, int h, const color& c, 

@@ -880,3 +880,15 @@ int map::vector_from_to_y(int y1, int y2) const
 	return y1 - y2;
 }
 
+void map::resize(int x, int y)
+{
+	data = buf2d<int>(x, y, 0);
+	unit_map = buf2d<std::list<unit*> >(x, y, std::list<unit*>());
+	city_map = buf2d<city*>(x, y, NULL);
+	land_map = buf2d<int>(x, y, -1);
+	improv_map = buf2d<int>(x, y, 0);
+	res_map = buf2d<int>(x, y, 0);
+	river_map = buf2d<bool>(x, y, false);
+	init_to_water();
+}
+

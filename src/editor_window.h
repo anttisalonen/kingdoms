@@ -18,6 +18,7 @@ class editor_window : public main_window {
 		int on_terrain_button(int val);
 		int on_size_button(int val);
 		int on_save(const std::string& s);
+		int on_new_map(const widget_window* w);
 		int chosen_terrain;
 		int brush_size;
 		const int sidebar_terrain_xstart;

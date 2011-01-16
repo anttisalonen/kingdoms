@@ -32,7 +32,7 @@ city_window::city_window(SDL_Surface* screen_, gui_data& data_, gui_resources& r
 			SDL_Surface* unit_tile = res.get_unit_tile(*u,
 					data.r.civs[u->civ_id]->col);
 
-			buttons.push_back(new texture_button(unit_coord, 
+			buttons.push_back(new texture_button(std::string(""), unit_coord, 
 						unit_tile,
 						boost::bind(&city_window::on_unit, this, u)));
 			unit_coord.x += unit_coord.w;

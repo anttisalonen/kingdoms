@@ -1,5 +1,34 @@
+#include <sstream>
 #include <boost/bind.hpp>
 #include "gui-utils.h"
+
+widget::widget(const std::string& name_, const rect& dim_)
+	: name(name_),
+	dim(dim_)
+{
+}
+
+const std::string& widget::get_name() const
+{
+	return name;
+}
+
+button::button(const std::string& name_, const rect& dim_, boost::function<int()> onclick_)
+	: widget(name_, dim_),
+	onclick(onclick_)
+{
+}
+
+int button::handle_input(const SDL_Event& ev)
+{
+	if(ev.type == SDL_MOUSEBUTTONUP && 
+			in_rectangle(dim, ev.button.x, ev.button.y)) {
+		if(onclick) {
+			return onclick();
+		}
+	}
+	return 0;
+}
 
 int button::draw_surface(SDL_Surface* screen, SDL_Surface* surf)
 {
@@ -14,9 +43,9 @@ int button::draw_surface(SDL_Surface* screen, SDL_Surface* surf)
 	return 0;
 }
 
-texture_button::texture_button(const rect& dim_, SDL_Surface* surf_, 
+texture_button::texture_button(const std::string& name_, const rect& dim_, SDL_Surface* surf_, 
 		boost::function<int()> onclick_)
-	: button(dim_, onclick_),
+	: button(name_, dim_, onclick_),
 	surf(surf_)
 {
 }
@@ -33,7 +62,7 @@ int texture_button::draw(SDL_Surface* screen)
 plain_button::plain_button(const rect& dim_, const char* text, const TTF_Font* font,
 		const color& bg_col, const color& text_col, 
 		boost::function<int()> onclick_)
-	: button(dim_, onclick_),
+	: button(std::string(text), dim_, onclick_),
 	surf(make_label(text, font, dim_.w, dim_.h, bg_col, text_col))
 {
 }
@@ -410,12 +439,6 @@ SDL_Surface* gui_resources::get_unit_tile(const unit& u, const color& c)
 	return surf;
 }
 
-button::button(const rect& dim_, boost::function<int()> onclick_)
-	: dim(dim_),
-	onclick(onclick_)
-{
-}
-
 int check_button_click(const std::list<button*>& buttons,
 		const SDL_Event& ev)
 {
@@ -514,7 +537,8 @@ input_text_window::input_text_window(SDL_Surface* screen_, gui_data& data_,
 	on_cancel_func(on_cancel_),
 	tb(&res_.font, rect(dims.x + 4, dims.y + dims.h - 40,
 				dims.w - 8, 16),
-			button_color, text_color, default_string)
+			button_color, text_color,
+			std::string("textbox"), default_string)
 {
 	buttons.push_back(new plain_button(rect(dims.x + dims.w - 100,
 					dims.y + dims.h - 20,
@@ -579,12 +603,12 @@ int empty_click_handler(const std::string& s)
 
 textbox::textbox(const TTF_Font* font_, const rect& dim_,
 		const color& bg_color_, const color& text_color_,
-		const std::string& default_string_)
-	: font(font_),
-	dim(dim_),
+		const std::string& name_, const std::string& default_string_)
+	: widget(name_, dim_),
+	text(default_string_),
+	font(font_),
 	bg_color(bg_color_),
-	text_color(text_color_),
-	text(default_string_)
+	text_color(text_color_)
 {
 }
 
@@ -615,5 +639,183 @@ int textbox::handle_input(const SDL_Event& ev)
 const std::string& textbox::get_text() const
 {
 	return text;
+}
+
+numeric_textbox::numeric_textbox(const TTF_Font* font_, const rect& dim_,
+		const color& bg_color_, const color& text_color_,
+		const std::string& name_,
+		int default_num)
+	: textbox(font_, dim_, bg_color_, text_color_, name_, std::string(""))
+{
+	std::stringstream s;
+	s << default_num;
+	text = s.str();
+}
+
+int numeric_textbox::handle_input(const SDL_Event& ev)
+{
+	if(ev.type == SDL_KEYDOWN) {
+		if(ev.key.keysym.unicode >= '0' && ev.key.keysym.unicode <= '9') {
+			text += (char)ev.key.keysym.unicode;
+		}
+		else if(ev.key.keysym.unicode == 8 && !text.empty()) {
+			// backspace
+			text.resize(text.size() - 1);
+		}
+	}
+	return 0;
+}
+
+int numeric_textbox::get_numeric_value() const
+{
+	int res = 0;
+	std::stringstream(text) >> res;
+	return res;
+}
+
+widget_window::widget_window(SDL_Surface* screen_, gui_data& data_,
+		gui_resources& res_,
+		const rect& rect_,
+		const color& bg_color_)
+	: window(screen_, data_, res_),
+	dim(rect_),
+	bg_color(bg_color_),
+	text_color(color(0, 0, 0)),
+	button_color(255, 255, 255),
+	focus_widget(NULL)
+{
+}
+
+widget_window::~widget_window()
+{
+	while(!buttons.empty()) {
+		delete buttons.back();
+		buttons.pop_back();
+	}
+	while(!numeric_textboxes.empty()) {
+		delete numeric_textboxes.back();
+		numeric_textboxes.pop_back();
+	}
+}
+
+void widget_window::set_focus_widget(int x, int y)
+{
+	focus_widget = NULL;
+	for(std::list<numeric_textbox*>::iterator it = numeric_textboxes.begin();
+			it != numeric_textboxes.end();
+			++it) {
+		if(in_rectangle((*it)->dim, x, y)) {
+			focus_widget = *it;
+			return;
+		}
+	}
+	for(std::list<button*>::iterator it = buttons.begin();
+			it != buttons.end();
+			++it) {
+		if(in_rectangle((*it)->dim, x, y)) {
+			focus_widget = *it;
+			return;
+		}
+	}
+}
+
+int widget_window::handle_window_input(const SDL_Event& ev)
+{
+	if(ev.type == SDL_MOUSEBUTTONDOWN) {
+		set_focus_widget(ev.button.x, ev.button.y);
+	}
+	if(ev.type == SDL_KEYDOWN) {
+		std::map<SDLKey, boost::function<int(const widget_window*)> >::const_iterator it = key_handlers.find(ev.key.keysym.sym);
+		if(it != key_handlers.end()) {
+			int ret;
+			ret = it->second(this);
+			if(ret)
+				return ret;
+		}
+	}
+	for(std::list<numeric_textbox*>::iterator it = numeric_textboxes.begin();
+			it != numeric_textboxes.end();
+			++it) {
+		if(focus_widget != *it)
+			continue;
+		int ret;
+		if((ret = (*it)->handle_input(ev)) != 0)
+			return ret;
+	}
+	for(std::list<button*>::iterator it = buttons.begin();
+			it != buttons.end();
+			++it) {
+		if(focus_widget != *it)
+			continue;
+		int ret;
+		if((ret = (*it)->handle_input(ev)) != 0)
+			return ret;
+	}
+	return 0;
+}
+
+int widget_window::draw_window()
+{
+	draw_plain_rectangle(screen, dim.x, dim.y, dim.w, dim.h, bg_color);
+	std::for_each(numeric_textboxes.begin(), numeric_textboxes.end(), std::bind2nd(std::mem_fun(&widget::draw), screen));
+	std::for_each(buttons.begin(), buttons.end(), std::bind2nd(std::mem_fun(&widget::draw), screen));
+	if(focus_widget) {
+		draw_rect(focus_widget->dim.x, focus_widget->dim.y,
+				focus_widget->dim.w, focus_widget->dim.h,
+				color(255, 255, 255), 1, screen);
+	}
+	if(SDL_Flip(screen)) {
+		fprintf(stderr, "Unable to flip: %s\n", SDL_GetError());
+		return 1;
+	}
+	else {
+		return 0;
+	}
+}
+
+void widget_window::set_text_color(const color& c)
+{
+	text_color = c;
+}
+
+void widget_window::set_button_color(const color& c)
+{
+	button_color = c;
+}
+
+void widget_window::add_label(int x, int y, int w, int h, const std::string& text)
+{
+	buttons.push_back(new plain_button(rect(dim.x + x, dim.y + y, w, h), text.c_str(),
+				&res.font, button_color, text_color,
+				NULL));
+}
+
+void widget_window::add_numeric_textbox(int x, int y, const std::string& text, int val)
+{
+	numeric_textboxes.push_back(new numeric_textbox(&res.font,
+				rect(dim.x + x, dim.y + y, 80, 16), button_color, text_color,
+					text, val));
+}
+
+void widget_window::add_button(int x, int y, const std::string& text, boost::function<int(const widget_window*)> cb)
+{
+	buttons.push_back(new plain_button(rect(dim.x + x, dim.y + y, 80, 16), text.c_str(),
+				&res.font, button_color, text_color,
+				boost::bind(&widget_window::on_button_click, this, cb)));
+}
+
+void widget_window::add_key_handler(SDLKey k, boost::function<int(const widget_window*)> cb)
+{
+	key_handlers.insert(std::make_pair(k, cb));
+}
+
+int widget_window::on_button_click(boost::function<int(const widget_window*)> cb)
+{
+	return cb(this);
+}
+
+int widget_close(const widget_window* w)
+{
+	return 1;
 }
 

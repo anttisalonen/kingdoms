@@ -14,7 +14,7 @@ editor_window::editor_window(SDL_Surface* screen_, gui_data& data_, gui_resource
 	int ypos = sidebar_terrain_ystart;
 	for(int i = 0; !data.m.resconf.resource_name[i].empty(); i++) {
 		rect button_dim(xpos, ypos, tile_w, tile_h);
-		sidebar_buttons.push_back(new texture_button(button_dim,
+		sidebar_buttons.push_back(new texture_button(std::string(""), button_dim,
 						res.terrains.textures[i],
 						boost::bind(&editor_window::on_terrain_button, this, i)));
 		if((i % 3) == 2) {
@@ -104,6 +104,26 @@ int editor_window::handle_input_gui_mod(const SDL_Event& ev)
 									this, boost::lambda::_1),
 								&empty_click_handler));
 				}
+				if(k == SDLK_n && (ev.key.keysym.mod & KMOD_CTRL)) {
+					color text_color(255, 255, 255);
+					color button_color(80, 0, 0);
+					widget_window* w = new widget_window(screen, data, res,
+							rect(screen->w / 2 - 100,
+								screen->h / 2 - 50,
+								200, 100), color(160, 0, 0));
+					w->set_text_color(text_color);
+					w->set_button_color(button_color);
+					w->add_label(2, 2, 100, 16, "New map");
+					w->add_label(2, 20, 100, 16, "X dimension");
+					w->add_label(2, 38, 100, 16, "Y dimension");
+					w->add_numeric_textbox(110, 20, "X dimension", 80);
+					w->add_numeric_textbox(110, 38, "Y dimension", 60);
+					w->add_button(10, 76, "OK", boost::bind(&editor_window::on_new_map,
+								this, boost::lambda::_1));
+					w->add_button(110, 76, "Cancel", widget_close);
+					w->add_key_handler(SDLK_ESCAPE, widget_close);
+					add_subwindow(w);
+				}
 				if(k == SDLK_q || k == SDLK_ESCAPE) {
 					return 1;
 				}
@@ -119,6 +139,32 @@ int editor_window::handle_input_gui_mod(const SDL_Event& ev)
 			break;
 	}
 	return 0;
+}
+
+int editor_window::on_new_map(const widget_window* w)
+{
+	int xv = 0;
+	int yv = 0;
+	for(std::list<numeric_textbox*>::const_iterator it = w->numeric_textboxes.begin();
+			it != w->numeric_textboxes.end();
+			++it) {
+		if((*it)->get_name() == std::string("X dimension")) {
+			xv = (*it)->get_numeric_value();
+		}
+		else if((*it)->get_name() == std::string("Y dimension")) {
+			yv = (*it)->get_numeric_value();
+		}
+	}
+	if(xv >= 40 && yv >= 40) {
+		// new map
+		data.m.resize(xv, yv);
+		saved_filename = "";
+		cam.cam_x = cam.cam_y = 0;
+		return 1;
+	}
+	else {
+		return 0;
+	}
 }
 
 int editor_window::on_save(const std::string& s)

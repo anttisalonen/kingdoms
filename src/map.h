@@ -72,6 +72,7 @@ class map {
 		int manhattan_distance_y(int y1, int y2) const;
 		int vector_from_to_x(int x1, int x2) const;
 		int vector_from_to_y(int y1, int y2) const;
+		void resize(int newx, int newy);
 	private:
 		void init_to_water();
 		int get_index(int x, int y) const;
