@@ -35,8 +35,7 @@ LIBKINGDOMSDEPS = $(LIBKINGDOMSSRCS:.cpp=.dep)
 
 LIBKINGDOMS = libkingdoms.a
 
-KINGDOMSSRCFILES = color.cpp sdl-utils.cpp utils.cpp rect.cpp \
-	   ai-orders.cpp ai-objective.cpp \
+KINGDOMSSRCFILES = ai-orders.cpp ai-objective.cpp \
 	   ai-debug.cpp ai-exploration.cpp ai-expansion.cpp \
 	   ai-defense.cpp ai-offense.cpp ai-commerce.cpp \
 	   ai.cpp \
@@ -48,16 +47,16 @@ KINGDOMSSRCFILES = color.cpp sdl-utils.cpp utils.cpp rect.cpp \
 	   main.cpp
 
 KINGDOMSSRCS = $(addprefix $(SRCDIR)/, $(KINGDOMSSRCFILES))
-KINGDOMSOBJS   = $(KINGDOMSSRCS:.cpp=.o)
-KINGDOMSDEPS   = $(KINGDOMSSRCS:.cpp=.dep)
+KINGDOMSOBJS = $(KINGDOMSSRCS:.cpp=.o)
+KINGDOMSDEPS = $(KINGDOMSSRCS:.cpp=.dep)
 
 EDITORSRCFILES = gui-utils.cpp gui-resources.cpp \
-		 editorgui.cpp main_window.cpp editor_window.cpp mapview.cpp \
+		 main_window.cpp editor_window.cpp editorgui.cpp mapview.cpp \
 		 mapedit.cpp
 
 EDITORSRCS = $(addprefix $(SRCDIR)/, $(EDITORSRCFILES))
-EDITOROBJS   = $(EDITORSRCS:.cpp=.o)
-EDITORDEPS   = $(EDITORSRCS:.cpp=.dep)
+EDITOROBJS = $(EDITORSRCS:.cpp=.o)
+EDITORDEPS = $(EDITORSRCS:.cpp=.dep)
 
 .PHONY: clean all
 
@@ -69,10 +68,10 @@ $(BINDIR):
 $(LIBKINGDOMS): $(LIBKINGDOMSOBJS)
 	$(AR) rcs $(LIBKINGDOMS) $(LIBKINGDOMSOBJS)
 
-$(KINGDOMS): $(KINGDOMSOBJS) $(LIBKINGDOMS)
+$(KINGDOMS): $(LIBKINGDOMS) $(KINGDOMSOBJS) 
 	$(CXX) $(LDFLAGS) $(KINGDOMSOBJS) $(LIBKINGDOMS) -o $(KINGDOMS)
 
-$(EDITOR): $(EDITOROBJS) $(LIBKINGDOMS)
+$(EDITOR): $(LIBKINGDOMS) $(EDITOROBJS)
 	$(CXX) $(LDFLAGS) $(EDITOROBJS) $(LIBKINGDOMS) -o $(EDITOR)
 
 %.dep: %.cpp
@@ -90,6 +89,7 @@ install: $(KINGDOMS) $(EDITOR)
 
 uninstall:
 	rm -rf $(INSTALLBINDIR)/$(KINGDOMSNAME)
+	rm -rf $(INSTALLBINDIR)/$(EDITORNAME)
 	rm -rf $(SHAREDIR)
 
 $(TMPDIR):
@@ -99,7 +99,7 @@ discoveries: $(TMPDIR)
 	cat share/rules/discoveries.txt | runhaskell utils/dot.hs | dot -Tpng > $(TMPDIR)/graph.png
 
 clean:
-	rm -f $(KINGDOMSOBJS) $(KINGDOMSDEPS) $(LIBKINGDOMS)
+	rm -f $(SRCDIR)/*.o $(SRCDIR)/*.dep $(LIBKINGDOMS)
 	rm -rf $(BINDIR)
 
 -include $(KINGDOMSDEPS)
