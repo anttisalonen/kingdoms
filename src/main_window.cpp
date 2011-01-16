@@ -466,16 +466,17 @@ void main_window::handle_input_gui_mod(const SDL_Event& ev)
 
 void main_window::mouse_coord_to_tiles(int mx, int my, int* sqx, int* sqy)
 {
-	*sqx = (mx - sidebar_size * tile_w) / tile_w;
-	*sqy = my / tile_h;
-	if(*sqx >= 0) {
-		*sqx = data.m.wrap_x(*sqx + cam.cam_x);
-		*sqy = data.m.wrap_y(*sqy + cam.cam_y);
+	if(mx - sidebar_size * tile_w >= 0) {
+		*sqx = (mx - sidebar_size * tile_w) / tile_w;
+		*sqy = my / tile_h;
+		if(*sqx >= 0) {
+			*sqx = data.m.wrap_x(*sqx + cam.cam_x);
+			*sqy = data.m.wrap_y(*sqy + cam.cam_y);
+			return;
+		}
 	}
-	else {
-		*sqx = -1;
-		*sqy = -1;
-	}
+	*sqx = -1;
+	*sqy = -1;
 }
 
 int main_window::handle_mouse_up(const SDL_Event& ev)
