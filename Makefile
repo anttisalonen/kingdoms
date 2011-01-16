@@ -11,39 +11,69 @@ GFXDIR         = $(SHAREDIR)/gfx
 RULESDIR       = $(SHAREDIR)/rules
 
 BINDIR  = bin
-BINNAME = kingdoms
-TARGET = $(BINDIR)/$(BINNAME)
+KINGDOMSNAME = kingdoms
+EDITORNAME = kingdoms-mapedit
+KINGDOMS = $(BINDIR)/$(KINGDOMSNAME)
+EDITOR   = $(BINDIR)/$(EDITORNAME)
+
 SRCDIR = src
 TMPDIR = tmp
-SRCFILES = color.cpp sdl-utils.cpp utils.cpp rect.cpp \
+
+LIBKINGDOMSSRCFILES = color.cpp sdl-utils.cpp utils.cpp rect.cpp \
 	   resource_configuration.cpp advance.cpp \
 	   city_improvement.cpp unit.cpp \
 	   city.cpp map.cpp fog_of_war.cpp \
 	   government.cpp civ.cpp \
 	   pompelmous.cpp \
 	   serialize.cpp \
-	   astar.cpp map-astar.cpp ai-orders.cpp ai-objective.cpp \
+	   astar.cpp map-astar.cpp \
+	   parse_rules.cpp
+
+LIBKINGDOMSSRCS = $(addprefix $(SRCDIR)/, $(LIBKINGDOMSSRCFILES))
+LIBKINGDOMSOBJS = $(LIBKINGDOMSSRCS:.cpp=.o)
+LIBKINGDOMSDEPS = $(LIBKINGDOMSSRCS:.cpp=.dep)
+
+LIBKINGDOMS = libkingdoms.a
+
+KINGDOMSSRCFILES = color.cpp sdl-utils.cpp utils.cpp rect.cpp \
+	   ai-orders.cpp ai-objective.cpp \
 	   ai-debug.cpp ai-exploration.cpp ai-expansion.cpp \
 	   ai-defense.cpp ai-offense.cpp ai-commerce.cpp \
 	   ai.cpp \
 	   gui-utils.cpp city_window.cpp \
 	   production_window.cpp \
-	   discovery_window.cpp diplomacy_window.cpp main_window.cpp gui.cpp \
+	   discovery_window.cpp diplomacy_window.cpp \
+	   main_window.cpp game_window.cpp \
+	   mapview.cpp gui-resources.cpp gui.cpp \
 	   main.cpp
-OBJS   = $(SRCS:.cpp=.o)
-DEPS   = $(SRCS:.cpp=.dep)
 
-SRCS = $(addprefix $(SRCDIR)/, $(SRCFILES))
+KINGDOMSSRCS = $(addprefix $(SRCDIR)/, $(KINGDOMSSRCFILES))
+KINGDOMSOBJS   = $(KINGDOMSSRCS:.cpp=.o)
+KINGDOMSDEPS   = $(KINGDOMSSRCS:.cpp=.dep)
+
+EDITORSRCFILES = gui-utils.cpp gui-resources.cpp \
+		 editorgui.cpp main_window.cpp editor_window.cpp mapview.cpp \
+		 mapedit.cpp
+
+EDITORSRCS = $(addprefix $(SRCDIR)/, $(EDITORSRCFILES))
+EDITOROBJS   = $(EDITORSRCS:.cpp=.o)
+EDITORDEPS   = $(EDITORSRCS:.cpp=.dep)
 
 .PHONY: clean all
 
-all: $(BINDIR) $(TARGET)
+all: $(BINDIR) $(KINGDOMS) $(EDITOR)
 
 $(BINDIR):
 	mkdir -p $(BINDIR)
 
-$(TARGET): $(OBJS)
-	$(CXX) $(LDFLAGS) $(OBJS) -o $(TARGET)
+$(LIBKINGDOMS): $(LIBKINGDOMSOBJS)
+	$(AR) rcs $(LIBKINGDOMS) $(LIBKINGDOMSOBJS)
+
+$(KINGDOMS): $(KINGDOMSOBJS) $(LIBKINGDOMS)
+	$(CXX) $(LDFLAGS) $(KINGDOMSOBJS) $(LIBKINGDOMS) -o $(KINGDOMS)
+
+$(EDITOR): $(EDITOROBJS) $(LIBKINGDOMS)
+	$(CXX) $(LDFLAGS) $(EDITOROBJS) $(LIBKINGDOMS) -o $(EDITOR)
 
 %.dep: %.cpp
 	@rm -f $@
@@ -51,14 +81,15 @@ $(TARGET): $(OBJS)
 	@sed 's,\($(notdir $*)\)\.o[ :]*,$(dir $*)\1.o $@ : ,g' < $@.P > $@
 	@rm -f $@.P
 
-install: $(TARGET)
+install: $(KINGDOMS) $(EDITOR)
 	install -d $(INSTALLBINDIR) $(GFXDIR) $(RULESDIR)
-	install -m 0755 $(TARGET) $(INSTALLBINDIR)
+	install -m 0755 $(KINGDOMS) $(INSTALLBINDIR)
+	install -m 0755 $(EDITOR) $(INSTALLBINDIR)
 	install -m 0644 share/gfx/* $(GFXDIR)
 	install -m 0644 share/rules/* $(RULESDIR)
 
 uninstall:
-	rm -rf $(INSTALLBINDIR)/$(BINNAME)
+	rm -rf $(INSTALLBINDIR)/$(KINGDOMSNAME)
 	rm -rf $(SHAREDIR)
 
 $(TMPDIR):
@@ -68,8 +99,9 @@ discoveries: $(TMPDIR)
 	cat share/rules/discoveries.txt | runhaskell utils/dot.hs | dot -Tpng > $(TMPDIR)/graph.png
 
 clean:
-	rm -f $(OBJS) $(DEPS) $(TARGET)
+	rm -f $(KINGDOMSOBJS) $(KINGDOMSDEPS) $(LIBKINGDOMS)
 	rm -rf $(BINDIR)
 
--include $(DEPS)
+-include $(KINGDOMSDEPS)
+-include $(EDITORDEPS)
 

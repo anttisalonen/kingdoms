@@ -17,20 +17,38 @@ map::map(int x, int y, const resource_configuration& resconf_,
 	res_map(buf2d<int>(x, y, 0)),
 	river_map(buf2d<bool>(x, y, false)),
 	resconf(resconf_),
-	rmap(rmap_)
+	rmap(rmap_),
+	x_wrap(true),
+	y_wrap(false)
 {
-	x_wrap = true;
-	y_wrap = false;
-	int sea_tile = resconf.get_sea_tile();
-	int grass_tile = resconf.get_grass_tile();
-	int ocean_tile = resconf.get_ocean_tile();
+	init_to_water();
+}
 
+map::map()
+{
+}
+
+void map::init_to_water()
+{
+	int x = data.size_x;
+	int y = data.size_y;
+	int ocean_tile = resconf.get_ocean_tile();
 	// init to water
 	for(int i = 0; i < y; i++) {
 		for(int j = 0; j < x; j++) {
 			data.set(j, i, ocean_tile);
 		}
 	}
+}
+
+void map::create()
+{
+	int x = data.size_x;
+	int y = data.size_y;
+	init_to_water();
+
+	int sea_tile = resconf.get_sea_tile();
+	int grass_tile = resconf.get_grass_tile();
 
 	// create continents
 	int num_continents = x * y / 800;
@@ -197,10 +215,6 @@ map::map(int x, int y, const resource_configuration& resconf_,
 			}
 		}
 	}
-}
-
-map::map()
-{
 }
 
 void map::sea_around_land(int x, int y, int sea_tile)

@@ -31,5 +31,6 @@ int draw_text(SDL_Surface* screen, const TTF_Font* font, const char* str,
 		Uint8 r, Uint8 g, Uint8 b, bool centered = false);
 int draw_line(SDL_Surface* screen, int start_x, int start_y, int end_x, int end_y, const color& col);
 int draw_plain_rectangle(SDL_Surface* screen, int x, int y, int w, int h, const color& col);
+int sdl_init_all();
 
 #endif

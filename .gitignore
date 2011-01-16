@@ -3,3 +3,4 @@ bin/
 *.dep
 tmp/
 gmon.out
+libkingdoms.a

@@ -20,6 +20,7 @@ class map {
 		map(int x, int y, const resource_configuration& resconf_,
 				const resource_map& rmap_);
 		map(); // for serialization
+		void create();
 		int get_data(int x, int y) const;
 		int size_x() const;
 		int size_y() const;
@@ -65,6 +66,7 @@ class map {
 		int vector_from_to_x(int x1, int x2) const;
 		int vector_from_to_y(int y1, int y2) const;
 	private:
+		void init_to_water();
 		int get_index(int x, int y) const;
 		void create_mountains(int x, int y, int width);
 		int get_temperature(int x, int y) const;

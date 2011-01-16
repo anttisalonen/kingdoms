@@ -46,25 +46,14 @@
 #include "gui.h"
 #include "ai.h"
 #include "serialize.h"
+#include "parse_rules.h"
 
 #include "SDL/SDL.h"
 #include "SDL/SDL_image.h"
 #include "SDL/SDL_ttf.h"
 
-#define QUOTE_(x)	#x
-#define QUOTE(x)	QUOTE_(x)
-#ifndef PREFIX
-#define PREFIX			.
-#endif
-
-#ifdef __WIN32__
-#define KINGDOMS_SHAREDIR	"."
-#else
-#define KINGDOMS_SHAREDIR	QUOTE(PREFIX)"/share/kingdoms"
-#endif
-
-#define KINGDOMS_GFXDIR		KINGDOMS_SHAREDIR"/gfx/"
-#define KINGDOMS_RULESDIR	KINGDOMS_SHAREDIR"/rules/"
+#include "gui-resources.h"
+#include "config.h"
 
 static bool signal_received = false;
 
@@ -97,284 +86,6 @@ void segv_handler(int sig)
 void signal_handler(int sig)
 {
 	signal_received = true;
-}
-
-std::vector<std::vector<std::string> > parser(const std::string& filepath, 
-		unsigned int num_fields, bool vararg = false)
-{
-	using namespace std;
-	ifstream ifs(filepath.c_str(), ifstream::in);
-	int linenum = 0;
-	vector<vector<string> > results;
-	while(ifs.good()) {
-		linenum++;
-		string line;
-		getline(ifs, line);
-		bool quoting = false;
-		bool filling = false;
-		bool escaping = false;
-		vector<string> values;
-		string value;
-		for(unsigned int i = 0; i < line.length(); ++i) {
-			if(escaping) {
-				value += line[i];
-				escaping = false;
-			}
-			else if(((!quoting && (line[i] == ' ' || line[i] == '\t')) || (quoting && line[i] == '"')) 
-					&& filling) {
-				values.push_back(value);
-				value = "";
-				quoting = false;
-				filling = false;
-				escaping = false;
-			}
-			else if(line[i] == '"') {
-				filling = true;
-				quoting = true;
-			}
-			else if(!quoting && line[i] == '#') {
-				break;
-			}
-			else if(line[i] == '\\') {
-				escaping = true;
-			}
-			else if(quoting || !(line[i] == ' ' || line[i] == '\t')) {
-				filling = true;
-				value += line[i];
-			}
-		}
-		// add last parsed token to values
-		if(value.size())
-			values.push_back(value);
-
-		if(values.size() == num_fields || (vararg && values.size() > num_fields)) {
-			results.push_back(values);
-		}
-		else if(values.size() != 0) {
-			fprintf(stderr, "Warning: parsing %s - line %d: parsed %d "
-					"tokens - wanted %d:\n",
-					filepath.c_str(),
-					linenum, values.size(), num_fields);
-			for(unsigned int i = 0; i < values.size(); i++) {
-				fprintf(stderr, "\t%s\n", values[i].c_str());
-			}
-		}
-	}
-	ifs.close();
-	return results;
-}
-
-int stoi(const std::string& s)
-{
-	int res = 0;
-	std::stringstream(s) >> res;
-	return res;
-}
-
-bool get_flag(const std::string& s, unsigned int i)
-{
-	if(s.length() <= i)
-		return false;
-	else
-		return s[i] != '0';
-}
-
-typedef std::vector<std::vector<std::string> > parse_result;
-
-std::vector<std::string> get_file_list(const std::string& prefix, const std::string& filepath)
-{
-	using namespace std;
-	ifstream ifs(filepath.c_str(), ifstream::in);
-	int linenum = 0;
-	std::vector<std::string> results;
-	while(ifs.good()) {
-		linenum++;
-		string line;
-		getline(ifs, line);
-		boost::trim(line);
-		if(line.length())
-			results.push_back(line.insert(0, prefix));
-	}
-	ifs.close();
-	return results;
-}
-
-std::vector<civilization*> parse_civs_config(const std::string& fp)
-{
-	std::vector<civilization*> civs;
-	parse_result pcivs = parser(fp, 5, true);
-	for(unsigned int i = 0; i < pcivs.size(); i++) {
-		civs.push_back(new civilization(pcivs[i][0], i, 
-					color(stoi(pcivs[i][1]),
-						stoi(pcivs[i][2]),
-						stoi(pcivs[i][3])),
-					NULL, false, pcivs[i].begin() + 4, 
-					pcivs[i].end(), NULL));
-	}
-	return civs;
-}
-
-unit_bonus get_unit_bonus(const std::string& s)
-{
-	unit_bonus b;
-	b.type = unit_bonus_none;
-	size_t ind = s.find_first_of(":");
-	if(ind == std::string::npos) {
-		return b;
-	}
-	std::string type(s, 0, ind);
-	std::string value(s, ind + 1);
-	if(type[0] == 'c') {
-		b.type = unit_bonus_city;
-	}
-	else {
-		int grps = stoi(type);
-		if(grps == 0) {
-			return b;
-		}
-		else {
-			b.type = unit_bonus_group;
-			b.bonus_data.group_mask = grps;
-		}
-	}
-	b.bonus_amount = stoi(value);
-	return b;
-}
-
-unit_configuration_map parse_unit_config(const std::string& fp)
-{
-	parse_result units = parser(fp, 8 + max_num_unit_needed_resources + max_num_unit_bonuses);
-	unit_configuration_map uconfmap;
-	for(unsigned int i = 0; i < units.size(); i++) {
-		unit_configuration u;
-		u.unit_name = units[i][0];
-		u.max_moves = stoi(units[i][1]);
-		u.max_strength = stoi(units[i][2]);
-		u.production_cost = stoi(units[i][3]);
-		u.needed_advance = stoi(units[i][4]);
-		for(unsigned int j = 0; j < max_num_unit_needed_resources; j++) {
-			u.needed_resources[j] = stoi(units[i][5 + j]);
-		}
-		u.carry_units = stoi(units[i][5 + max_num_unit_needed_resources]);
-		u.unit_group_mask = stoi(units[i][6 + max_num_unit_needed_resources]);
-		for(unsigned int j = 0; j < max_num_unit_bonuses; j++) {
-			u.unit_bonuses[j] = get_unit_bonus(units[i][7 + max_num_unit_needed_resources + j]);
-		}
-		u.settler = get_flag(units[i][7 + max_num_unit_needed_resources + max_num_unit_bonuses], 0);
-		u.worker = get_flag(units[i][7 + max_num_unit_needed_resources + max_num_unit_bonuses], 1);
-		u.sea_unit = get_flag(units[i][7 + max_num_unit_needed_resources + max_num_unit_bonuses], 2);
-		u.ocean_unit = get_flag(units[i][7 + max_num_unit_needed_resources + max_num_unit_bonuses], 3);
-		uconfmap.insert(std::make_pair(i, u));
-	}
-	return uconfmap;
-}
-
-advance_map parse_advance_config(const std::string& fp)
-{
-	advance_map amap;
-	parse_result discoveries = parser(fp, 6);
-	for(unsigned int i = 0; i < discoveries.size(); i++) {
-		advance a;
-		a.advance_id = i + 1;
-		a.advance_name = discoveries[i][0];
-		a.cost = stoi(discoveries[i][1]);
-		for(int j = 0; j < max_num_needed_advances; j++) {
-			a.needed_advances[j] = stoi(discoveries[i][j + 2]);
-		}
-		amap.insert(std::make_pair(a.advance_id, a));
-	}
-	return amap;
-}
-
-city_improv_map parse_city_improv_config(const std::string& fp)
-{
-	parse_result improvs = parser(fp, 9);
-	city_improv_map cimap;
-	for(unsigned int i = 0; i < improvs.size(); i++) {
-		city_improvement a;
-		a.improv_id = i + 1;
-		a.improv_name = improvs[i][0];
-		a.cost = stoi(improvs[i][1]);
-		a.needed_advance = stoi(improvs[i][2]);
-		a.comm_bonus = stoi(improvs[i][3]);
-		a.science_bonus = stoi(improvs[i][4]);
-		a.defense_bonus = stoi(improvs[i][5]);
-		a.culture = stoi(improvs[i][6]);
-		a.happiness = stoi(improvs[i][7]);
-		a.barracks = get_flag(improvs[i][8], 0);
-		a.granary = get_flag(improvs[i][8], 1);
-		a.palace = get_flag(improvs[i][8], 2);
-		cimap.insert(std::make_pair(a.improv_id, a));
-	}
-	return cimap;
-}
-
-resource_configuration parse_terrain_config(const std::string& fp)
-{
-	resource_configuration resconf;
-	resconf.city_food_bonus = 1;
-	resconf.city_prod_bonus = 1;
-	resconf.city_comm_bonus = 0; // compensated by road
-	resconf.irrigation_needed_turns = 3;
-	resconf.mine_needed_turns = 4;
-	resconf.road_needed_turns = 2;
-	parse_result terrains = parser(fp, 8);
-
-	if(terrains.size() >= (int)num_terrain_types) {
-		fprintf(stderr, "Warning: more than %d parsed terrains will be ignored in %s.\n",
-				num_terrain_types, std::string(fp).c_str());
-	}
-	for(unsigned int i = 0; i < std::min<unsigned int>(num_terrain_types, terrains.size()); i++) {
-		resconf.resource_name[i] = terrains[i][0];
-		resconf.terrain_food_values[i] = stoi(terrains[i][1]);
-		resconf.terrain_prod_values[i] = stoi(terrains[i][2]);
-		resconf.terrain_comm_values[i] = stoi(terrains[i][3]);
-		resconf.terrain_type[i] = stoi(terrains[i][4]);
-		resconf.temperature[i] = stoi(terrains[i][5]);
-		resconf.humidity[i] = stoi(terrains[i][6]);
-		resconf.found_city[i] = get_flag(terrains[i][7], 0);
-		resconf.irrigatable[i] = get_flag(terrains[i][7], 1);
-		resconf.mineable[i] = get_flag(terrains[i][7], 2);
-		resconf.roadable[i] = get_flag(terrains[i][7], 3);
-	}
-	return resconf;
-}
-
-government_map parse_government_config(const std::string& fp)
-{
-	government_map govmap;
-	parse_result governments = parser(fp, 5);
-
-	for(unsigned int i = 0; i < governments.size(); i++) {
-		government gov(i + 1, governments[i][0]);
-		gov.needed_advance = stoi(governments[i][1]);
-		gov.free_units = stoi(governments[i][3]);
-		gov.unit_cost = stoi(governments[i][4]);
-		govmap.insert(std::make_pair(gov.gov_id, gov));
-	}
-	return govmap;
-}
-
-resource_map parse_resource_config(const std::string& fp)
-{
-	resource_map rmap;
-	parse_result resources = parser(fp, 6 + max_num_resource_terrains * 2);
-
-	for(unsigned int i = 0; i < resources.size(); i++) {
-		resource r;
-		r.name = resources[i][0];
-		r.food_bonus = stoi(resources[i][1]);
-		r.prod_bonus = stoi(resources[i][2]);
-		r.comm_bonus = stoi(resources[i][3]);
-		r.luxury_bonus = stoi(resources[i][4]);
-		r.needed_advance = stoi(resources[i][5]);
-		for(unsigned int j = 0; j < max_num_resource_terrains; j++) {
-			r.terrain[j] = stoi(resources[i][6 + j * 2]);
-			r.terrain_abundance[j] = stoi(resources[i][7 + j * 2]);
-		}
-		rmap.insert(std::make_pair(i + 1, r));
-	}
-	return rmap;
 }
 
 void automatic_play_until(pompelmous& r, std::map<unsigned int, ai>& ais, int num_turns)
@@ -596,37 +307,9 @@ void play_game(pompelmous& r, std::map<unsigned int, ai>& ais)
 	bool running = true;
 
 	if(use_gui) {
-		std::vector<std::string> terrain_files = get_file_list(KINGDOMS_GFXDIR, KINGDOMS_RULESDIR "terrain-gfx.txt");
-		std::vector<std::string> unit_files = get_file_list(KINGDOMS_GFXDIR, KINGDOMS_RULESDIR "units-gfx.txt");
-		std::vector<std::string> resource_files = get_file_list(KINGDOMS_GFXDIR, KINGDOMS_RULESDIR "resources-gfx.txt");
-
-		std::vector<const char*> road_images;
-		road_images.push_back(KINGDOMS_GFXDIR "road_nw.png");
-		road_images.push_back(KINGDOMS_GFXDIR "road_w.png");
-		road_images.push_back(KINGDOMS_GFXDIR "road_sw.png");
-		road_images.push_back(KINGDOMS_GFXDIR "road_n.png");
-		road_images.push_back(KINGDOMS_GFXDIR "road.png");
-		road_images.push_back(KINGDOMS_GFXDIR "road_s.png");
-		road_images.push_back(KINGDOMS_GFXDIR "road_ne.png");
-		road_images.push_back(KINGDOMS_GFXDIR "road_e.png");
-		road_images.push_back(KINGDOMS_GFXDIR "road_se.png");
-
-		std::vector<const char*> river_images;
-		river_images.push_back(KINGDOMS_GFXDIR "river_n.png");
-		river_images.push_back(KINGDOMS_GFXDIR "river_w.png");
-		river_images.push_back(KINGDOMS_GFXDIR "river_e.png");
-		river_images.push_back(KINGDOMS_GFXDIR "river_s.png");
-
-		gui g(1024, 768, screen, r.get_map(), r, terrain_files, unit_files,
-				resource_files, KINGDOMS_GFXDIR "empty.png", 
-				KINGDOMS_GFXDIR "city.png", *font,
-				KINGDOMS_GFXDIR "food_icon.png",
-				KINGDOMS_GFXDIR "prod_icon.png",
-				KINGDOMS_GFXDIR "comm_icon.png",
-				KINGDOMS_GFXDIR "irrigation.png",
-				KINGDOMS_GFXDIR "mine.png",
-				road_images,
-				river_images,
+		gui_resource_files grr;
+		fetch_gui_resource_files(&grr);
+		gui g(screen, r.get_map(), r, grr, *font,
 				observer ? &ais.find(0)->second : NULL, r.civs[0]);
 		g.display();
 		g.init_turn();
@@ -922,7 +605,6 @@ int run_gamedata()
 	const int map_y = 60;
 	const int road_moves = 3;
 	const unsigned int food_eaten_per_citizen = 2;
-
 	const int num_turns = 300;
 
 	resource_configuration resconf = parse_terrain_config(KINGDOMS_RULESDIR "terrain.txt");
@@ -934,6 +616,7 @@ int run_gamedata()
 	government_map govmap = parse_government_config(KINGDOMS_RULESDIR "governments.txt");
 	resource_map rmap = parse_resource_config(KINGDOMS_RULESDIR "resources.txt");
 	map m(map_x, map_y, resconf, rmap);
+	m.create();
 	for(unsigned int i = 0; i < civs.size(); i++) {
 		civs[i]->set_map(&m);
 		civs[i]->set_government(&govmap.begin()->second);
@@ -1054,22 +737,8 @@ int main(int argc, char **argv)
 	}
 
 	if(use_gui) {
-		int sdl_flags = SDL_INIT_EVERYTHING;
-		if (SDL_Init(sdl_flags) < 0) {
-			fprintf(stderr, "Unable to init SDL: %s\n", SDL_GetError());
+		if(sdl_init_all())
 			exit(1);
-		}
-#ifdef __WIN32__
-		freopen("CON", "w", stdout);
-		freopen("CON", "w", stderr);
-#endif
-		if(!IMG_Init(IMG_INIT_PNG)) {
-			fprintf(stderr, "Unable to init SDL_image: %s\n", IMG_GetError());
-		}
-		if(TTF_Init() == -1) {
-			fprintf(stderr, "Unable to init SDL_ttf: %s\n", TTF_GetError());
-		}
-		SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
 	}
 	else {
 		signal(SIGINT, signal_handler);

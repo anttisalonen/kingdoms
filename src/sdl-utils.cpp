@@ -186,3 +186,26 @@ int draw_plain_rectangle(SDL_Surface* screen, int x, int y, int w, int h, const 
 	return 0;
 }
 
+int sdl_init_all()
+{
+	if (SDL_Init(SDL_INIT_EVERYTHING) == -1) {
+		fprintf(stderr, "Unable to init SDL: %s\n", SDL_GetError());
+		return 1;
+	}
+#ifdef __WIN32__
+	freopen("CON", "w", stdout);
+	freopen("CON", "w", stderr);
+#endif
+	if(IMG_Init(IMG_INIT_PNG) == -1) {
+		fprintf(stderr, "Unable to init SDL_image: %s\n", IMG_GetError());
+		return 1;
+	}
+	if(TTF_Init() == -1) {
+		fprintf(stderr, "Unable to init SDL_ttf: %s\n", TTF_GetError());
+		return 1;
+	}
+	SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
+	return 0;
+}
+
+

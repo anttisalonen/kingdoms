@@ -1,9 +1,7 @@
 #ifndef GUI_H
 #define GUI_H
 
-#include <list>
 #include <vector>
-#include <map>
 
 #include "SDL/SDL.h"
 #include "SDL/SDL_image.h"
@@ -12,30 +10,18 @@
 #include "color.h"
 #include "utils.h"
 #include "sdl-utils.h"
-#include "buf2d.h"
 #include "pompelmous.h"
 #include "rect.h"
-#include "main_window.h"
-#include "city_window.h"
+#include "game_window.h"
 #include "ai.h"
+#include "mapview.h"
 
-class gui : public action_listener
+class gui : public mapview, public action_listener
 {
 	public:
-		gui(int x, int y, SDL_Surface* screen, const map& mm, pompelmous& rr,
-				const std::vector<std::string>& terrain_files,
-				const std::vector<std::string>& unit_files,
-				const std::vector<std::string>& resource_files,
-				const char* default_unit_file,
-				const char* cityfile,
+		gui(SDL_Surface* screen, const map& mm, pompelmous& rr,
+				const gui_resource_files& resfiles,
 				const TTF_Font& font_,
-				const char* food_icon_name,
-				const char* prod_icon_name,
-				const char* curr_icon_name,
-				const char* irrigation_name,
-				const char* mine_name,
-				const std::vector<const char*>& road_names,
-				const std::vector<const char*>& river_names,
 				ai* ai_,
 				civilization* myciv_);
 		~gui();
@@ -45,14 +31,7 @@ class gui : public action_listener
 		void init_turn();
 		void handle_action(const visible_move_action& a);
 	private:
-		void show_city_window(city* c);
-		const int screen_w;
-		const int screen_h;
-		SDL_Surface* screen;
-		gui_data data;
-		gui_resources res;
-		main_window mw;
-		city_window* cw;
+		game_window gw;
 };
 
 #endif
