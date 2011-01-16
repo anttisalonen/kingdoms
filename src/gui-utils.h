@@ -104,6 +104,37 @@ class window {
 		std::list<window*> subwindows;
 };
 
+class input_text_window : public window {
+	public:
+		input_text_window(SDL_Surface* screen_, gui_data& data_,
+				gui_resources& res_,
+				const rect& rect_,
+				const std::string& info_string_,
+				const std::string& default_string,
+				const color& bg_color_,
+				const color& button_color_,
+				const color& button_text_color_,
+				boost::function<int(const std::string&)> on_ok_,
+				boost::function<int(const std::string&)> on_cancel_);
+	protected:
+		virtual int handle_window_input(const SDL_Event& ev);
+		virtual int draw_window();
+	private:
+		int on_ok();
+		int on_cancel();
+		rect dims;
+		std::string text;
+		std::string info_string;
+		std::list<button*> buttons;
+		color bg_color;
+		color text_color;
+		color button_color;
+		boost::function<int(const std::string&)> on_ok_func;
+		boost::function<int(const std::string&)> on_cancel_func;
+};
+
+int empty_click_handler(const std::string& s);
+
 int draw_rect(int x, int y, int w, int h, const color& c, 
 		int border_width, SDL_Surface* screen);
 int draw_image(int x, int y, const SDL_Surface* tile, SDL_Surface* screen);

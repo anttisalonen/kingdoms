@@ -1,4 +1,5 @@
 #include <boost/bind.hpp>
+#include <boost/lambda/lambda.hpp>
 #include "editor_window.h"
 #include "serialize.h"
 
@@ -89,7 +90,19 @@ int editor_window::handle_input_gui_mod(const SDL_Event& ev)
 			{
 				SDLKey k = ev.key.keysym.sym;
 				if(k == SDLK_s && (ev.key.keysym.mod & KMOD_CTRL)) {
-					save_map("editor", data.m);
+					add_subwindow(new input_text_window(screen,
+								data, res,
+								rect(screen->w / 2 - 100,
+									screen->h / 2 - 40,
+									200, 80),
+								std::string("Please enter file name:"),
+								saved_filename,
+								color(160, 0, 0),
+								color(80, 0, 0),
+								color(255, 255, 255),
+								boost::bind(&editor_window::on_save,
+									this, boost::lambda::_1),
+								&empty_click_handler));
 				}
 				if(k == SDLK_q || k == SDLK_ESCAPE) {
 					return 1;
@@ -106,6 +119,15 @@ int editor_window::handle_input_gui_mod(const SDL_Event& ev)
 			break;
 	}
 	return 0;
+}
+
+int editor_window::on_save(const std::string& s)
+{
+	if(s.empty())
+		return 0;
+	save_map(s.c_str(), data.m);
+	saved_filename = s;
+	return 1;
 }
 
 int editor_window::handle_mouse_down(const SDL_Event& ev)

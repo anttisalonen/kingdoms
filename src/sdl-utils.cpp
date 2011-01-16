@@ -192,6 +192,10 @@ int sdl_init_all()
 		fprintf(stderr, "Unable to init SDL: %s\n", SDL_GetError());
 		return 1;
 	}
+	if(SDL_EnableUNICODE(1) == -1) {
+		fprintf(stderr, "Unable to enable Unicode: %s\n", SDL_GetError());
+		return 1;
+	}
 #ifdef __WIN32__
 	freopen("CON", "w", stdout);
 	freopen("CON", "w", stderr);

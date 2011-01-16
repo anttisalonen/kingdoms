@@ -1,3 +1,4 @@
+#include <boost/bind.hpp>
 #include "gui-utils.h"
 
 int button::draw_surface(SDL_Surface* screen, SDL_Surface* surf)
@@ -493,4 +494,96 @@ int window::num_subwindows() const
 {
 	return subwindows.size();
 }
+
+input_text_window::input_text_window(SDL_Surface* screen_, gui_data& data_,
+		gui_resources& res_,
+		const rect& rect_,
+		const std::string& info_string_,
+		const std::string& default_string,
+		const color& bg_color_,
+		const color& button_color_,
+		const color& button_text_color_,
+		boost::function<int(const std::string&)> on_ok_,
+		boost::function<int(const std::string&)> on_cancel_)
+	: window(screen_, data_, res_),
+	dims(rect_),
+	text(default_string),
+	info_string(info_string_),
+	bg_color(bg_color_),
+	text_color(button_text_color_),
+	button_color(button_color_),
+	on_ok_func(on_ok_),
+	on_cancel_func(on_cancel_)
+{
+	buttons.push_back(new plain_button(rect(dims.x + dims.w - 100,
+					dims.y + dims.h - 20,
+					46, 16), "OK", &res.font,
+					button_color, text_color,
+					boost::bind(&input_text_window::on_ok, this)));
+	buttons.push_back(new plain_button(rect(dims.x + dims.w - 50,
+					dims.y + dims.h - 20,
+					46, 16), "Cancel", &res.font,
+					button_color, text_color,
+					boost::bind(&input_text_window::on_cancel, this)));
+}
+
+int input_text_window::on_ok()
+{
+	return on_ok_func(text);
+}
+
+int input_text_window::on_cancel()
+{
+	return on_cancel_func(text);
+}
+
+int input_text_window::handle_window_input(const SDL_Event& ev)
+{
+	if(ev.type == SDL_MOUSEBUTTONDOWN) {
+		return check_button_click(buttons, ev);
+	}
+	else if(ev.type == SDL_KEYDOWN) {
+		if(ev.key.keysym.sym == SDLK_ESCAPE) {
+			return on_cancel_func(text);
+		}
+		else if(ev.key.keysym.sym == SDLK_KP_ENTER ||
+				ev.key.keysym.sym == SDLK_RETURN) {
+			return on_ok_func(text);
+		}
+		else if(ev.key.keysym.unicode >= 32 && ev.key.keysym.unicode < 127) {
+			// only ASCII for now
+			text += (char)ev.key.keysym.unicode;
+		}
+		else if(ev.key.keysym.unicode == 8 && !text.empty()) {
+			// backspace
+			text.resize(text.size() - 1);
+		}
+	}
+	return 0;
+}
+
+int input_text_window::draw_window()
+{
+	draw_plain_rectangle(screen, dims.x, dims.y, dims.w, dims.h, bg_color);
+	if(!info_string.empty())
+		draw_text(screen, &res.font, info_string.c_str(), dims.x + 6,
+				dims.y + 6, text_color.r, text_color.g, text_color.b, false);
+	draw_plain_rectangle(screen, dims.x + 4, dims.y + dims.h - 40, dims.w - 8, 16, button_color);
+	if(!text.empty())
+		draw_text(screen, &res.font, text.c_str(), dims.x + 6,
+				dims.y + dims.h - 38, text_color.r, text_color.g, text_color.b, false);
+	std::for_each(buttons.begin(),
+			buttons.end(),
+			std::bind2nd(std::mem_fun(&button::draw), screen));
+	if(SDL_Flip(screen)) {
+		fprintf(stderr, "Unable to flip: %s\n", SDL_GetError());
+	}
+	return 0;
+}
+
+int empty_click_handler(const std::string& s)
+{
+	return 1;
+}
+
 

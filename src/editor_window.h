@@ -17,11 +17,13 @@ class editor_window : public main_window {
 		void modify_map(int x, int y);
 		int on_terrain_button(int val);
 		int on_size_button(int val);
+		int on_save(const std::string& s);
 		int chosen_terrain;
 		int brush_size;
 		const int sidebar_terrain_xstart;
 		const int sidebar_terrain_ystart;
 		std::list<button*> sidebar_buttons;
+		std::string saved_filename;
 };
 
 #endif
