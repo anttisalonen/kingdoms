@@ -501,19 +501,20 @@ input_text_window::input_text_window(SDL_Surface* screen_, gui_data& data_,
 		const std::string& info_string_,
 		const std::string& default_string,
 		const color& bg_color_,
-		const color& button_color_,
+		const color& button_color,
 		const color& button_text_color_,
 		boost::function<int(const std::string&)> on_ok_,
 		boost::function<int(const std::string&)> on_cancel_)
 	: window(screen_, data_, res_),
 	dims(rect_),
-	text(default_string),
 	info_string(info_string_),
 	bg_color(bg_color_),
 	text_color(button_text_color_),
-	button_color(button_color_),
 	on_ok_func(on_ok_),
-	on_cancel_func(on_cancel_)
+	on_cancel_func(on_cancel_),
+	tb(&res_.font, rect(dims.x + 4, dims.y + dims.h - 40,
+				dims.w - 8, 16),
+			button_color, text_color, default_string)
 {
 	buttons.push_back(new plain_button(rect(dims.x + dims.w - 100,
 					dims.y + dims.h - 20,
@@ -529,12 +530,12 @@ input_text_window::input_text_window(SDL_Surface* screen_, gui_data& data_,
 
 int input_text_window::on_ok()
 {
-	return on_ok_func(text);
+	return on_ok_func(tb.get_text());
 }
 
 int input_text_window::on_cancel()
 {
-	return on_cancel_func(text);
+	return on_cancel_func(tb.get_text());
 }
 
 int input_text_window::handle_window_input(const SDL_Event& ev)
@@ -544,21 +545,14 @@ int input_text_window::handle_window_input(const SDL_Event& ev)
 	}
 	else if(ev.type == SDL_KEYDOWN) {
 		if(ev.key.keysym.sym == SDLK_ESCAPE) {
-			return on_cancel_func(text);
+			return on_cancel_func(tb.get_text());
 		}
 		else if(ev.key.keysym.sym == SDLK_KP_ENTER ||
 				ev.key.keysym.sym == SDLK_RETURN) {
-			return on_ok_func(text);
-		}
-		else if(ev.key.keysym.unicode >= 32 && ev.key.keysym.unicode < 127) {
-			// only ASCII for now
-			text += (char)ev.key.keysym.unicode;
-		}
-		else if(ev.key.keysym.unicode == 8 && !text.empty()) {
-			// backspace
-			text.resize(text.size() - 1);
+			return on_ok_func(tb.get_text());
 		}
 	}
+	tb.handle_input(ev);
 	return 0;
 }
 
@@ -568,10 +562,7 @@ int input_text_window::draw_window()
 	if(!info_string.empty())
 		draw_text(screen, &res.font, info_string.c_str(), dims.x + 6,
 				dims.y + 6, text_color.r, text_color.g, text_color.b, false);
-	draw_plain_rectangle(screen, dims.x + 4, dims.y + dims.h - 40, dims.w - 8, 16, button_color);
-	if(!text.empty())
-		draw_text(screen, &res.font, text.c_str(), dims.x + 6,
-				dims.y + dims.h - 38, text_color.r, text_color.g, text_color.b, false);
+	tb.draw(screen);
 	std::for_each(buttons.begin(),
 			buttons.end(),
 			std::bind2nd(std::mem_fun(&button::draw), screen));
@@ -586,4 +577,43 @@ int empty_click_handler(const std::string& s)
 	return 1;
 }
 
+textbox::textbox(const TTF_Font* font_, const rect& dim_,
+		const color& bg_color_, const color& text_color_,
+		const std::string& default_string_)
+	: font(font_),
+	dim(dim_),
+	bg_color(bg_color_),
+	text_color(text_color_),
+	text(default_string_)
+{
+}
+
+int textbox::draw(SDL_Surface* screen)
+{
+	draw_plain_rectangle(screen, dim.x, dim.y, dim.w, dim.h, bg_color);
+	if(!text.empty())
+		draw_text(screen, font, text.c_str(), dim.x + 2,
+				dim.y + 2, text_color.r, text_color.g, text_color.b, false);
+	return 0;
+}
+
+int textbox::handle_input(const SDL_Event& ev)
+{
+	if(ev.type == SDL_KEYDOWN) {
+		if(ev.key.keysym.unicode >= 32 && ev.key.keysym.unicode < 127) {
+			// only ASCII for now
+			text += (char)ev.key.keysym.unicode;
+		}
+		else if(ev.key.keysym.unicode == 8 && !text.empty()) {
+			// backspace
+			text.resize(text.size() - 1);
+		}
+	}
+	return 0;
+}
+
+const std::string& textbox::get_text() const
+{
+	return text;
+}
 

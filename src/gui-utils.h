@@ -104,6 +104,30 @@ class window {
 		std::list<window*> subwindows;
 };
 
+class widget {
+	public:
+		widget() { }
+		virtual ~widget() { }
+		virtual int draw(SDL_Surface* screen) = 0;
+		virtual int handle_input(const SDL_Event& ev) = 0;
+};
+
+class textbox : public widget {
+	public:
+		textbox(const TTF_Font* font_, const rect& dim_,
+				const color& bg_color_, const color& text_color_,
+				const std::string& default_string_);
+		int draw(SDL_Surface* screen);
+		int handle_input(const SDL_Event& ev);
+		const std::string& get_text() const;
+	private:
+		const TTF_Font* font;
+		rect dim;
+		color bg_color;
+		color text_color;
+		std::string text;
+};
+
 class input_text_window : public window {
 	public:
 		input_text_window(SDL_Surface* screen_, gui_data& data_,
@@ -112,7 +136,7 @@ class input_text_window : public window {
 				const std::string& info_string_,
 				const std::string& default_string,
 				const color& bg_color_,
-				const color& button_color_,
+				const color& button_color,
 				const color& button_text_color_,
 				boost::function<int(const std::string&)> on_ok_,
 				boost::function<int(const std::string&)> on_cancel_);
@@ -123,14 +147,13 @@ class input_text_window : public window {
 		int on_ok();
 		int on_cancel();
 		rect dims;
-		std::string text;
 		std::string info_string;
 		std::list<button*> buttons;
 		color bg_color;
 		color text_color;
-		color button_color;
 		boost::function<int(const std::string&)> on_ok_func;
 		boost::function<int(const std::string&)> on_cancel_func;
+		textbox tb;
 };
 
 int empty_click_handler(const std::string& s);
