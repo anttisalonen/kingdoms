@@ -84,11 +84,13 @@ bool load_game(const char* filename, pompelmous& g)
 	}
 }
 
-int save_map(const char* filename, const map& m)
+int save_map(const char* fn, const map& m)
 {
-	std::string path = path_to_saved_games();
-	path += std::string(filename);
-	std::ofstream ofs(path.c_str());
+	char filename[256];
+	snprintf(filename, 256, "%s%s%s",
+			path_to_saved_games().c_str(),
+			fn, MAP_FILE_EXTENSION);
+	std::ofstream ofs(filename);
 	boost::archive::text_oarchive oa(ofs);
 	oa << m;
 	return 0;

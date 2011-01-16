@@ -416,6 +416,7 @@ class main_menu : public menu {
 		enum main_menu_selection {
 			main_menu_start,
 			main_menu_load,
+			main_menu_map,
 			main_menu_quit,
 		};
 
@@ -468,14 +469,18 @@ void main_menu::setup_buttons()
 	plain_button* start_button = new plain_button(rect(312, 400, 400, 60),
 			"Start new game", font, color(40, 30, 10),
 			color(200, 200, 200), boost::bind(&main_menu::start_game_button, this, main_menu_start));
-	plain_button* load_button = new plain_button(rect(312, 500, 400, 60),
+	plain_button* load_button = new plain_button(rect(312, 480, 400, 60),
 			"Load game", font, color(40, 30, 10),
 			color(200, 200, 200), boost::bind(&main_menu::start_game_button, this, main_menu_load));
-	plain_button* quit_button = new plain_button(rect(312, 600, 400, 60),
+	plain_button* map_button = new plain_button(rect(312, 560, 400, 60),
+			"Load map", font, color(40, 30, 10),
+			color(200, 200, 200), boost::bind(&main_menu::start_game_button, this, main_menu_map));
+	plain_button* quit_button = new plain_button(rect(312, 640, 400, 60),
 			"Quit", font, color(40, 30, 10),
 			color(200, 200, 200), boost::bind(&main_menu::quit_button, this));
 	buttons.push_back(start_button);
 	buttons.push_back(load_button);
+	buttons.push_back(map_button);
 	buttons.push_back(quit_button);
 }
 
@@ -494,12 +499,15 @@ int main_menu::quit_button()
 class load_menu : public menu {
 	public:
 		load_menu(SDL_Surface* screen_,
-				TTF_Font* font_) : 
+				TTF_Font* font_,
+				bool load_map_) : 
 			menu(screen_, font_), 
-			load_successful(false)
+			load_successful(false),
+			want_map(load_map_)
 	{
 	}
 		pompelmous* get_loaded_game();
+		map* get_loaded_map();
 	protected:
 		void draw_background();
 		void setup_buttons();
@@ -507,13 +515,23 @@ class load_menu : public menu {
 		int load_game_button(const std::string& fn);
 		int cancel_load_game();
 		pompelmous loaded;
+		map loaded_map;
 		bool load_successful;
+		bool want_map;
 };
 
 pompelmous* load_menu::get_loaded_game()
 {
-	if(load_successful)
+	if(load_successful && !want_map)
 		return &loaded;
+	else
+		return NULL;
+}
+
+map* load_menu::get_loaded_map()
+{
+	if(load_successful && want_map)
+		return &loaded_map;
 	else
 		return NULL;
 }
@@ -537,14 +555,16 @@ void load_menu::setup_buttons()
 	rect fn_rect(320, 220, 360, 30);
 
 	if(exists(svg_path)) {
-		std::string save_file_ext = SAVE_FILE_EXTENSION;
+		std::string ext = want_map ?
+			MAP_FILE_EXTENSION :
+			SAVE_FILE_EXTENSION;
 		std::vector<path> filenames;
 		for (directory_iterator itr(svg_path);
 				itr != end_itr;
 				++itr) {
 			if(is_regular_file(itr->status())) {
 				if(boost::algorithm::to_lower_copy(itr->path().extension().string()) 
-						== save_file_ext)
+						== ext)
 					filenames.push_back(itr->path());
 			}
 		}
@@ -576,7 +596,9 @@ void load_menu::setup_buttons()
 
 int load_menu::load_game_button(const std::string& fn)
 {
-	load_successful = load_game(fn.c_str(), loaded);
+	load_successful = want_map ?
+		load_map(fn.c_str(), loaded_map) :
+	       	load_game(fn.c_str(), loaded);
 	return 1;
 }
 
@@ -585,38 +607,19 @@ int load_menu::cancel_load_game()
 	return 1;
 }
 
-int run_loaded_gamedata()
+int run_with_map(map& m)
 {
-	load_menu l(screen, font);
-	l.run();
-	pompelmous* r = l.get_loaded_game();
-	if(r) {
-		run_game(*r);
-		return 0;
-	}
-	else {
-		return 1;
-	}
-}
-
-int run_gamedata()
-{
-	const int map_x = 80;
-	const int map_y = 60;
 	const int road_moves = 3;
 	const unsigned int food_eaten_per_citizen = 2;
 	const int num_turns = 300;
 
-	resource_configuration resconf = parse_terrain_config(KINGDOMS_RULESDIR "terrain.txt");
 	std::vector<civilization*> civs;
 	civs = parse_civs_config(KINGDOMS_RULESDIR "civs.txt");
 	unit_configuration_map uconfmap = parse_unit_config(KINGDOMS_RULESDIR "units.txt");
 	advance_map amap = parse_advance_config(KINGDOMS_RULESDIR "discoveries.txt");
 	city_improv_map cimap = parse_city_improv_config(KINGDOMS_RULESDIR "improvs.txt");
 	government_map govmap = parse_government_config(KINGDOMS_RULESDIR "governments.txt");
-	resource_map rmap = parse_resource_config(KINGDOMS_RULESDIR "resources.txt");
-	map m(map_x, map_y, resconf, rmap);
-	m.create();
+
 	for(unsigned int i = 0; i < civs.size(); i++) {
 		civs[i]->set_map(&m);
 		civs[i]->set_government(&govmap.begin()->second);
@@ -646,6 +649,44 @@ int run_gamedata()
 		delete civs[i];
 	}
 	return ret;
+}
+
+int run_gamedata()
+{
+	const int map_x = 80;
+	const int map_y = 60;
+
+	resource_configuration resconf = parse_terrain_config(KINGDOMS_RULESDIR "terrain.txt");
+	resource_map rmap = parse_resource_config(KINGDOMS_RULESDIR "resources.txt");
+	map m(map_x, map_y, resconf, rmap);
+	m.create();
+	return run_with_map(m);
+}
+
+int run_loaded_gamedata(bool want_map)
+{
+	load_menu l(screen, font, want_map);
+	l.run();
+	if(!want_map) {
+		pompelmous* r = l.get_loaded_game();
+		if(r) {
+			run_game(*r);
+			return 0;
+		}
+		else {
+			return 1;
+		}
+	}
+	else {
+		map* m = l.get_loaded_map();
+		if(m) {
+			run_with_map(*m);
+			return 0;
+		}
+		else {
+			return 1;
+		}
+	}
 }
 
 void setup_seed()
@@ -687,7 +728,11 @@ void run_mainmenu()
 						break;
 					case main_menu::main_menu_load:
 						setup_seed();
-						run_loaded_gamedata();
+						run_loaded_gamedata(false);
+						break;
+					case main_menu::main_menu_map:
+						setup_seed();
+						run_loaded_gamedata(true);
 						break;
 					default:
 						running = false;

@@ -89,7 +89,7 @@ int editor_window::handle_input_gui_mod(const SDL_Event& ev)
 			{
 				SDLKey k = ev.key.keysym.sym;
 				if(k == SDLK_s && (ev.key.keysym.mod & KMOD_CTRL)) {
-					save_map("editor.map", data.m);
+					save_map("editor", data.m);
 				}
 				if(k == SDLK_q || k == SDLK_ESCAPE) {
 					return 1;

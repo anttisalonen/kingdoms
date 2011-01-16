@@ -5,6 +5,7 @@
 #include "pompelmous.h"
 
 #define SAVE_FILE_EXTENSION	".game"
+#define MAP_FILE_EXTENSION	".map"
 
 std::string path_to_saved_games();
 int save_game(const char* save_suffix, const pompelmous& g);
