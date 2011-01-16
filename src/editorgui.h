@@ -7,7 +7,7 @@
 class editorgui : public mapview
 {
 	public:
-		editorgui(SDL_Surface* screen, const map& mm, pompelmous& rr,
+		editorgui(SDL_Surface* screen, map& mm, pompelmous& rr,
 				const gui_resource_files& resfiles,
 				const TTF_Font& font_);
 		~editorgui();

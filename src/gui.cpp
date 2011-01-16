@@ -1,6 +1,6 @@
 #include "gui.h"
 
-gui::gui(SDL_Surface* screen_, const map& mm, pompelmous& rr,
+gui::gui(SDL_Surface* screen_, map& mm, pompelmous& rr,
 		const gui_resource_files& resfiles,
 		const TTF_Font& font_,
 		ai* ai_,

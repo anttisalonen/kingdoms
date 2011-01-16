@@ -624,7 +624,7 @@ int run_gamedata()
 	pompelmous r(uconfmap, amap, cimap, &m, road_moves,
 			food_eaten_per_citizen, num_turns);
 
-	std::vector<coord> starting_places = m.get_starting_places(civs.size());
+	std::vector<coord> starting_places = m.random_starting_places(civs.size());
 	if(starting_places.size() != civs.size()) {
 		printf("Could find only %d starting places (instead of %d).\n",
 				starting_places.size(), civs.size());

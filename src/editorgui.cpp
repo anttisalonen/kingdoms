@@ -1,6 +1,6 @@
 #include "editorgui.h"
 
-editorgui::editorgui(SDL_Surface* screen_, const map& mm, pompelmous& rr,
+editorgui::editorgui(SDL_Surface* screen_, map& mm, pompelmous& rr,
 		const gui_resource_files& resfiles,
 		const TTF_Font& font_)
 	: mapview(screen_, mm, rr, resfiles, font_),
@@ -20,7 +20,6 @@ int editorgui::display()
 
 int editorgui::handle_input(const SDL_Event& ev)
 {
-	ew.draw();
 	return ew.handle_input(ev);
 }
 

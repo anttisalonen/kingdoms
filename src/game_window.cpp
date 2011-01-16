@@ -28,28 +28,12 @@ game_window::~game_window()
 	clear_action_buttons();
 }
 
-int game_window::draw_window()
+void game_window::post_draw()
 {
-	if (SDL_MUSTLOCK(screen)) {
-		if (SDL_LockSurface(screen) < 0) {
-			return 1;
-		}
-	}
-	draw_sidebar();
-	clear_main_map();
-	draw_main_map();
 	if(!blink_unit && current_unit != myciv->units.end()) {
 		draw_unit(current_unit->second);
 	}
 	draw_overlays();
-	if (SDL_MUSTLOCK(screen)) {
-		SDL_UnlockSurface(screen);
-	}
-	if(SDL_Flip(screen)) {
-		fprintf(stderr, "Unable to flip: %s\n", SDL_GetError());
-		return 1;
-	}
-	return 0;
 }
 
 char game_window::fog_on_tile(int x, int y) const
@@ -107,6 +91,7 @@ int game_window::process(int ms)
 
 int game_window::handle_window_input(const SDL_Event& ev)
 {
+	main_window::handle_window_input(ev);
 	city* c = NULL;
 	action a = internal_ai ? observer_action(ev) : input_to_action(ev);
 	int was_action = try_perform_action(a, &c);
@@ -124,7 +109,6 @@ int game_window::handle_window_input(const SDL_Event& ev)
 
 void game_window::handle_input_gui_mod(const SDL_Event& ev, city** c)
 {
-	main_window::handle_input_gui_mod(ev);
 	switch(ev.type) {
 		case SDL_KEYDOWN:
 			{
@@ -203,21 +187,8 @@ void game_window::get_next_free_unit()
 	current_unit = myciv->units.end();
 }
 
-int game_window::clear_sidebar() const
+void game_window::draw_sidebar()
 {
-	SDL_Rect dest;
-	dest.x = 0;
-	dest.y = 0;
-	dest.w = sidebar_size * tile_w;
-	dest.h = screen->h;
-	Uint32 color = SDL_MapRGB(screen->format, 0, 0, 0);
-	SDL_FillRect(screen, &dest, color);
-	return 0;
-}
-
-int game_window::draw_sidebar() const
-{
-	clear_sidebar();
 	draw_minimap();
 	draw_civ_info();
 	if(!internal_ai && current_unit != myciv->units.end())
@@ -225,7 +196,6 @@ int game_window::draw_sidebar() const
 	else
 		draw_eot();
 	display_tile_info();
-	return 0;
 }
 
 int game_window::draw_civ_info() const

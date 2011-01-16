@@ -368,7 +368,7 @@ gui_resources::~gui_resources()
 	}
 }
 
-gui_data::gui_data(const map& mm, pompelmous& rr)
+gui_data::gui_data(map& mm, pompelmous& rr)
 	: m(mm),
 	r(rr)
 {

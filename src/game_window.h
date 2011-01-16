@@ -8,7 +8,6 @@ class game_window : public main_window {
 		game_window(SDL_Surface* screen_, gui_data& data_, gui_resources& res_,
 				ai* ai_, civilization* myciv_);
 		~game_window();
-		int draw_window();
 		int process(int ms);
 		int handle_window_input(const SDL_Event& ev);
 		void init_turn();
@@ -18,9 +17,10 @@ class game_window : public main_window {
 		bool city_info_available(const city& c) const;
 		bool can_draw_unit(const unit* u) const;
 		const std::set<unsigned int>* discovered_advances() const;
+		void post_draw();
+		void draw_sidebar();
 	private:
 		void get_next_free_unit();
-		int draw_sidebar() const;
 		int draw_civ_info() const;
 		int draw_unit_info() const;
 		int draw_eot() const;

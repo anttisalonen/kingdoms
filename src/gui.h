@@ -19,7 +19,7 @@
 class gui : public mapview, public action_listener
 {
 	public:
-		gui(SDL_Surface* screen, const map& mm, pompelmous& rr,
+		gui(SDL_Surface* screen, map& mm, pompelmous& rr,
 				const gui_resource_files& resfiles,
 				const TTF_Font& font_,
 				ai* ai_,

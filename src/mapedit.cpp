@@ -46,6 +46,13 @@ void run_editor()
 		SDL_Event event;
 		while(SDL_PollEvent(&event)) {
 			switch(event.type) {
+				case SDL_KEYDOWN:
+				case SDL_MOUSEMOTION:
+				case SDL_MOUSEBUTTONDOWN:
+				case SDL_MOUSEBUTTONUP:
+					if(v.handle_input(event))
+						running = false;
+					break;
 				case SDL_QUIT:
 					running = false;
 				default:

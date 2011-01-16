@@ -28,9 +28,12 @@ class main_window : public window {
 		virtual bool city_info_available(const city& c) const;
 		virtual bool can_draw_unit(const unit* u) const;
 		virtual const std::set<unsigned int>* discovered_advances() const;
+		virtual void post_draw();
+		virtual void draw_sidebar();
 		void handle_input_gui_mod(const SDL_Event& ev);
 		int draw_main_map();
 		int draw_unit(const unit* u);
+		void clear_sidebar();
 		color get_minimap_color(int x, int y) const;
 		int draw_minimap() const;
 		int clear_main_map() const;

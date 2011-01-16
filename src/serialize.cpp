@@ -84,3 +84,28 @@ bool load_game(const char* filename, pompelmous& g)
 	}
 }
 
+int save_map(const char* filename, const map& m)
+{
+	std::string path = path_to_saved_games();
+	path += std::string(filename);
+	std::ofstream ofs(path.c_str());
+	boost::archive::text_oarchive oa(ofs);
+	oa << m;
+	return 0;
+}
+
+bool load_map(const char* filename, map& m)
+{
+	try {
+		std::ifstream ifs(filename);
+		boost::archive::text_iarchive ia(ifs);
+		ia >> m;
+		return true;
+	}
+	catch(boost::archive::archive_exception& e) {
+		fprintf(stderr, "Could not load map %s: %s.\n",
+				filename, e.what());
+		return false;
+	}
+}
+

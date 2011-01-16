@@ -386,6 +386,11 @@ int map::get_data(int x, int y) const
 	return *v;
 }
 
+void map::set_data(int x, int y, int terr)
+{
+	data.set(wrap_x(x), wrap_y(y), terr);
+}
+
 unsigned int map::get_resource(int x, int y) const
 {
 	const int* v = res_map.get(wrap_x(x), wrap_y(y));
@@ -394,12 +399,22 @@ unsigned int map::get_resource(int x, int y) const
 	return *v;
 }
 
+void map::set_resource(int x, int y, int res)
+{
+	res_map.set(wrap_x(x), wrap_y(y), res);
+}
+
 bool map::has_river(int x, int y) const
 {
 	const bool* v = river_map.get(wrap_x(x), wrap_y(y));
 	if(!v)
 		return 0;
 	return *v;
+}
+
+void map::set_river(int x, int y, bool riv)
+{
+	river_map.set(wrap_x(x), wrap_y(y), riv);
 }
 
 int map::size_x() const
@@ -640,7 +655,7 @@ void map::remove_civ_land(unsigned int civ_id)
 	}
 }
 
-std::vector<coord> map::get_starting_places(int num) const
+std::vector<coord> map::random_starting_places(int num) const
 {
 	std::vector<coord> retval;
 	int tries = 0;
@@ -690,6 +705,37 @@ std::vector<coord> map::get_starting_places(int num) const
 		}
 	}
 	return retval;
+}
+
+void map::set_starting_places(const std::vector<coord>& sp)
+{
+	starting_places = sp;
+}
+
+std::vector<coord> map::get_starting_places() const
+{
+	return starting_places;
+}
+
+void map::add_starting_place(const coord& c)
+{
+	for(unsigned int i = 0; i < starting_places.size(); i++) {
+		if(starting_places[i] == c)
+			return;
+	}
+	starting_places.push_back(c);
+}
+
+void map::remove_starting_place(const coord& c)
+{
+	for(std::vector<coord>::iterator it = starting_places.begin();
+		       it != starting_places.end();
+		       ++it) {
+		if(*it == c) {
+			starting_places.erase(it);
+			return;
+		}
+	}
 }
 
 void map::get_total_city_resources(int x, int y, int* food_points, 

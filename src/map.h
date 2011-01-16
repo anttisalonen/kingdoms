@@ -22,6 +22,7 @@ class map {
 		map(); // for serialization
 		void create();
 		int get_data(int x, int y) const;
+		void set_data(int x, int y, int terr);
 		int size_x() const;
 		int size_y() const;
 		void get_resources_by_terrain(int terr, bool city, int* food, int* prod, int* comm) const;
@@ -31,9 +32,11 @@ class map {
 				int* prod_points, int* comm_points,
 				const std::set<unsigned int>* advances) const;
 		unsigned int get_resource(int x, int y) const;
+		void set_resource(int x, int y, int res);
 		void add_unit(unit* u);
 		void remove_unit(unit* u);
 		bool has_river(int x, int y) const;
+		void set_river(int x, int y, bool riv);
 		int get_spot_owner(int x, int y) const; // land, unit or city
 		int get_spot_resident(int x, int y) const; // unit or city
 		const std::list<unit*>& units_on_spot(int x, int y) const;
@@ -50,7 +53,11 @@ class map {
 		void remove_civ_land(unsigned int civ_id);
 		int wrap_x(int x) const;
 		int wrap_y(int y) const;
-		std::vector<coord> get_starting_places(int num) const;
+		std::vector<coord> random_starting_places(int num) const;
+		void set_starting_places(const std::vector<coord>& sp);
+		std::vector<coord> get_starting_places() const;
+		void add_starting_place(const coord& c);
+		void remove_starting_place(const coord& c);
 		bool x_wrapped() const;
 		bool y_wrapped() const;
 		bool can_found_city_on(int x, int y) const;
@@ -84,6 +91,7 @@ class map {
 		buf2d<int> improv_map;
 		buf2d<int> res_map;
 		buf2d<bool> river_map;
+		std::vector<coord> starting_places;
 	public:
 		const resource_configuration resconf;
 		const resource_map rmap;

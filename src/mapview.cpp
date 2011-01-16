@@ -1,6 +1,6 @@
 #include "mapview.h"
 
-mapview::mapview(SDL_Surface* screen_, const map& mm, pompelmous& rr,
+mapview::mapview(SDL_Surface* screen_, map& mm, pompelmous& rr,
 		const gui_resource_files& resfiles,
 		const TTF_Font& font_)
 	: screen(screen_),

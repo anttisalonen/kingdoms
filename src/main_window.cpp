@@ -27,8 +27,13 @@ int main_window::draw_window()
 			return 1;
 		}
 	}
+	if(sidebar_size > 0) {
+		clear_sidebar();
+		draw_sidebar();
+	}
 	clear_main_map();
 	draw_main_map();
+	post_draw();
 	if (SDL_MUSTLOCK(screen)) {
 		SDL_UnlockSurface(screen);
 	}
@@ -37,6 +42,25 @@ int main_window::draw_window()
 		return 1;
 	}
 	return 0;
+}
+
+void main_window::post_draw()
+{
+}
+
+void main_window::draw_sidebar()
+{
+}
+
+void main_window::clear_sidebar()
+{
+	SDL_Rect dest;
+	dest.x = 0;
+	dest.y = 0;
+	dest.w = sidebar_size * tile_w;
+	dest.h = screen->h;
+	Uint32 color = SDL_MapRGB(screen->format, 0, 0, 0);
+	SDL_FillRect(screen, &dest, color);
 }
 
 int main_window::clear_main_map() const
@@ -411,7 +435,6 @@ int main_window::process(int ms)
 int main_window::handle_window_input(const SDL_Event& ev)
 {
 	handle_input_gui_mod(ev);
-	draw();
 	return 0;
 }
 
@@ -428,6 +451,10 @@ void main_window::handle_input_gui_mod(const SDL_Event& ev)
 			break;
 		case SDL_MOUSEBUTTONDOWN:
 			handle_mouse_down(ev);
+			break;
+		case SDL_MOUSEMOTION:
+			if(mouse_down_sqx >= 0)
+				mouse_coord_to_tiles(ev.motion.x, ev.motion.y, &mouse_down_sqx, &mouse_down_sqy);
 			break;
 		case SDL_MOUSEBUTTONUP:
 			handle_mouse_up(ev);
