@@ -16,8 +16,9 @@ class editor_window : public main_window {
 		int handle_mousemotion(const SDL_Event& ev);
 		void modify_map(int x, int y);
 		int on_terrain_button(int val);
+		int on_size_button(int val);
 		int chosen_terrain;
-		int timer;
+		int brush_size;
 		const int sidebar_terrain_xstart;
 		const int sidebar_terrain_ystart;
 		std::list<button*> sidebar_buttons;
