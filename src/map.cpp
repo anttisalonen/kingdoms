@@ -399,7 +399,7 @@ unsigned int map::get_resource(int x, int y) const
 	return *v;
 }
 
-void map::set_resource(int x, int y, int res)
+void map::set_resource(int x, int y, unsigned int res)
 {
 	res_map.set(wrap_x(x), wrap_y(y), res);
 }

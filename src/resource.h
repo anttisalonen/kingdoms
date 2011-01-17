@@ -18,6 +18,7 @@ struct resource {
 	unsigned int needed_advance;
 	unsigned int terrain[max_num_resource_terrains];
 	unsigned int terrain_abundance[max_num_resource_terrains];
+	bool allowed_on(unsigned int t) const;
 
 	friend class boost::serialization::access;
 	template<class Archive>

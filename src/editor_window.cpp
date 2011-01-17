@@ -6,13 +6,16 @@
 editor_window::editor_window(SDL_Surface* screen_, gui_data& data_, gui_resources& res_)
 	: main_window(screen_, data_, res_, 4),
 	chosen_terrain(2),
+	chosen_resource(0),
 	brush_size(1),
 	sidebar_terrain_xstart(10),
 	sidebar_terrain_ystart(80)
 {
+	// terrain buttons
 	int xpos = sidebar_terrain_xstart;
 	int ypos = sidebar_terrain_ystart;
-	for(int i = 0; !data.m.resconf.resource_name[i].empty(); i++) {
+	int i;
+	for(i = 0; !data.m.resconf.resource_name[i].empty(); i++) {
 		rect button_dim(xpos, ypos, tile_w, tile_h);
 		sidebar_buttons.push_back(new texture_button(std::string(""), button_dim,
 						res.terrains.textures[i],
@@ -25,9 +28,36 @@ editor_window::editor_window(SDL_Surface* screen_, gui_data& data_, gui_resource
 			xpos += tile_w;
 		}
 	}
+
+	// resource buttons
 	xpos = sidebar_terrain_xstart;
-	ypos = sidebar_terrain_ystart + tile_h * (1 + (num_terrain_types + 2) / 3);
-	for(int i = 1; i <= 5; i += 2) {
+	ypos += tile_h * 2;
+	i = 0;
+	sidebar_resource_ystart = ypos;
+	for(resource_map::const_iterator it = data.m.rmap.begin();
+			it != data.m.rmap.end();
+			++it, i++) {
+		rect button_dim(xpos, ypos, tile_w, tile_h);
+		std::map<unsigned int, SDL_Surface*>::const_iterator rit = res.resource_images.find(it->first);
+		if(rit != res.resource_images.end()) {
+			sidebar_buttons.push_back(new texture_button(std::string(""), button_dim,
+						rit->second,
+						boost::bind(&editor_window::on_resource_button, this, it)));
+			if((i % 3) == 2) {
+				ypos += tile_h;
+				xpos = sidebar_terrain_xstart;
+			}
+			else {
+				xpos += tile_w;
+			}
+		}
+	}
+
+	// brush size buttons
+	xpos = sidebar_terrain_xstart;
+	ypos += tile_h * 2;
+	sidebar_brush_size_ystart = ypos;
+	for(i = 1; i <= 5; i += 2) {
 		rect button_dim(xpos, ypos, tile_w, tile_h);
 		char buf[256];
 		snprintf(buf, 255, "%dx%d", i, i);
@@ -47,9 +77,17 @@ editor_window::~editor_window()
 	}
 }
 
+int editor_window::on_resource_button(resource_map::const_iterator it)
+{
+	chosen_terrain = -1;
+	chosen_resource = it->first;
+	return 0;
+}
+
 int editor_window::on_terrain_button(int val)
 {
 	chosen_terrain = val;
+	chosen_resource = 0;
 	return 0;
 }
 
@@ -66,14 +104,21 @@ void editor_window::draw_sidebar()
 			sidebar_buttons.end(),
 			std::bind2nd(std::mem_fun(&button::draw), screen));
 
-	// chosen terrain
-	draw_rect(sidebar_terrain_xstart + (tile_w * (chosen_terrain % 3)),
-			sidebar_terrain_ystart + (tile_h * (chosen_terrain / 3)),
-			tile_w, tile_h, color(255, 255, 255), 1, screen);
+	if(chosen_terrain >= 0) {
+		draw_rect(sidebar_terrain_xstart + (tile_w * (chosen_terrain % 3)),
+				sidebar_terrain_ystart + (tile_h * (chosen_terrain / 3)),
+				tile_w, tile_h, color(255, 255, 255), 1, screen);
+	}
+
+	if(chosen_resource > 0) {
+		draw_rect(sidebar_terrain_xstart + (tile_w * ((chosen_resource - 1) % 3)),
+				sidebar_resource_ystart + (tile_h * ((chosen_resource - 1) / 3)),
+				tile_w, tile_h, color(255, 255, 255), 1, screen);
+	}
 
 	// chosen size
 	draw_rect(sidebar_terrain_xstart + tile_w * (brush_size / 2),
-			sidebar_terrain_ystart + (tile_h * (1 + (num_terrain_types + 2) / 3)),
+			sidebar_brush_size_ystart,
 			tile_w, tile_h, color(255, 255, 255), 1, screen);
 }
 
@@ -187,20 +232,41 @@ int editor_window::handle_mouse_down(const SDL_Event& ev)
 	return 0;
 }
 
+void editor_window::set_terrain(int x, int y, int terr)
+{
+	data.m.set_data(x, y, terr);
+	unsigned int res = data.m.get_resource(x, y);
+	resource_map::const_iterator it = data.m.rmap.find(res);
+	if(it != data.m.rmap.end()) {
+		if(!it->second.allowed_on(terr))
+			data.m.set_resource(x, y, 0);
+	}
+}
+
 void editor_window::modify_map(int x, int y)
 {
 	for(int i = -(brush_size / 2); i <= brush_size / 2; i++) {
 		for(int j = -(brush_size / 2); j <= brush_size / 2; j++) {
-			data.m.set_data(x + i, y + j, chosen_terrain);
-			if(!data.m.resconf.is_water_tile(chosen_terrain)) {
-				for(int k = -1; k <= 1; k++) {
-					for(int l = -1; l <= 1; l++) {
-						int neighbour = data.m.get_data(x + i + k, y + j + l);
-						if(data.m.resconf.is_ocean_tile(neighbour)) {
-							data.m.set_data(x + i + k, y + j + l, 
+			if(chosen_terrain >= 0) {
+				data.m.set_data(x + i, y + j, chosen_terrain);
+				if(!data.m.resconf.is_water_tile(chosen_terrain)) {
+					for(int k = -1; k <= 1; k++) {
+						for(int l = -1; l <= 1; l++) {
+							int neighbour = data.m.get_data(x + i + k, y + j + l);
+							if(data.m.resconf.is_ocean_tile(neighbour)) {
+								set_terrain(x + i + k, y + j + l,
 									data.m.resconf.get_sea_tile());
+							}
 						}
 					}
+				}
+			}
+			else if(chosen_resource > 0) {
+				resource_map::const_iterator it = data.m.rmap.find(chosen_resource);
+				if(it != data.m.rmap.end()) {
+					int terr = data.m.get_data(x + i, y + j);
+					if(it->second.allowed_on(terr))
+						data.m.set_resource(x + i, y + j, chosen_resource);
 				}
 			}
 		}

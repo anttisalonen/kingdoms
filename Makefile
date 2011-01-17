@@ -20,7 +20,7 @@ SRCDIR = src
 TMPDIR = tmp
 
 LIBKINGDOMSSRCFILES = color.cpp sdl-utils.cpp utils.cpp rect.cpp \
-	   resource_configuration.cpp advance.cpp \
+	   resource_configuration.cpp resource.cpp advance.cpp \
 	   city_improvement.cpp unit.cpp \
 	   city.cpp map.cpp fog_of_war.cpp \
 	   government.cpp civ.cpp \

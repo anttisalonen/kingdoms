@@ -32,7 +32,7 @@ class map {
 				int* prod_points, int* comm_points,
 				const std::set<unsigned int>* advances) const;
 		unsigned int get_resource(int x, int y) const;
-		void set_resource(int x, int y, int res);
+		void set_resource(int x, int y, unsigned int res);
 		void add_unit(unit* u);
 		void remove_unit(unit* u);
 		bool has_river(int x, int y) const;
