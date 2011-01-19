@@ -50,8 +50,9 @@ void run_editor()
 				case SDL_MOUSEMOTION:
 				case SDL_MOUSEBUTTONDOWN:
 				case SDL_MOUSEBUTTONUP:
-					if(v.handle_input(event))
+					if(v.handle_input(event)) {
 						running = false;
+					}
 					break;
 				case SDL_QUIT:
 					running = false;
@@ -59,6 +60,7 @@ void run_editor()
 					break;
 			}
 		}
+		SDL_Delay(20);
 	}
 	for(unsigned int i = 0; i < civs.size(); i++) {
 		delete civs[i];
