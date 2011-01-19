@@ -21,6 +21,8 @@ class editor_window : public main_window {
 		int on_save(const std::string& s);
 		int on_new_map(const widget_window* w);
 		void set_terrain(int x, int y, int terr);
+		void add_load_map_subwindow();
+		int on_load_map(const std::string& s, const widget_window* w);
 		int chosen_terrain;
 		unsigned int chosen_resource;
 		int brush_size;

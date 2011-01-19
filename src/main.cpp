@@ -35,9 +35,7 @@
 #include <boost/bind/bind.hpp>
 #include <boost/algorithm/string.hpp>
 
-#define BOOST_FILESYSTEM_VERSION	3
-#include <boost/filesystem.hpp>
-
+#include "filesystem.h"
 #include "color.h"
 #include "utils.h"
 #include "sdl-utils.h"
@@ -541,49 +539,28 @@ void load_menu::draw_background()
 	draw_plain_rectangle(screen, 300, 200, 400, 420, color(220, 150, 37));
 }
 
-bool compare_filenames(const boost::filesystem::path& p1,
-		const boost::filesystem::path& p2)
-{
-	return p1.filename() > p2.filename();
-}
-
 void load_menu::setup_buttons()
 {
-	using namespace boost::filesystem;
-	path svg_path = path(path_to_saved_games());
-	directory_iterator end_itr;
+	std::vector<boost::filesystem::path> filenames = get_files_in_directory(path_to_saved_games(),
+			want_map ? MAP_FILE_EXTENSION : SAVE_FILE_EXTENSION);
+	if(!want_map)
+		std::reverse(filenames.begin(), filenames.end());
 	rect fn_rect(320, 220, 360, 30);
 
-	if(exists(svg_path)) {
-		std::string ext = want_map ?
-			MAP_FILE_EXTENSION :
-			SAVE_FILE_EXTENSION;
-		std::vector<path> filenames;
-		for (directory_iterator itr(svg_path);
-				itr != end_itr;
-				++itr) {
-			if(is_regular_file(itr->status())) {
-				if(boost::algorithm::to_lower_copy(itr->path().extension().string()) 
-						== ext)
-					filenames.push_back(itr->path());
-			}
-		}
-		std::sort(filenames.begin(), filenames.end(), compare_filenames);
-		for(std::vector<path>::const_iterator it = filenames.begin();
-				it != filenames.end();
-				++it) {
-			std::string s(it->string());
-			std::string fp(it->filename().string());
-			plain_button* load_game_button = new plain_button(fn_rect,
-					fp.c_str(), font, color(206, 187, 158),
-					color(0, 0, 0),
-					boost::bind(&load_menu::load_game_button, 
-						this, s));
-			buttons.push_back(load_game_button);
-			fn_rect.y += 35;
-			if(fn_rect.y >= 560)
-				break;
-		}
+	for(std::vector<boost::filesystem::path>::const_iterator it = filenames.begin();
+			it != filenames.end();
+			++it) {
+		std::string s(it->string());
+		std::string fp(it->stem().string());
+		plain_button* load_game_button = new plain_button(fn_rect,
+				fp.c_str(), font, color(206, 187, 158),
+				color(0, 0, 0),
+				boost::bind(&load_menu::load_game_button, 
+					this, s));
+		buttons.push_back(load_game_button);
+		fn_rect.y += 35;
+		if(fn_rect.y >= 560)
+			break;
 	}
 
 	fn_rect.y = 575;
@@ -598,7 +575,7 @@ int load_menu::load_game_button(const std::string& fn)
 {
 	load_successful = want_map ?
 		load_map(fn.c_str(), loaded_map) :
-	       	load_game(fn.c_str(), loaded);
+		load_game(fn.c_str(), loaded);
 	return 1;
 }
 

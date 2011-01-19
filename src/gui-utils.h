@@ -185,7 +185,7 @@ class widget_window : public window {
 		void set_button_color(const color& c);
 		void add_label(int x, int y, int w, int h, const std::string& text);
 		void add_numeric_textbox(int x, int y, const std::string& text, int val);
-		void add_button(int x, int y, const std::string& text,
+		void add_button(int x, int y, int w, int h, const std::string& text,
 				boost::function<int(const widget_window*)> cb);
 		void add_key_handler(SDLKey k, boost::function<int(const widget_window*)> cb);
 		std::list<numeric_textbox*> numeric_textboxes;

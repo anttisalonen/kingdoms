@@ -2,6 +2,7 @@
 #include <boost/lambda/lambda.hpp>
 #include "editor_window.h"
 #include "serialize.h"
+#include "filesystem.h"
 
 editor_window::editor_window(SDL_Surface* screen_, gui_data& data_, gui_resources& res_)
 	: main_window(screen_, data_, res_, 4),
@@ -128,6 +129,40 @@ int editor_window::handle_window_input(const SDL_Event& ev)
 	return handle_input_gui_mod(ev);
 }
 
+void editor_window::add_load_map_subwindow()
+{
+	color text_color(255, 255, 255);
+	color button_color(80, 0, 0);
+	int win_width = 200;
+	int win_height = screen->h - 200;
+	widget_window* w = new widget_window(screen, data, res,
+			rect(screen->w / 2 - 100, 100,
+				win_width, win_height),
+			color(160, 0, 0));
+	w->set_text_color(text_color);
+	w->set_button_color(button_color);
+	w->add_label(win_width / 2 - 40, 2, 80, 16, "Load map");
+	w->add_button(20, win_height - 24, win_width - 40, 16, "Cancel", widget_close);
+	w->add_key_handler(SDLK_ESCAPE, widget_close);
+
+	std::vector<boost::filesystem::path> filenames = get_files_in_directory(path_to_saved_games(),
+			MAP_FILE_EXTENSION);
+
+	int yp = 30;
+	for(std::vector<boost::filesystem::path>::const_iterator it = filenames.begin();
+			it != filenames.end();
+			++it) {
+		std::string s(it->string());
+		std::string fp(it->stem().string());
+		w->add_button(20, yp, win_width - 40, 16, fp, boost::bind(&editor_window::on_load_map, this,
+					s, boost::lambda::_1));
+		yp += 24;
+		if(yp >= win_height - 80)
+			break;
+	}
+	add_subwindow(w);
+}
+
 int editor_window::handle_input_gui_mod(const SDL_Event& ev)
 {
 	switch(ev.type) {
@@ -163,11 +198,14 @@ int editor_window::handle_input_gui_mod(const SDL_Event& ev)
 					w->add_label(2, 38, 100, 16, "Y dimension");
 					w->add_numeric_textbox(110, 20, "X dimension", 80);
 					w->add_numeric_textbox(110, 38, "Y dimension", 60);
-					w->add_button(10, 76, "OK", boost::bind(&editor_window::on_new_map,
+					w->add_button(10, 76, 80, 16, "OK", boost::bind(&editor_window::on_new_map,
 								this, boost::lambda::_1));
-					w->add_button(110, 76, "Cancel", widget_close);
+					w->add_button(110, 76, 80, 16, "Cancel", widget_close);
 					w->add_key_handler(SDLK_ESCAPE, widget_close);
 					add_subwindow(w);
+				}
+				if(k == SDLK_l && (ev.key.keysym.mod & KMOD_CTRL)) {
+					add_load_map_subwindow();
 				}
 				if(k == SDLK_q || k == SDLK_ESCAPE) {
 					return 1;
@@ -184,6 +222,13 @@ int editor_window::handle_input_gui_mod(const SDL_Event& ev)
 			break;
 	}
 	return 0;
+}
+
+int editor_window::on_load_map(const std::string& s, const widget_window* w)
+{
+	load_map(s.c_str(), data.m);
+	saved_filename = boost::filesystem::path(s).stem().string();
+	return 1;
 }
 
 int editor_window::on_new_map(const widget_window* w)

@@ -713,7 +713,8 @@ void widget_window::set_focus_widget(int x, int y)
 			it != buttons.end();
 			++it) {
 		if(in_rectangle((*it)->dim, x, y)) {
-			focus_widget = *it;
+			if((*it)->onclick)
+				focus_widget = *it;
 			return;
 		}
 	}
@@ -797,9 +798,9 @@ void widget_window::add_numeric_textbox(int x, int y, const std::string& text, i
 					text, val));
 }
 
-void widget_window::add_button(int x, int y, const std::string& text, boost::function<int(const widget_window*)> cb)
+void widget_window::add_button(int x, int y, int w, int h, const std::string& text, boost::function<int(const widget_window*)> cb)
 {
-	buttons.push_back(new plain_button(rect(dim.x + x, dim.y + y, 80, 16), text.c_str(),
+	buttons.push_back(new plain_button(rect(dim.x + x, dim.y + y, w, h), text.c_str(),
 				&res.font, button_color, text_color,
 				boost::bind(&widget_window::on_button_click, this, cb)));
 }

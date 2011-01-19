@@ -26,6 +26,7 @@ LIBKINGDOMSSRCFILES = color.cpp sdl-utils.cpp utils.cpp rect.cpp \
 	   government.cpp civ.cpp \
 	   pompelmous.cpp \
 	   serialize.cpp \
+	   filesystem.cpp \
 	   astar.cpp map-astar.cpp \
 	   parse_rules.cpp
 
