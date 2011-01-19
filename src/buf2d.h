@@ -38,7 +38,7 @@ class buf2d {
 		{
 			ar >> size_x;
 			ar >> size_y;
-			delete data;
+			delete[] data;
 			data = new N[size_x * size_y];
 			ar >> boost::serialization::make_array(data, size_x * size_y);
 		}
