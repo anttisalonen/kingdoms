@@ -13,6 +13,7 @@ class editorgui : public mapview
 		~editorgui();
 		int display();
 		int handle_input(const SDL_Event& ev);
+		bool is_quitting() const;
 	private:
 		editor_window ew;
 };

@@ -66,6 +66,8 @@ void run_editor()
 					break;
 			}
 		}
+		if(v.is_quitting())
+			running = false;
 		SDL_Delay(20);
 	}
 	for(unsigned int i = 0; i < civs.size(); i++) {

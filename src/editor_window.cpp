@@ -125,7 +125,6 @@ widget_window* editor_window::standard_popup(int win_width, int win_height) cons
 			color(160, 0, 0));
 	w->set_text_color(text_color);
 	w->set_button_color(button_color);
-	w->add_button(20, win_height - 24, win_width - 40, 16, "Cancel", widget_close);
 	w->add_key_handler(SDLK_ESCAPE, widget_close);
 	return w;
 }
@@ -136,6 +135,7 @@ int editor_window::on_startposition_button()
 	int win_width = 200;
 	widget_window* w = standard_popup(win_width, win_height);
 	w->add_label(10, 2, win_width - 20, 16, "Starting position");
+	w->add_button(20, win_height - 24, win_width - 40, 16, "Cancel", widget_close);
 	int yp = 30;
 	for(unsigned int i = 0; i < data.r.civs.size(); i++) {
 		w->add_button(2, yp, win_width - 4, 16, data.r.civs[i]->civname.c_str(),
@@ -195,18 +195,26 @@ int editor_window::handle_window_input(const SDL_Event& ev)
 	return quitting;
 }
 
+bool editor_window::is_quitting() const
+{
+	return quitting;
+}
+
 void editor_window::add_quit_confirm_subwindow()
 {
 	int win_height = 40;
 	int win_width = 200;
 	widget_window* w = standard_popup(win_width, win_height);
 	w->add_label(win_width / 2 - 40, 2, 80, 16, "Quit?");
-	w->add_button(2, 20, win_width / 2 - 4, 16, "No",
-			boost::bind(&editor_window::confirm_quit,
-				this, boost::lambda::_1));
+	w->add_button(2, 20, win_width / 2 - 4, 16, "No", widget_close);
 	w->add_button(win_width / 2 + 2, 20, win_width / 2 - 4, 16,
 			"Yes",
-			widget_close);
+			boost::bind(&editor_window::confirm_quit,
+				this, boost::lambda::_1));
+	w->add_key_handler(SDLK_y, 
+			boost::bind(&editor_window::confirm_quit,
+				this, boost::lambda::_1));
+	w->add_key_handler(SDLK_n, widget_close);
 	add_subwindow(w);
 }
 
@@ -221,6 +229,7 @@ void editor_window::add_load_map_subwindow()
 	int win_height = screen->h - 200;
 	int win_width = 200;
 	widget_window* w = standard_popup(win_width, win_height);
+	w->add_button(20, win_height - 24, win_width - 40, 16, "Cancel", widget_close);
 	w->add_label(win_width / 2 - 40, 2, 80, 16, "Load map");
 
 	std::vector<boost::filesystem::path> filenames = get_files_in_directory(path_to_saved_games(),

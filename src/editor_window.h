@@ -15,6 +15,7 @@ class editor_window : public main_window {
 		~editor_window();
 		int handle_window_input(const SDL_Event& ev);
 		bool draw_starting_positions();
+		bool is_quitting() const;
 	protected:
 		void draw_sidebar();
 	private:

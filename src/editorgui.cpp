@@ -23,3 +23,8 @@ int editorgui::handle_input(const SDL_Event& ev)
 	return ew.handle_input(ev);
 }
 
+bool editorgui::is_quitting() const
+{
+	return ew.is_quitting();
+}
+
