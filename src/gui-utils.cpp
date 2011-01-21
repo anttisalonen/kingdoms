@@ -699,9 +699,9 @@ int checkbox::draw(SDL_Surface* screen)
 {
 	draw_surface(screen, surf);
 	if(checked) {
-		draw_line(screen, dim.x, dim.y, dim.x + dim.w, dim.y + dim.h,
+		draw_line(screen, dim.x, dim.y, dim.x + dim.w - 1, dim.y + dim.h - 1,
 				frame_col);
-		draw_line(screen, dim.x + dim.w, dim.y, dim.x, dim.y + dim.h,
+		draw_line(screen, dim.x + dim.w - 1, dim.y, dim.x, dim.y + dim.h - 1,
 				frame_col);
 	}
 	return 0;
@@ -741,6 +741,10 @@ widget_window::~widget_window()
 		delete numeric_textboxes.back();
 		numeric_textboxes.pop_back();
 	}
+	while(!checkboxes.empty()) {
+		delete checkboxes.back();
+		checkboxes.pop_back();
+	}
 }
 
 void widget_window::set_focus_widget(int x, int y)
@@ -756,6 +760,15 @@ void widget_window::set_focus_widget(int x, int y)
 	}
 	for(std::list<button*>::iterator it = buttons.begin();
 			it != buttons.end();
+			++it) {
+		if(in_rectangle((*it)->dim, x, y)) {
+			if((*it)->onclick)
+				focus_widget = *it;
+			return;
+		}
+	}
+	for(std::list<checkbox*>::iterator it = checkboxes.begin();
+			it != checkboxes.end();
 			++it) {
 		if(in_rectangle((*it)->dim, x, y)) {
 			if((*it)->onclick)
@@ -797,12 +810,22 @@ int widget_window::handle_window_input(const SDL_Event& ev)
 		if((ret = (*it)->handle_input(ev)) != 0)
 			return ret;
 	}
+	for(std::list<checkbox*>::iterator it = checkboxes.begin();
+			it != checkboxes.end();
+			++it) {
+		if(focus_widget != *it)
+			continue;
+		int ret;
+		if((ret = (*it)->handle_input(ev)) != 0)
+			return ret;
+	}
 	return 0;
 }
 
 int widget_window::draw_window()
 {
 	draw_plain_rectangle(screen, dim.x, dim.y, dim.w, dim.h, bg_color);
+	std::for_each(checkboxes.begin(), checkboxes.end(), std::bind2nd(std::mem_fun(&widget::draw), screen));
 	std::for_each(numeric_textboxes.begin(), numeric_textboxes.end(), std::bind2nd(std::mem_fun(&widget::draw), screen));
 	std::for_each(buttons.begin(), buttons.end(), std::bind2nd(std::mem_fun(&widget::draw), screen));
 	if(focus_widget) {
