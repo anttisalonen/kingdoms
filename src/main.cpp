@@ -604,20 +604,31 @@ int run_with_map(map& m)
 	pompelmous r(uconfmap, amap, cimap, &m, road_moves,
 			food_eaten_per_citizen, num_turns);
 
-	std::vector<coord> starting_places = m.random_starting_places(civs.size());
-	if(starting_places.size() != civs.size()) {
-		printf("Could find only %d starting places (instead of %d).\n",
-				starting_places.size(), civs.size());
-		if(starting_places.size() < 3) {
-			exit(1);
+	std::map<int, coord> starting_places = m.get_starting_places();
+	if(starting_places.size() < 3) {
+		starting_places.clear();
+		std::vector<coord> starting_places_vect = m.random_starting_places(civs.size());
+		if(starting_places_vect.size() != civs.size()) {
+			printf("Could find only %d starting places (instead of %d).\n",
+					starting_places_vect.size(), civs.size());
+			if(starting_places_vect.size() < 3) {
+				exit(1);
+			}
+		}
+		for(unsigned int i = 0; i < starting_places_vect.size(); i++) {
+			starting_places[i] = starting_places_vect[i];
 		}
 	}
-	for(unsigned int i = 0; i < starting_places.size(); i++) {
+	for(std::map<int, coord>::const_iterator it = starting_places.begin();
+			it != starting_places.end();
+			++it) {
 		// settler
-		civs[i]->add_unit(0, starting_places[i].x, starting_places[i].y, 
+		int i = it->first;
+		const coord& c = it->second;
+		civs[i]->add_unit(0, c.x, c.y, 
 				(*(r.uconfmap.find(0))).second, road_moves);
 		// warrior
-		civs[i]->add_unit(2, starting_places[i].x, starting_places[i].y, 
+		civs[i]->add_unit(2, c.x, c.y, 
 				(*(r.uconfmap.find(2))).second, road_moves);
 		r.add_civilization(civs[i]);
 	}
