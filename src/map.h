@@ -116,6 +116,7 @@ class map {
 			ar & improv_map;
 			ar & res_map;
 			ar & river_map;
+			ar & starting_places;
 			ar & const_cast<resource_configuration&>(resconf);
 			ar & const_cast<resource_map&>(rmap);
 			ar & x_wrap;

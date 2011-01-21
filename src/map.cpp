@@ -924,6 +924,7 @@ void map::resize(int x, int y)
 	improv_map = buf2d<int>(x, y, 0);
 	res_map = buf2d<int>(x, y, 0);
 	river_map = buf2d<bool>(x, y, false);
+	starting_places.clear();
 	init_to_water();
 }
 
