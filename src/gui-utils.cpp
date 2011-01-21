@@ -673,6 +673,51 @@ int numeric_textbox::get_numeric_value() const
 	return res;
 }
 
+checkbox::checkbox(const rect& dim_,
+		const color& box_col, const color& frame_col_,
+		const std::string& name_, bool default_checked)
+	: button(name_, dim_, boost::bind(&checkbox::on_click, this)),
+	  checked(default_checked),
+	  frame_col(frame_col_)
+{
+	surf = SDL_CreateRGBSurface(SDL_SWSURFACE, dim.w,
+			dim.h, 32, rmask, gmask, bmask, 0);
+	if(!surf)
+		return;
+	Uint32 bg_col = SDL_MapRGB(surf->format, box_col.r, box_col.g, box_col.b);
+	SDL_FillRect(surf, NULL, bg_col);
+	draw_rect(0, 0, dim.w, dim.h, frame_col, 1, surf);
+}
+
+checkbox::~checkbox()
+{
+	if(surf)
+		SDL_FreeSurface(surf);
+}
+
+int checkbox::draw(SDL_Surface* screen)
+{
+	draw_surface(screen, surf);
+	if(checked) {
+		draw_line(screen, dim.x, dim.y, dim.x + dim.w, dim.y + dim.h,
+				frame_col);
+		draw_line(screen, dim.x + dim.w, dim.y, dim.x, dim.y + dim.h,
+				frame_col);
+	}
+	return 0;
+}
+
+int checkbox::on_click()
+{
+	checked = !checked;
+	return 0;
+}
+
+bool checkbox::get_checked() const
+{
+	return checked;
+}
+
 widget_window::widget_window(SDL_Surface* screen_, gui_data& data_,
 		gui_resources& res_,
 		const rect& rect_,
@@ -796,6 +841,12 @@ void widget_window::add_numeric_textbox(int x, int y, const std::string& text, i
 	numeric_textboxes.push_back(new numeric_textbox(&res.font,
 				rect(dim.x + x, dim.y + y, 80, 16), button_color, text_color,
 					text, val));
+}
+
+void widget_window::add_checkbox(int x, int y, int w, int h, const std::string& text, bool checked)
+{
+	checkboxes.push_back(new checkbox(rect(dim.x + x, dim.y + y, w, h), button_color,
+			       text_color, text, checked));
 }
 
 void widget_window::add_button(int x, int y, int w, int h, const std::string& text, boost::function<int(const widget_window*)> cb)

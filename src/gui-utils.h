@@ -129,7 +129,6 @@ class textbox : public widget {
 		std::string text;
 	private:
 		const TTF_Font* font;
-	private:
 		color bg_color;
 		color text_color;
 };
@@ -142,6 +141,21 @@ class numeric_textbox : public textbox {
 				int default_num);
 		int handle_input(const SDL_Event& ev);
 		int get_numeric_value() const;
+};
+
+class checkbox : public button {
+	public:
+		checkbox(const rect& dim_,
+				const color& box_col, const color& frame_col,
+				const std::string& name_, bool default_checked);
+		~checkbox();
+		int draw(SDL_Surface* screen);
+		bool get_checked() const;
+	private:
+		int on_click();
+		SDL_Surface* surf;
+		bool checked;
+		color frame_col;
 };
 
 class input_text_window : public window {
@@ -185,11 +199,14 @@ class widget_window : public window {
 		void set_button_color(const color& c);
 		void add_label(int x, int y, int w, int h, const std::string& text);
 		void add_numeric_textbox(int x, int y, const std::string& text, int val);
+		void add_checkbox(int x, int y, int w, int h,
+				const std::string& text, bool checked);
 		void add_button(int x, int y, int w, int h, const std::string& text,
 				boost::function<int(const widget_window*)> cb);
 		void add_key_handler(SDLKey k, boost::function<int(const widget_window*)> cb);
 		std::list<numeric_textbox*> numeric_textboxes;
 		std::list<button*> buttons;
+		std::list<checkbox*> checkboxes;
 	private:
 		int on_button_click(boost::function<int(const widget_window*)> cb);
 		void set_focus_widget(int x, int y);
