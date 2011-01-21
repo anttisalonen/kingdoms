@@ -253,6 +253,8 @@ int editor_window::handle_input_gui_mod(const SDL_Event& ev)
 					w->add_label(2, 38, 100, 16, "Y dimension");
 					w->add_numeric_textbox(110, 20, "X dimension", 80);
 					w->add_numeric_textbox(110, 38, "Y dimension", 60);
+					w->add_label(2, 56, 100, 16, "Wrap X");
+					w->add_checkbox(110, 56, 16, 16, "Wrap X", true);
 					w->add_button(10, 76, 80, 16, "OK", boost::bind(&editor_window::on_new_map,
 								this, boost::lambda::_1));
 					w->add_button(110, 76, 80, 16, "Cancel", widget_close);
@@ -290,6 +292,7 @@ int editor_window::on_new_map(const widget_window* w)
 {
 	int xv = 0;
 	int yv = 0;
+	bool wrap_x = true;
 	for(std::list<numeric_textbox*>::const_iterator it = w->numeric_textboxes.begin();
 			it != w->numeric_textboxes.end();
 			++it) {
@@ -300,8 +303,16 @@ int editor_window::on_new_map(const widget_window* w)
 			yv = (*it)->get_numeric_value();
 		}
 	}
+	for(std::list<checkbox*>::const_iterator it = w->checkboxes.begin();
+			it != w->checkboxes.end();
+			++it) {
+		if((*it)->get_name() == std::string("Wrap X")) {
+			wrap_x = (*it)->get_checked();
+		}
+	}
 	if(xv >= 40 && yv >= 40) {
 		// new map
+		data.m.set_x_wrap(wrap_x);
 		data.m.resize(xv, yv);
 		saved_filename = "";
 		cam.cam_x = cam.cam_y = 0;

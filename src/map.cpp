@@ -378,6 +378,16 @@ bool map::y_wrapped() const
 	return y_wrap;
 }
 
+void map::set_x_wrap(bool w)
+{
+	x_wrap = w;
+}
+
+void map::set_y_wrap(bool w)
+{
+	y_wrap = w;
+}
+
 int map::get_data(int x, int y) const
 {
 	const int* v = data.get(wrap_x(x), wrap_y(y));

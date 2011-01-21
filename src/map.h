@@ -62,6 +62,8 @@ class map {
 		coord get_starting_place_of(int civid) const;
 		bool x_wrapped() const;
 		bool y_wrapped() const;
+		void set_x_wrap(bool w);
+		void set_y_wrap(bool w);
 		bool can_found_city_on(int x, int y) const;
 		bool can_improve_terrain(int x, int y, unsigned int civ_id, improvement_type i) const;
 		bool try_improve_terrain(int x, int y, unsigned int civ_id, improvement_type i);
