@@ -15,6 +15,7 @@ class government {
 		unsigned int gov_id;
 		std::string gov_name;
 		int needed_advance;
+		int production_cap;
 		int free_units;
 		int unit_cost;
 

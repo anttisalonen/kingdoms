@@ -156,7 +156,6 @@ class civilization {
 		bool ai;
 	private:
 		void reveal_land(int x, int y, int r);
-		void update_national_income();
 		void update_military_expenses();
 		void setup_default_research_goal(const advance_map& amap);
 		void destroy_old_palace(const city* c, const city_improv_map& cimap);

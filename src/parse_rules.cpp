@@ -234,6 +234,7 @@ government_map parse_government_config(const std::string& fp)
 	for(unsigned int i = 0; i < governments.size(); i++) {
 		government gov(i + 1, governments[i][0]);
 		gov.needed_advance = stoi(governments[i][1]);
+		gov.production_cap = stoi(governments[i][2]);
 		gov.free_units = stoi(governments[i][3]);
 		gov.unit_cost = stoi(governments[i][4]);
 		govmap.insert(std::make_pair(gov.gov_id, gov));

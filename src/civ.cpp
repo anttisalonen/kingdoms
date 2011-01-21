@@ -263,21 +263,6 @@ msg new_relationship(int civid, relationship val)
 	return m;
 }
 
-void civilization::update_national_income()
-{
-	int total_commerce = 0;
-	for(std::map<unsigned int, city*>::iterator cit = cities.begin();
-			cit != cities.end();
-			++cit) {
-		int food, prod, comm;
-		city* this_city = cit->second;
-		total_resources(*this_city, *m, &food, &prod, &comm,
-				&researched_advances);
-		total_commerce += comm;
-	}
-	national_income = total_commerce * alloc_gold / 10;
-}
-
 void civilization::update_military_expenses()
 {
 	military_expenses = 0;
@@ -325,6 +310,14 @@ void civilization::increment_resources(const unit_configuration_map& uconfmap,
 		city* this_city = cit->second;
 		total_resources(*this_city, *m, &food, &prod, &comm,
 				&researched_advances);
+		if(gov->production_cap) {
+			if(food > gov->production_cap)
+				food = gov->production_cap;
+			if(prod > gov->production_cap)
+				prod = gov->production_cap;
+			if(comm > gov->production_cap)
+				comm = gov->production_cap;
+		}
 		int add_gold = comm;
 		int add_science = comm;
 		calculate_total_city_commerce(*this_city, cimap, comm, &add_gold, &add_science);
