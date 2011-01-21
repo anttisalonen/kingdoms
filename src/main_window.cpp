@@ -144,8 +144,8 @@ int main_window::draw_city(const city& c) const
 				c.cityname.c_str());
 	}
 	buf[63] = '\0';
-	if(draw_text(screen, &res.font, buf, tile_xcoord_to_pixel(c.xpos) + tile_h / 2,
-			tile_ycoord_to_pixel(c.ypos) + tile_w,
+	if(draw_text(screen, &res.font, buf, tile_xcoord_to_pixel(c.xpos) + tile_w / 2,
+			tile_ycoord_to_pixel(c.ypos) + tile_h,
 			255, 255, 255, true))
 		return 1;
 
@@ -290,11 +290,11 @@ int main_window::draw_main_map()
 	if(draw_starting_positions()) {
 		for(int i = imax - 1, y = cam_total_tiles_y - 1; i >= cam.cam_y; i--, y--) {
 			for(int j = cam.cam_x, x = sidebar_size; j < jmax; j++, x++) {
-				int civid = data.m.get_starter_at(i, j);
+				int civid = data.m.get_starter_at(j, i);
 				if(civid > -1) {
 					if(draw_text(screen, &res.font, data.r.civs[civid]->civname.c_str(),
-								tile_xcoord_to_pixel(i) + tile_h / 2,
-								tile_ycoord_to_pixel(j) + tile_w / 2,
+								tile_xcoord_to_pixel(j) + tile_w / 2,
+								tile_ycoord_to_pixel(i) + tile_h / 2,
 								255, 255, 255, true))
 						return 1;
 				}
