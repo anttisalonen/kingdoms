@@ -11,7 +11,8 @@ editor_window::editor_window(SDL_Surface* screen_, gui_data& data_, gui_resource
 	brush_size(1),
 	sidebar_terrain_xstart(10),
 	sidebar_terrain_ystart(80),
-	sidebar_startpos_button_width(100)
+	sidebar_startpos_button_width(100),
+	quitting(false)
 {
 	// terrain buttons
 	int xpos = sidebar_terrain_xstart;
@@ -190,7 +191,29 @@ void editor_window::draw_sidebar()
 int editor_window::handle_window_input(const SDL_Event& ev)
 {
 	main_window::handle_window_input(ev);
-	return handle_input_gui_mod(ev);
+	handle_input_gui_mod(ev);
+	return quitting;
+}
+
+void editor_window::add_quit_confirm_subwindow()
+{
+	int win_height = 40;
+	int win_width = 200;
+	widget_window* w = standard_popup(win_width, win_height);
+	w->add_label(win_width / 2 - 40, 2, 80, 16, "Quit?");
+	w->add_button(2, 20, win_width / 2 - 4, 16, "No",
+			boost::bind(&editor_window::confirm_quit,
+				this, boost::lambda::_1));
+	w->add_button(win_width / 2 + 2, 20, win_width / 2 - 4, 16,
+			"Yes",
+			widget_close);
+	add_subwindow(w);
+}
+
+int editor_window::confirm_quit(const widget_window* w)
+{
+	quitting = true;
+	return 1;
 }
 
 void editor_window::add_load_map_subwindow()
@@ -265,7 +288,7 @@ int editor_window::handle_input_gui_mod(const SDL_Event& ev)
 					add_load_map_subwindow();
 				}
 				if(k == SDLK_q || k == SDLK_ESCAPE) {
-					return 1;
+					add_quit_confirm_subwindow();
 				}
 			}
 			break;

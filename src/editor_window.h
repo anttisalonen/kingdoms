@@ -31,6 +31,8 @@ class editor_window : public main_window {
 		void add_load_map_subwindow();
 		int on_load_map(const std::string& s, const widget_window* w);
 		int on_startposition_button();
+		void add_quit_confirm_subwindow();
+		int confirm_quit(const widget_window* w);
 		int on_civ_startpos(int civid, const widget_window* w);
 		widget_window* standard_popup(int win_width, int win_height) const;
 		tool_type current_tool;
@@ -46,6 +48,7 @@ class editor_window : public main_window {
 		int sidebar_startpos_ystart;
 		std::list<button*> sidebar_buttons;
 		std::string saved_filename;
+		bool quitting;
 };
 
 #endif
