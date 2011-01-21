@@ -109,7 +109,7 @@ int points_for_city_founding(const civilization* civ,
 	int comm_points = 0;
 	civ->m->get_total_city_resources(co.x, co.y, &food_points,
 			&prod_points, &comm_points,
-			&civ->researched_advances);
+			&civ->researched_advances, civ->gov->production_cap);
 	food_points *= found_city.food_coeff;
 	prod_points *= found_city.prod_coeff;
 	comm_points *= found_city.comm_coeff;
@@ -541,7 +541,7 @@ action found_city_orders::get_action()
 				found_city, planned, u->unit_id, 1, coord(u->xpos, u->ypos));
 		ai_debug_printf(civ->civ_id, "new: %d; old: %d; coord: (%d, %d)\n",
 				new_city_points, city_points, u->xpos, u->ypos);
-		if(new_city_points < 1 || new_city_points < city_points) {
+		if(civ->cities.size() > 0 && (new_city_points < 1 || new_city_points < city_points)) {
 			if(replan() && !path.empty()) {
 				return get_action();
 			}

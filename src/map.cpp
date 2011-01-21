@@ -448,7 +448,7 @@ void map::get_resources_by_terrain(int terr, bool city, int* food, int* prod, in
 }
 
 void map::get_resources_on_spot(int x, int y, int* food, int* prod, int* comm,
-		const std::set<unsigned int>* advances) const
+		const std::set<unsigned int>* advances, int cap) const
 {
 	get_resources_by_terrain(get_data(x, y), city_on_spot(x, y) != NULL, 
 			food, prod, comm);
@@ -476,6 +476,14 @@ void map::get_resources_on_spot(int x, int y, int* food, int* prod, int* comm,
 				}
 			}
 		}
+	}
+	if(cap) {
+		if(*food > cap)
+			*food = cap;
+		if(*prod > cap)
+			*prod = cap;
+		if(*comm > cap)
+			*comm = cap;
 	}
 }
 
@@ -676,7 +684,7 @@ std::vector<coord> map::random_starting_places(int num) const
 		if(resconf.can_found_city_on(get_data(xp, yp))) {
 			coord v(xp, yp);
 			int f, p, c;
-			get_total_city_resources(xp, yp, &f, &p, &c, NULL);
+			get_total_city_resources(xp, yp, &f, &p, &c, NULL, 0);
 			if(f < 10 || p < 4 || c < 3)
 				continue;
 			int at_least_two_food = 0;
@@ -775,7 +783,7 @@ coord map::get_starting_place_of(int civid) const
 
 void map::get_total_city_resources(int x, int y, int* food_points, 
 		int* prod_points, int* comm_points,
-		const std::set<unsigned int>* advances) const
+		const std::set<unsigned int>* advances, int cap) const
 {
 	*food_points = *prod_points = *comm_points = 0;
 	for(int i = -2; i <= 2; i++) {
@@ -786,7 +794,7 @@ void map::get_total_city_resources(int x, int y, int* food_points,
 			int food = 0, prod = 0, comm = 0;
 			get_resources_on_spot(x + i, y + j,
 					&food, &prod, &comm,
-					advances);
+					advances, cap);
 			*food_points += food;
 			*prod_points += prod;
 			*comm_points += comm;

@@ -139,6 +139,8 @@ class civilization {
 		bool can_cross_oceans() const;
 		bool allowed_research_goal(const advance_map::const_iterator& amap) const;
 		void unload_unit(unit* loadee);
+		void total_resources(const city& c, int* food, int* prod, int* comm) const;
+		coord next_good_resource_spot(const city* c) const;
 		std::string civname;
 		const unsigned int civ_id;
 		color col;
@@ -154,6 +156,7 @@ class civilization {
 		unsigned int research_goal_id;
 		std::set<unsigned int> researched_advances;
 		bool ai;
+		const government* gov;
 	private:
 		void reveal_land(int x, int y, int r);
 		void update_military_expenses();
@@ -171,7 +174,6 @@ class civilization {
 		unsigned int curr_city_name_index;
 		unsigned int next_city_id;
 		unsigned int next_unit_id;
-		const government* gov;
 		int national_income;
 		int military_expenses;
 		std::map<unsigned int, int> built_units;
@@ -198,13 +200,13 @@ class civilization {
 			ar & research_goal_id;
 			ar & researched_advances;
 			ar & ai;
+			ar & const_cast<government*&>(gov);
 			ar & relationships;
 			ar & known_land_map;
 			ar & city_names;
 			ar & curr_city_name_index;
 			ar & next_city_id;
 			ar & next_unit_id;
-			ar & const_cast<government*&>(gov);
 			ar & national_income;
 			ar & military_expenses;
 			ar & built_units;
@@ -213,14 +215,6 @@ class civilization {
 			ar & cross_oceans;
 		}
 };
-
-
-void total_resources(const city& c, const map& m,
-		int* food, int* prod, int* comm,
-		const std::set<unsigned int>* researched_advances);
-coord next_good_resource_spot(const city* c, const map* m,
-		const std::set<unsigned int>* researched_advances);
-
 
 #endif
 

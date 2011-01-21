@@ -27,10 +27,10 @@ class map {
 		int size_y() const;
 		void get_resources_by_terrain(int terr, bool city, int* food, int* prod, int* comm) const;
 		void get_resources_on_spot(int x, int y, int* food, int* prod, int* comm,
-				const std::set<unsigned int>* advances) const;
+				const std::set<unsigned int>* advances, int cap) const;
 		void get_total_city_resources(int x, int y, int* food_points,
 				int* prod_points, int* comm_points,
-				const std::set<unsigned int>* advances) const;
+				const std::set<unsigned int>* advances, int cap) const;
 		unsigned int get_resource(int x, int y) const;
 		void set_resource(int x, int y, unsigned int res);
 		void add_unit(unit* u);

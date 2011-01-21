@@ -317,8 +317,7 @@ void pompelmous::check_for_city_updates()
 			}
 			if(c->stored_food >= needed_food_for_growth(c->get_city_size())) {
 				c->increment_city_size();
-				coord rescoord = next_good_resource_spot(c, m,
-						&(*it)->researched_advances);
+				coord rescoord = civs[c->civ_id]->next_good_resource_spot(c);
 				c->add_resource_worker(rescoord);
 				if(c->has_granary(cimap)) {
 					c->stored_food = needed_food_for_growth(c->get_city_size()) / 2;
@@ -777,7 +776,7 @@ void pompelmous::remove_action_listener(action_listener* cb)
 unsigned int pompelmous::get_city_growth_turns(const city* c) const
 {
 	int food, prod, comm;
-	total_resources(*c, *m, &food, &prod, &comm, &civs[c->civ_id]->researched_advances);
+	civs[c->civ_id]->total_resources(*c, &food, &prod, &comm);
 	food -= c->get_city_size() * food_eaten_per_citizen;
 	if(food < 1)
 		return 0;
@@ -813,7 +812,7 @@ unsigned int pompelmous::get_city_production_turns(const city* c,
 		const unit_configuration& uc) const
 {
 	int food, prod, comm;
-	total_resources(*c, *m, &food, &prod, &comm, &civs[c->civ_id]->researched_advances);
+	civs[c->civ_id]->total_resources(*c, &food, &prod, &comm);
 	if(prod < 1)
 		return 0;
 	int needed_prod = uc.production_cost - c->stored_prod;
@@ -826,7 +825,7 @@ unsigned int pompelmous::get_city_production_turns(const city* c,
 		const city_improvement& ci) const
 {
 	int food, prod, comm;
-	total_resources(*c, *m, &food, &prod, &comm, &civs[c->civ_id]->researched_advances);
+	civs[c->civ_id]->total_resources(*c, &food, &prod, &comm);
 	if(prod < 1)
 		return 0;
 	int needed_prod = ci.cost - c->stored_prod;

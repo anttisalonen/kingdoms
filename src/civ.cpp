@@ -5,70 +5,6 @@
 #include "civ.h"
 #include "map-astar.h"
 
-void total_resources(const city& c, const map& m, 
-		int* food, int* prod, int* comm,
-		const std::set<unsigned int>* researched_advances)
-{
-	*food = 0; *prod = 0; *comm = 0;
-	const std::list<coord>& resource_coords = c.get_resource_coords();
-	for(std::list<coord>::const_iterator it = resource_coords.begin();
-			it != resource_coords.end();
-			++it) {
-		int f, p, cm;
-		m.get_resources_on_spot(c.xpos + it->x,
-				c.ypos + it->y, &f, &p, &cm,
-				researched_advances);
-		*food += f;
-		*prod += p;
-		*comm += cm;
-	}
-}
-
-coord next_good_resource_spot(const city* c, const map* m,
-		const std::set<unsigned int>* researched_advances)
-{
-	int curr_food, curr_prod, curr_comm;
-	total_resources(*c, *m, &curr_food, &curr_prod, &curr_comm,
-			researched_advances);
-	int req_food = c->get_city_size() * 2 + 2 - curr_food;
-	coord ret(0, 0);
-	int opt_food = -1;
-	int opt_prod = -1;
-	int opt_comm = -1;
-	for(int i = -2; i <= 2; i++) {
-		for(int j = -2; j <= 2; j++) {
-			if(abs(i) == 2 && abs(j) == 2)
-				continue;
-			if(!i && !j)
-				continue;
-			if(std::find(c->get_resource_coords().begin(),
-					c->get_resource_coords().end(),
-					coord(i, j)) != c->get_resource_coords().end())
-				continue;
-			int terr = m->get_data(c->xpos + i, c->ypos + j);
-			if(terr == -1)
-				continue;
-			if(m->get_land_owner(c->xpos + i, c->ypos + j) != (int)c->civ_id)
-				continue;
-			int tf, tp, tc;
-			m->get_resources_on_spot(c->xpos + i, c->ypos + j, &tf, &tp, &tc,
-					researched_advances);
-			if((tf >= opt_food && opt_food < req_food) || 
-				 (tf >= req_food &&
-				 (tp > opt_prod || 
-				  (tp == opt_prod && 
-				   (tc > opt_comm || tf > opt_food))))) {
-				ret.x = i;
-				ret.y = j;
-				opt_food = tf;
-				opt_prod = tp;
-				opt_comm = tc;
-			}
-		}
-	}
-	return ret;
-}
-
 civilization::civilization(std::string name, unsigned int civid, 
 		const color& c_, map* m_, bool ai_,
 		const std::vector<std::string>::iterator& names_start,
@@ -308,16 +244,7 @@ void civilization::increment_resources(const unit_configuration_map& uconfmap,
 			++cit) {
 		int food, prod, comm;
 		city* this_city = cit->second;
-		total_resources(*this_city, *m, &food, &prod, &comm,
-				&researched_advances);
-		if(gov->production_cap) {
-			if(food > gov->production_cap)
-				food = gov->production_cap;
-			if(prod > gov->production_cap)
-				prod = gov->production_cap;
-			if(comm > gov->production_cap)
-				comm = gov->production_cap;
-		}
+		total_resources(*this_city, &food, &prod, &comm);
 		int add_gold = comm;
 		int add_science = comm;
 		calculate_total_city_commerce(*this_city, cimap, comm, &add_gold, &add_science);
@@ -456,7 +383,7 @@ city* civilization::add_city(int x, int y)
 void civilization::update_city_resource_workers(city* c)
 {
 	c->clear_resource_workers();
-	while(c->add_resource_worker(next_good_resource_spot(c, m, &researched_advances)))
+	while(c->add_resource_worker(next_good_resource_spot(c)))
 		;
 }
 
@@ -802,4 +729,66 @@ bool civilization::can_cross_oceans() const
 {
 	return cross_oceans;
 }
+
+void civilization::total_resources(const city& c,
+		int* food, int* prod, int* comm) const
+{
+	*food = 0; *prod = 0; *comm = 0;
+	const std::list<coord>& resource_coords = c.get_resource_coords();
+	for(std::list<coord>::const_iterator it = resource_coords.begin();
+			it != resource_coords.end();
+			++it) {
+		int f, p, cm;
+		m->get_resources_on_spot(c.xpos + it->x,
+				c.ypos + it->y, &f, &p, &cm,
+				&researched_advances, gov->production_cap);
+		*food += f;
+		*prod += p;
+		*comm += cm;
+	}
+}
+
+coord civilization::next_good_resource_spot(const city* c) const
+{
+	int curr_food, curr_prod, curr_comm;
+	total_resources(*c, &curr_food, &curr_prod, &curr_comm);
+	int req_food = c->get_city_size() * 2 + 2 - curr_food;
+	coord ret(0, 0);
+	int opt_food = -1;
+	int opt_prod = -1;
+	int opt_comm = -1;
+	for(int i = -2; i <= 2; i++) {
+		for(int j = -2; j <= 2; j++) {
+			if(abs(i) == 2 && abs(j) == 2)
+				continue;
+			if(!i && !j)
+				continue;
+			if(std::find(c->get_resource_coords().begin(),
+					c->get_resource_coords().end(),
+					coord(i, j)) != c->get_resource_coords().end())
+				continue;
+			int terr = m->get_data(c->xpos + i, c->ypos + j);
+			if(terr == -1)
+				continue;
+			if(m->get_land_owner(c->xpos + i, c->ypos + j) != (int)c->civ_id)
+				continue;
+			int tf, tp, tc;
+			m->get_resources_on_spot(c->xpos + i, c->ypos + j, &tf, &tp, &tc,
+					&researched_advances, gov->production_cap);
+			if((tf >= opt_food && opt_food < req_food) || 
+				 (tf >= req_food &&
+				 (tp > opt_prod || 
+				  (tp == opt_prod && 
+				   (tc > opt_comm || tf > opt_food))))) {
+				ret.x = i;
+				ret.y = j;
+				opt_food = tf;
+				opt_prod = tp;
+				opt_comm = tc;
+			}
+		}
+	}
+	return ret;
+}
+
 
