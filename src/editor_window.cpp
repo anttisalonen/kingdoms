@@ -6,11 +6,12 @@
 
 editor_window::editor_window(SDL_Surface* screen_, gui_data& data_, gui_resources& res_)
 	: main_window(screen_, data_, res_, 4),
-	chosen_terrain(2),
-	chosen_resource(0),
+	current_tool(editor_tool_terrain),
+	current_tool_index(2),
 	brush_size(1),
 	sidebar_terrain_xstart(10),
-	sidebar_terrain_ystart(80)
+	sidebar_terrain_ystart(80),
+	sidebar_startpos_button_width(100)
 {
 	// terrain buttons
 	int xpos = sidebar_terrain_xstart;
@@ -68,6 +69,16 @@ editor_window::editor_window(SDL_Surface* screen_, gui_data& data_, gui_resource
 					boost::bind(&editor_window::on_size_button, this, i)));
 		xpos += tile_w;
 	}
+
+	xpos = sidebar_terrain_xstart;
+	ypos += tile_h * 2;
+	sidebar_startpos_ystart = ypos;
+	if(data.r.civs.size() > 0) {
+		sidebar_buttons.push_back(new plain_button(rect(xpos, ypos, sidebar_startpos_button_width, tile_h),
+					"Start positions", &res.font, color(255, 255, 255),
+					color(0, 0, 0),
+					boost::bind(&editor_window::on_startposition_button, this)));
+	}
 }
 
 editor_window::~editor_window()
@@ -80,15 +91,15 @@ editor_window::~editor_window()
 
 int editor_window::on_resource_button(resource_map::const_iterator it)
 {
-	chosen_terrain = -1;
-	chosen_resource = it->first;
+	current_tool = editor_tool_resource;
+	current_tool_index = it->first;
 	return 0;
 }
 
 int editor_window::on_terrain_button(int val)
 {
-	chosen_terrain = val;
-	chosen_resource = 0;
+	current_tool = editor_tool_terrain;
+	current_tool_index = val;
 	return 0;
 }
 
@@ -98,6 +109,52 @@ int editor_window::on_size_button(int val)
 	return 0;
 }
 
+bool editor_window::draw_starting_positions()
+{
+	return true;
+}
+
+widget_window* editor_window::standard_popup(int win_width, int win_height) const
+{
+	color text_color(255, 255, 255);
+	color button_color(80, 0, 0);
+	widget_window* w = new widget_window(screen, data, res,
+			rect(screen->w / 2 - 100, 100,
+				win_width, win_height),
+			color(160, 0, 0));
+	w->set_text_color(text_color);
+	w->set_button_color(button_color);
+	w->add_button(20, win_height - 24, win_width - 40, 16, "Cancel", widget_close);
+	w->add_key_handler(SDLK_ESCAPE, widget_close);
+	return w;
+}
+
+int editor_window::on_startposition_button()
+{
+	int win_height = screen->h - 200;
+	int win_width = 200;
+	widget_window* w = standard_popup(win_width, win_height);
+	w->add_label(10, 2, win_width - 20, 16, "Starting position");
+	int yp = 30;
+	for(unsigned int i = 0; i < data.r.civs.size(); i++) {
+		w->add_button(2, yp, win_width - 4, 16, data.r.civs[i]->civname.c_str(),
+				boost::bind(&editor_window::on_civ_startpos,
+					this, i, boost::lambda::_1));
+		yp += 24;
+		if(yp >= win_height - 80)
+			break;
+	}
+	add_subwindow(w);
+	return 0;
+}
+
+int editor_window::on_civ_startpos(int civid, const widget_window* w)
+{
+	current_tool = editor_tool_startpos;
+	current_tool_index = civid;
+	return 1;
+}
+
 void editor_window::draw_sidebar()
 {
 	draw_minimap();
@@ -105,15 +162,15 @@ void editor_window::draw_sidebar()
 			sidebar_buttons.end(),
 			std::bind2nd(std::mem_fun(&button::draw), screen));
 
-	if(chosen_terrain >= 0) {
-		draw_rect(sidebar_terrain_xstart + (tile_w * (chosen_terrain % 3)),
-				sidebar_terrain_ystart + (tile_h * (chosen_terrain / 3)),
+	if(current_tool == editor_tool_terrain) {
+		draw_rect(sidebar_terrain_xstart + (tile_w * (current_tool_index % 3)),
+				sidebar_terrain_ystart + (tile_h * (current_tool_index / 3)),
 				tile_w, tile_h, color(255, 255, 255), 1, screen);
 	}
 
-	if(chosen_resource > 0) {
-		draw_rect(sidebar_terrain_xstart + (tile_w * ((chosen_resource - 1) % 3)),
-				sidebar_resource_ystart + (tile_h * ((chosen_resource - 1) / 3)),
+	if(current_tool == editor_tool_resource) {
+		draw_rect(sidebar_terrain_xstart + (tile_w * ((current_tool_index - 1) % 3)),
+				sidebar_resource_ystart + (tile_h * ((current_tool_index - 1) / 3)),
 				tile_w, tile_h, color(255, 255, 255), 1, screen);
 	}
 
@@ -121,6 +178,13 @@ void editor_window::draw_sidebar()
 	draw_rect(sidebar_terrain_xstart + tile_w * (brush_size / 2),
 			sidebar_brush_size_ystart,
 			tile_w, tile_h, color(255, 255, 255), 1, screen);
+
+	if(current_tool == editor_tool_startpos) {
+		draw_rect(sidebar_terrain_xstart,
+				sidebar_startpos_ystart,
+				sidebar_startpos_button_width, tile_h,
+				color(255, 255, 255), 1, screen);
+	}
 }
 
 int editor_window::handle_window_input(const SDL_Event& ev)
@@ -131,19 +195,10 @@ int editor_window::handle_window_input(const SDL_Event& ev)
 
 void editor_window::add_load_map_subwindow()
 {
-	color text_color(255, 255, 255);
-	color button_color(80, 0, 0);
-	int win_width = 200;
 	int win_height = screen->h - 200;
-	widget_window* w = new widget_window(screen, data, res,
-			rect(screen->w / 2 - 100, 100,
-				win_width, win_height),
-			color(160, 0, 0));
-	w->set_text_color(text_color);
-	w->set_button_color(button_color);
+	int win_width = 200;
+	widget_window* w = standard_popup(win_width, win_height);
 	w->add_label(win_width / 2 - 40, 2, 80, 16, "Load map");
-	w->add_button(20, win_height - 24, win_width - 40, 16, "Cancel", widget_close);
-	w->add_key_handler(SDLK_ESCAPE, widget_close);
 
 	std::vector<boost::filesystem::path> filenames = get_files_in_directory(path_to_saved_games(),
 			MAP_FILE_EXTENSION);
@@ -292,9 +347,9 @@ void editor_window::modify_map(int x, int y)
 {
 	for(int i = -(brush_size / 2); i <= brush_size / 2; i++) {
 		for(int j = -(brush_size / 2); j <= brush_size / 2; j++) {
-			if(chosen_terrain >= 0) {
-				data.m.set_data(x + i, y + j, chosen_terrain);
-				if(!data.m.resconf.is_water_tile(chosen_terrain)) {
+			if(current_tool == editor_tool_terrain) {
+				data.m.set_data(x + i, y + j, current_tool_index);
+				if(!data.m.resconf.is_water_tile(current_tool_index)) {
 					for(int k = -1; k <= 1; k++) {
 						for(int l = -1; l <= 1; l++) {
 							int neighbour = data.m.get_data(x + i + k, y + j + l);
@@ -306,12 +361,23 @@ void editor_window::modify_map(int x, int y)
 					}
 				}
 			}
-			else if(chosen_resource > 0) {
-				resource_map::const_iterator it = data.m.rmap.find(chosen_resource);
+			else if(current_tool == editor_tool_resource) {
+				resource_map::const_iterator it = data.m.rmap.find(current_tool_index);
 				if(it != data.m.rmap.end()) {
 					int terr = data.m.get_data(x + i, y + j);
 					if(it->second.allowed_on(terr))
-						data.m.set_resource(x + i, y + j, chosen_resource);
+						data.m.set_resource(x + i, y + j, current_tool_index);
+				}
+			}
+			else if(current_tool == editor_tool_startpos) {
+				if(data.m.can_found_city_on(x, y)) {
+					int civid = data.m.get_starter_at(x, y);
+					if(civid != -1) {
+						data.m.remove_starting_place_of(civid);
+					}
+					else {
+						data.m.add_starting_place(coord(x, y), current_tool_index);
+					}
 				}
 			}
 		}
@@ -320,7 +386,7 @@ void editor_window::modify_map(int x, int y)
 
 int editor_window::handle_mousemotion(const SDL_Event& ev)
 {
-	if(mouse_down_sqx >= 0) {
+	if(mouse_down_sqx >= 0 && current_tool != editor_tool_startpos) {
 		modify_map(mouse_down_sqx, mouse_down_sqy);
 	}
 	return 0;

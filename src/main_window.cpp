@@ -229,6 +229,11 @@ int main_window::draw_unit(const unit* u)
 	return draw_tile(surf, u->xpos, u->ypos);
 }
 
+bool main_window::draw_starting_positions()
+{
+	return false;
+}
+
 int main_window::draw_complete_tile(int x, int y, int shx, int shy, bool terrain,
 		bool resources, bool improvements, bool borders,
 		boost::function<bool(const unit*)> unit_predicate,
@@ -280,6 +285,20 @@ int main_window::draw_main_map()
 							this, boost::lambda::_1),
 						true))
 				return 1;
+		}
+	}
+	if(draw_starting_positions()) {
+		for(int i = imax - 1, y = cam_total_tiles_y - 1; i >= cam.cam_y; i--, y--) {
+			for(int j = cam.cam_x, x = sidebar_size; j < jmax; j++, x++) {
+				int civid = data.m.get_starter_at(i, j);
+				if(civid > -1) {
+					if(draw_text(screen, &res.font, data.r.civs[civid]->civname.c_str(),
+								tile_xcoord_to_pixel(i) + tile_h / 2,
+								tile_ycoord_to_pixel(j) + tile_w / 2,
+								255, 255, 255, true))
+						return 1;
+				}
+			}
 		}
 	}
 	return 0;

@@ -23,6 +23,7 @@ class main_window : public window {
 		virtual int draw_window();
 		virtual int process(int ms);
 		virtual int handle_window_input(const SDL_Event& ev);
+		virtual bool draw_starting_positions();
 	protected:
 		virtual char fog_on_tile(int x, int y) const;
 		virtual bool city_info_available(const city& c) const;

@@ -707,35 +707,60 @@ std::vector<coord> map::random_starting_places(int num) const
 	return retval;
 }
 
-void map::set_starting_places(const std::vector<coord>& sp)
-{
-	starting_places = sp;
-}
-
-std::vector<coord> map::get_starting_places() const
+std::map<int, coord> map::get_starting_places() const
 {
 	return starting_places;
 }
 
-void map::add_starting_place(const coord& c)
+int map::get_starter_at(int x, int y) const
 {
-	for(unsigned int i = 0; i < starting_places.size(); i++) {
-		if(starting_places[i] == c)
-			return;
+	coord pos(wrap_x(x), wrap_y(y));
+	for(std::map<int, coord>::const_iterator it = starting_places.begin();
+			it != starting_places.end();
+			++it) {
+		if(it->second == pos)
+			return it->first;
 	}
-	starting_places.push_back(c);
+	return -1;
+}
+
+void map::add_starting_place(const coord& c, int civid)
+{
+	coord c2;
+	c2.x = wrap_x(c.x);
+	c2.y = wrap_y(c.y);
+	if(get_starter_at(c2.x, c2.y) != -1)
+		return;
+	starting_places[civid] = c2;
+}
+
+void map::remove_starting_place_of(int civid)
+{
+	starting_places.erase(civid);
 }
 
 void map::remove_starting_place(const coord& c)
 {
-	for(std::vector<coord>::iterator it = starting_places.begin();
-		       it != starting_places.end();
-		       ++it) {
-		if(*it == c) {
+	coord c2;
+	c2.x = wrap_x(c.x);
+	c2.y = wrap_y(c.y);
+	for(std::map<int, coord>::iterator it = starting_places.begin();
+			it != starting_places.end();
+			++it) {
+		if(it->second == c2) {
 			starting_places.erase(it);
 			return;
 		}
 	}
+}
+
+coord map::get_starting_place_of(int civid) const
+{
+	std::map<int, coord>::const_iterator it = starting_places.find(civid);
+	if(it == starting_places.end())
+		return coord(-1, -1);
+	else
+		return it->second;
 }
 
 void map::get_total_city_resources(int x, int y, int* food_points, 

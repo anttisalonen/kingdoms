@@ -32,11 +32,17 @@ void run_editor()
 	unit_configuration_map uconfmap = parse_unit_config(KINGDOMS_RULESDIR "units.txt");
 	advance_map amap = parse_advance_config(KINGDOMS_RULESDIR "discoveries.txt");
 	city_improv_map cimap = parse_city_improv_config(KINGDOMS_RULESDIR "improvs.txt");
+	government_map govmap = parse_government_config(KINGDOMS_RULESDIR "governments.txt");
 	std::vector<civilization*> civs;
 	civs = parse_civs_config(KINGDOMS_RULESDIR "civs.txt");
 	map m(map_x, map_y, resconf, rmap);
 	pompelmous r(uconfmap, amap, cimap, &m, road_moves,
 			food_eaten_per_citizen, num_turns);
+	for(unsigned int i = 0; i < civs.size(); i++) {
+		civs[i]->set_map(&m);
+		civs[i]->set_government(&govmap.begin()->second);
+		r.add_civilization(civs[i]);
+	}
 	gui_resource_files grr;
 	fetch_gui_resource_files(&grr);
 	editorgui v(screen, r.get_map(), r, grr, *font);

@@ -54,10 +54,12 @@ class map {
 		int wrap_x(int x) const;
 		int wrap_y(int y) const;
 		std::vector<coord> random_starting_places(int num) const;
-		void set_starting_places(const std::vector<coord>& sp);
-		std::vector<coord> get_starting_places() const;
-		void add_starting_place(const coord& c);
+		std::map<int, coord> get_starting_places() const;
+		int get_starter_at(int x, int y) const;
+		void add_starting_place(const coord& c, int civid);
 		void remove_starting_place(const coord& c);
+		void remove_starting_place_of(int civid);
+		coord get_starting_place_of(int civid) const;
 		bool x_wrapped() const;
 		bool y_wrapped() const;
 		bool can_found_city_on(int x, int y) const;
@@ -92,7 +94,7 @@ class map {
 		buf2d<int> improv_map;
 		buf2d<int> res_map;
 		buf2d<bool> river_map;
-		std::vector<coord> starting_places;
+		std::map<int, coord> starting_places;
 	public:
 		const resource_configuration resconf;
 		const resource_map rmap;
