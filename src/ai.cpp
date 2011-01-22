@@ -306,4 +306,8 @@ void ai::check_for_revolution(unsigned int adv_id)
 	}
 }
 
+bool ai::peace_suggested(int civ_id)
+{
+	return false;
+}
 

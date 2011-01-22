@@ -132,6 +132,11 @@ pompelmous::pompelmous()
 {
 }
 
+void pompelmous::add_diplomat(int civid, diplomat* d)
+{
+	diplomat_handlers[civid] = d;
+}
+
 void pompelmous::add_civilization(civilization* civ)
 {
 	civs.push_back(civ);
@@ -940,5 +945,17 @@ void pompelmous::set_government(civilization* civ, int gov_id)
 	if(git != govmap.end()) {
 		civ->set_government(&git->second);
 	}
+}
+
+bool pompelmous::suggest_peace(int civ_id1, int civ_id2)
+{
+	std::map<int, diplomat*>::iterator it = diplomat_handlers.find(civ_id2);
+	bool do_peace = true;
+	if(it != diplomat_handlers.end() && it->second) {
+		do_peace = it->second->peace_suggested(civ_id1);
+	}
+	if(do_peace)
+		peace_between(civ_id1, civ_id2);
+	return do_peace;
 }
 

@@ -6,6 +6,7 @@
 #include "diplomacy_window.h"
 #include "discovery_window.h"
 #include "production_window.h"
+#include "relationships_window.h"
 #include "serialize.h"
 
 #include "game_window.h"
@@ -151,6 +152,10 @@ void game_window::handle_input_gui_mod(const SDL_Event& ev, city** c)
 				}
 				if(k == SDLK_r && (ev.key.keysym.mod & KMOD_CTRL)) {
 					add_revolution_confirm_window("Are you sure you want a Revolution?");
+				}
+				if(k == SDLK_F4) {
+					add_subwindow(new relationships_window(screen, data, res,
+								internal_ai, myciv));
 				}
 				if(!internal_ai && current_unit != myciv->units.end()) {
 					if(k == SDLK_c) {

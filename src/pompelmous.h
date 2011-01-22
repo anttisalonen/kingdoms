@@ -12,6 +12,7 @@
 #include "city_improvement.h"
 #include "civ.h"
 #include "map.h"
+#include "diplomat.h"
 
 enum action_type {
 	action_give_up,
@@ -127,6 +128,7 @@ class pompelmous
 				int num_turns_);
 		pompelmous(); // for serialization
 		void add_civilization(civilization* civ);
+		void add_diplomat(int civid, diplomat* d);
 		bool perform_action(int civid, const action& a);
 		const unit_configuration* get_unit_configuration(int uid) const;
 		int current_civ_id() const;
@@ -165,6 +167,7 @@ class pompelmous
 		bool can_load_unit(unit* u, int x, int y) const;
 		void start_revolution(civilization* civ);
 		void set_government(civilization* civ, int gov_id);
+		bool suggest_peace(int civ_id1, int civ_id2);
 	private:
 		void broadcast_action(const visible_move_action& a) const;
 		bool next_civ();
@@ -194,6 +197,7 @@ class pompelmous
 		std::list<action_listener*> action_listeners;
 		int winning_civ;
 		victory_type victory;
+		std::map<int, diplomat*> diplomat_handlers;
 
 		friend class boost::serialization::access;
 
@@ -214,6 +218,13 @@ class pompelmous
 			ar & num_turns;
 			ar & winning_civ;
 			ar & victory;
+			// do not serialize diplomat handlers.
+			// This is necessary only when the AI has some
+			// intelligence/memory regarding negotiations.
+			// After adding diplomat handler serialization,
+			// remember to modify run_game() in main to not
+			// readd the diplomat handlers.
+			// ar & diplomat_handlers;
 		}
 		template<class Archive>
 		void save(Archive& ar, const unsigned int version) const

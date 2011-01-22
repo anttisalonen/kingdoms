@@ -399,12 +399,17 @@ int run_game(pompelmous& r)
 {
 	std::map<unsigned int, ai> ais;
 	if(observer) {
-		ais.insert(std::make_pair(0, ai(r.get_map(), r, r.civs[0])));
+		std::pair<std::map<unsigned int, ai>::iterator, bool> res =
+			ais.insert(std::make_pair(0, ai(r.get_map(), r, r.civs[0])));
+		r.add_diplomat(0, &res.first->second);
 		if(ai_debug)
 			set_ai_debug_civ(0);
 	}
-	for(unsigned int i = 1; i < r.civs.size(); i++)
-		ais.insert(std::make_pair(i, ai(r.get_map(), r, r.civs[i])));
+	for(unsigned int i = 1; i < r.civs.size(); i++) {
+		std::pair<std::map<unsigned int, ai>::iterator, bool> res =
+			ais.insert(std::make_pair(i, ai(r.get_map(), r, r.civs[i])));
+		r.add_diplomat(i, &res.first->second);
+	}
 	play_game(r, ais);
 	return 0;
 }

@@ -23,12 +23,14 @@ class diplomacy_window : public window {
 		int handle_mousedown(const SDL_Event& ev);
 		int handle_keydown(SDLKey k);
 		int draw_window();
+		int on_exit();
 	private:
 		int on_war();
 		int on_peace();
 		civilization* myciv;
 		int other_civ_id;
 		std::list<button*> buttons;
+		std::vector<std::string> greetings;
 };
 
 #endif

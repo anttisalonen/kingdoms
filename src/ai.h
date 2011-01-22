@@ -5,6 +5,7 @@
 #include <queue>
 #include "pompelmous.h"
 #include "utils.h"
+#include "diplomat.h"
 
 #include "ai-objective.h"
 #include "ai-orders.h"
@@ -35,10 +36,11 @@ struct ai_tunable_parameters {
 	int ci_cost_coeff;
 };
 
-class ai {
+class ai : public diplomat {
 	public:
 		ai(map& m_, pompelmous& r_, civilization* c);
 		bool play();
+		bool peace_suggested(int civ_id);
 	private:
 		void create_city_orders(city* c);
 		bool assign_free_unit(unit* u);

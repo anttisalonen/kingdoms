@@ -42,6 +42,7 @@ KINGDOMSSRCFILES = ai-orders.cpp ai-objective.cpp \
 	   ai.cpp \
 	   gui-utils.cpp city_window.cpp \
 	   production_window.cpp \
+	   relationships_window.cpp \
 	   discovery_window.cpp diplomacy_window.cpp \
 	   main_window.cpp game_window.cpp \
 	   mapview.cpp gui-resources.cpp gui.cpp \
