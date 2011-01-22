@@ -141,6 +141,8 @@ class civilization {
 		void unload_unit(unit* loadee);
 		void total_resources(const city& c, int* food, int* prod, int* comm) const;
 		coord next_good_resource_spot(const city* c) const;
+		bool can_add_resource_worker(const coord& c) const;
+		void update_resource_worker_map();
 		std::string civname;
 		const unsigned int civ_id;
 		color col;
@@ -180,6 +182,7 @@ class civilization {
 		std::map<unsigned int, int> lost_units;
 		unsigned int points;
 		bool cross_oceans;
+		std::map<coord, unsigned int> resource_workers_map;
 
 		friend class boost::serialization::access;
 		template<class Archive>
@@ -213,6 +216,7 @@ class civilization {
 			ar & lost_units;
 			ar & points;
 			ar & cross_oceans;
+			ar & resource_workers_map;
 		}
 };
 

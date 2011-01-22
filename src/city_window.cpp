@@ -91,19 +91,28 @@ int city_window::draw_city_resources_screen(int xpos, int ypos)
 				int yp = data.m.wrap_y(c->ypos + j);
 				if(in_bounds(0, xp, data.m.size_x() - 1) &&
 				   in_bounds(0, yp, data.m.size_y() - 1) && myciv->fog_at(xp, yp)) {
-					draw_terrain_tile(xp, yp, x, y, false,
-							data.m, res.terrains,
-							res.resource_images, true,
-							true, &myciv->researched_advances, screen);
+					city* city_here = data.m.city_on_spot(xp, yp);
+					if(city_here) {
+						draw_image(x, y,
+							res.city_images[city_here->civ_id], screen);
+					}
+					else {
+						draw_terrain_tile(xp, yp, x, y, false,
+								data.m, res.terrains,
+								res.resource_images, true,
+								true, &myciv->researched_advances, screen);
+					}
+					// draw red rectangles on used resource spots
+					// red rectangles may be overwritten by white ones in the next step
+					if(!myciv->can_add_resource_worker(coord(xp, yp))) {
+						draw_rect(x, y,
+							res.terrains.tile_w, res.terrains.tile_h, color(255, 0, 0),
+							1, screen);
+					}
 				}
 			}
 		}
 	}
-
-	// draw the city itself
-	draw_image(xpos + res.terrains.tile_w * 2,
-		   ypos + res.terrains.tile_h * 2,
-		   res.city_images[c->civ_id], screen);
 
 	// draw resources and boxes on resource coords
 	const std::list<coord>& resource_coords = c->get_resource_coords();

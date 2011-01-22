@@ -21,12 +21,12 @@ civilization::civilization(std::string name, unsigned int civid,
 	alloc_science(5),
 	research_goal_id(0),
 	ai(ai_),
+	gov(gov_),
 	relationships(civid + 1, relationship_unknown),
 	known_land_map(buf2d<int>(0, 0, -1)),
 	curr_city_name_index(0),
 	next_city_id(1),
 	next_unit_id(1),
-	gov(gov_),
 	points(0),
 	cross_oceans(false)
 {
@@ -772,6 +772,8 @@ coord civilization::next_good_resource_spot(const city* c) const
 				continue;
 			if(m->get_land_owner(c->xpos + i, c->ypos + j) != (int)c->civ_id)
 				continue;
+			if(!can_add_resource_worker(coord(c->xpos + i, c->ypos + j)))
+				continue;
 			int tf, tp, tc;
 			m->get_resources_on_spot(c->xpos + i, c->ypos + j, &tf, &tp, &tc,
 					&researched_advances, gov->production_cap);
@@ -791,4 +793,52 @@ coord civilization::next_good_resource_spot(const city* c) const
 	return ret;
 }
 
+bool civilization::can_add_resource_worker(const coord& c) const
+{
+	return resource_workers_map.find(c) == resource_workers_map.end();
+}
+
+void civilization::update_resource_worker_map()
+{
+	resource_workers_map.clear();
+	std::vector<city*> updateable_cities;
+	do {
+		updateable_cities.clear();
+		for(std::map<unsigned int, city*>::const_iterator it = cities.begin();
+				it != cities.end();
+				++it) {
+			resource_workers_map.insert(std::make_pair(coord(it->second->xpos,
+							it->second->ypos),
+						it->first));
+		}
+
+		for(std::map<unsigned int, city*>::const_iterator it = cities.begin();
+				it != cities.end();
+				++it) {
+			const std::list<coord>& coords = it->second->get_resource_coords();
+			for(std::list<coord>::const_iterator cit = coords.begin();
+					cit != coords.end();
+					++cit) {
+				coord cp = coord(cit->x + it->second->xpos,
+						cit->y + it->second->ypos);
+				std::pair<std::map<coord, unsigned int>::iterator, bool> res =
+					resource_workers_map.insert(std::make_pair(cp, it->first));
+				if(res.second == false && res.first->second != it->first) {
+					printf("Conflict %d <=> %d at (%d, %d)\n",
+							it->first, res.first->second, cp.x, cp.y);
+					updateable_cities.push_back(it->second);
+					break;
+				}
+			}
+		}
+
+		if(!updateable_cities.empty()) {
+			for(std::vector<city*>::iterator it = updateable_cities.begin();
+					it != updateable_cities.end();
+					++it) {
+				update_city_resource_workers(*it);
+			}
+		}
+	} while (!updateable_cities.empty());
+}
 

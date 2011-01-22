@@ -331,6 +331,7 @@ void pompelmous::check_for_city_updates()
 				update_land = true;
 			}
 		}
+		(*it)->update_resource_worker_map();
 	}
 	if(update_land)
 		update_land_owners();
