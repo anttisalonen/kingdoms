@@ -1012,6 +1012,11 @@ void game_window::init_turn()
 			}
 			current_unit = myciv->units.end();
 			get_next_free_unit();
+			if(current_unit == myciv->units.end()) {
+				std::map<unsigned int, city*>::const_iterator c = myciv->cities.begin();
+				if(c != myciv->cities.end())
+					try_center_camera_at(c->second->xpos, c->second->ypos);
+			}
 		}
 	}
 }
