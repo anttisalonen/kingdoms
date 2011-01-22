@@ -10,6 +10,10 @@
 
 #include "game_window.h"
 
+const color game_window::popup_text_color = color(255, 255, 255);
+const color game_window::popup_button_color = color(10, 9, 36);
+const color game_window::popup_background_color = color(16, 10, 132);
+
 game_window::game_window(SDL_Surface* screen_, gui_data& data_, gui_resources& res_,
 		ai* ai_, civilization* myciv_)
 	: main_window(screen_, data_, res_, 4),
@@ -107,6 +111,34 @@ int game_window::handle_window_input(const SDL_Event& ev)
 	return a.type == action_give_up;
 }
 
+void game_window::add_revolution_confirm_window(const char* msg)
+{
+	if(myciv->gov->gov_id == ANARCHY_INDEX)
+		return;
+	int win_height = 72;
+	int win_width = 600;
+	widget_window* w = new widget_window(screen, data, res,
+			rect(screen->w / 2 - win_width / 2,
+				screen->h / 2 - win_height / 2,
+				win_width, win_height),
+			popup_background_color);
+	w->set_text_color(popup_text_color);
+	w->set_button_color(popup_button_color);
+	w->add_key_handler(SDLK_ESCAPE, widget_close);
+	w->add_label(10, 8, win_width - 20, 24, msg);
+	w->add_button(20, 40, win_width / 2 - 40, 24, "Yes!", boost::bind(&game_window::start_revolution,
+				this, boost::lambda::_1));
+	w->add_button(win_width / 2 + 20, 40, win_width / 2 - 40, 24, "No", widget_close);
+	add_subwindow(w);
+}
+
+int game_window::start_revolution(const widget_window* w)
+{
+	add_gui_msg("Revolution!");
+	data.r.start_revolution(myciv);
+	return 1;
+}
+
 void game_window::handle_input_gui_mod(const SDL_Event& ev, city** c)
 {
 	switch(ev.type) {
@@ -116,6 +148,9 @@ void game_window::handle_input_gui_mod(const SDL_Event& ev, city** c)
 				if(k == SDLK_s && (ev.key.keysym.mod & KMOD_CTRL)) {
 					save_game("manual", data.r);
 					add_gui_msg("Game saved.");
+				}
+				if(k == SDLK_r && (ev.key.keysym.mod & KMOD_CTRL)) {
+					add_revolution_confirm_window("Are you sure you want a Revolution?");
 				}
 				if(!internal_ai && current_unit != myciv->units.end()) {
 					if(k == SDLK_c) {
@@ -200,17 +235,18 @@ void game_window::draw_sidebar()
 
 int game_window::draw_civ_info() const
 {
-	draw_text(screen, &res.font, myciv->civname.c_str(), 10, sidebar_size * tile_h / 2 + 40, 255, 255, 255);
+	draw_text(screen, &res.font, myciv->civname.c_str(), 10, sidebar_size * tile_h / 2 + 36, 255, 255, 255);
 	char buf[256];
 	buf[255] = '\0';
 	snprintf(buf, 255, "Gold: %d", myciv->gold);
-	draw_text(screen, &res.font, buf, 10, sidebar_size * tile_h / 2 + 60, 255, 255, 255);
+	draw_text(screen, &res.font, myciv->gov->gov_name.c_str(), 10, sidebar_size * tile_h / 2 + 52, 255, 255, 255);
+	draw_text(screen, &res.font, buf, 10, sidebar_size * tile_h / 2 + 68, 255, 255, 255);
 	int lux = 10 - myciv->alloc_gold - myciv->alloc_science;
 	snprintf(buf, 255, "%d/%d/%d", 
 			myciv->alloc_gold * 10,
 			myciv->alloc_science * 10,
 			lux);
-	draw_text(screen, &res.font, buf, 10, sidebar_size * tile_h / 2 + 80, 255, 255, 255);
+	draw_text(screen, &res.font, buf, 10, sidebar_size * tile_h / 2 + 84, 255, 255, 255);
 	return 0;
 }
 
@@ -777,6 +813,24 @@ void game_window::add_gui_msg(const std::string& s)
 		gui_msg_queue.pop_front();
 }
 
+void game_window::check_revolution_notifier(unsigned int adv_id)
+{
+	if(myciv->gov->gov_id != INITIAL_GOVERNMENT_INDEX)
+		return;
+	if(adv_id == 0)
+		return;
+	for(government_map::const_iterator it = data.r.govmap.begin();
+			it != data.r.govmap.end();
+			++it) {
+		if(it->second.needed_advance == adv_id) {
+			std::stringstream s;
+			s << "You've discovered the government form of " << it->second.gov_name << ". Would you like a revolution?";
+			add_revolution_confirm_window(s.str().c_str());
+			return;
+		}
+	}
+}
+
 int game_window::handle_civ_messages(std::list<msg>* messages)
 {
 	while(!messages->empty()) {
@@ -816,6 +870,7 @@ int game_window::handle_civ_messages(std::list<msg>* messages)
 									m.msg_data.new_advance_id));
 					else
 						myciv->research_goal_id = 0;
+					check_revolution_notifier(adv_id);
 				}
 				break;
 			case msg_new_city_improv:
@@ -873,6 +928,9 @@ int game_window::handle_civ_messages(std::list<msg>* messages)
 					add_gui_msg(s.str());
 				}
 				break;
+			case msg_anarchy_over:
+				add_choose_revolution_window();
+				break;
 			default:
 				fprintf(stderr, "Unknown message received: %d\n",
 						m.type);
@@ -881,6 +939,49 @@ int game_window::handle_civ_messages(std::list<msg>* messages)
 		messages->pop_front();
 	}
 	return 0;
+}
+
+void game_window::add_choose_revolution_window()
+{
+	int num_options = 0;
+	for(government_map::const_iterator it = data.r.govmap.begin();
+			it != data.r.govmap.end();
+			++it) {
+		if(it->first == ANARCHY_INDEX)
+			continue;
+		if(myciv->advance_discovered(it->second.needed_advance))
+			num_options++;
+	}
+	int win_height = std::min(screen->h - 10, (num_options + 1) * 32 + 8);
+	int win_width = 400;
+	widget_window* w = new widget_window(screen, data, res,
+			rect(screen->w / 2 - win_width / 2,
+				screen->h / 2 - win_height / 2,
+				win_width, win_height),
+			popup_background_color);
+	w->set_text_color(popup_text_color);
+	w->set_button_color(popup_button_color);
+	w->add_label(10, 8, win_width - 20, 24, "Choose your new government form");
+	int yp = 40;
+	for(government_map::const_iterator it = data.r.govmap.begin();
+			it != data.r.govmap.end();
+			++it) {
+		if(it->first == ANARCHY_INDEX)
+			continue;
+		if(myciv->advance_discovered(it->second.needed_advance)) {
+			w->add_button(20, yp, win_width - 40, 24,
+					it->second.gov_name.c_str(), boost::bind(&game_window::choose_government,
+						this, it->first, boost::lambda::_1));
+			yp += 32;
+		}
+	}
+	add_subwindow(w);
+}
+
+int game_window::choose_government(unsigned int gov_id, const widget_window* w)
+{
+	data.r.set_government(myciv, gov_id);
+	return 1;
 }
 
 void game_window::check_unit_movement_orders()

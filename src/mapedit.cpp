@@ -27,6 +27,7 @@ void run_editor()
 	const int road_moves = 3;
 	const unsigned int food_eaten_per_citizen = 2;
 	const int num_turns = 300;
+	const int anarchy_period = 1;
 	resource_configuration resconf = parse_terrain_config(KINGDOMS_RULESDIR "terrain.txt");
 	resource_map rmap = parse_resource_config(KINGDOMS_RULESDIR "resources.txt");
 	unit_configuration_map uconfmap = parse_unit_config(KINGDOMS_RULESDIR "units.txt");
@@ -36,8 +37,8 @@ void run_editor()
 	std::vector<civilization*> civs;
 	civs = parse_civs_config(KINGDOMS_RULESDIR "civs.txt");
 	map m(map_x, map_y, resconf, rmap);
-	pompelmous r(uconfmap, amap, cimap, &m, road_moves,
-			food_eaten_per_citizen, num_turns);
+	pompelmous r(uconfmap, amap, cimap, govmap, &m, road_moves,
+			food_eaten_per_citizen, anarchy_period, num_turns);
 	for(unsigned int i = 0; i < civs.size(); i++) {
 		civs[i]->set_map(&m);
 		civs[i]->set_government(&govmap.begin()->second);

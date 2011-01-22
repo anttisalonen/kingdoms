@@ -589,6 +589,7 @@ int run_with_map(map& m)
 	const int road_moves = 3;
 	const unsigned int food_eaten_per_citizen = 2;
 	const int num_turns = 300;
+	const unsigned int anarchy_period = 3;
 
 	std::vector<civilization*> civs;
 	civs = parse_civs_config(KINGDOMS_RULESDIR "civs.txt");
@@ -601,8 +602,8 @@ int run_with_map(map& m)
 		civs[i]->set_map(&m);
 		civs[i]->set_government(&govmap.begin()->second);
 	}
-	pompelmous r(uconfmap, amap, cimap, &m, road_moves,
-			food_eaten_per_citizen, num_turns);
+	pompelmous r(uconfmap, amap, cimap, govmap, &m, road_moves,
+			food_eaten_per_citizen, anarchy_period, num_turns);
 
 	std::map<int, coord> starting_places = m.get_starting_places();
 	if(starting_places.size() < 3) {

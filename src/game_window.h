@@ -49,6 +49,11 @@ class game_window : public main_window {
 		bool write_unit_info(const unit* u, int* written_lines) const;
 		void add_gui_msg(const std::string& s);
 		void update_action_buttons();
+		void add_revolution_confirm_window(const char* msg);
+		int start_revolution(const widget_window* w);
+		void add_choose_revolution_window();
+		int choose_government(unsigned int gov_id, const widget_window* w);
+		void check_revolution_notifier(unsigned int adv_id);
 		int unit_wait();
 		int unit_center();
 		int unit_skip();
@@ -72,6 +77,9 @@ class game_window : public main_window {
 		std::list<std::string> gui_msg_queue;
 		std::list<button*> action_buttons;
 		action action_button_action;
+		static const color popup_text_color;
+		static const color popup_button_color;
+		static const color popup_background_color;
 };
 
 #endif

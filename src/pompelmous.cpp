@@ -104,16 +104,20 @@ visible_move_action::visible_move_action(const unit* un, int chx, int chy,
 pompelmous::pompelmous(const unit_configuration_map& uconfmap_,
 		const advance_map& amap_,
 		const city_improv_map& cimap_,
+		const government_map& govmap_,
 		map* m_, unsigned int road_moves_,
 		unsigned int food_eaten_per_citizen_,
+		unsigned int anarchy_period_turns_,
 		int num_turns_)
 	: uconfmap(uconfmap_),
 	amap(amap_),
 	cimap(cimap_),
+	govmap(govmap_),
 	m(m_),
 	round_number(0),
 	road_moves(road_moves_),
 	food_eaten_per_citizen(food_eaten_per_citizen_),
+	anarchy_period_turns(anarchy_period_turns_),
 	num_turns(num_turns_),
 	winning_civ(-1),
 	victory(victory_none)
@@ -922,5 +926,19 @@ bool pompelmous::combat_chances(const unit* u1, const unit* u2,
 	*u1chance = s1 * s1;
 	*u2chance = s2 * s2;
 	return true;
+}
+
+void pompelmous::start_revolution(civilization* civ)
+{
+	set_government(civ, ANARCHY_INDEX);
+	civ->set_anarchy_period(anarchy_period_turns);
+}
+
+void pompelmous::set_government(civilization* civ, int gov_id)
+{
+	government_map::const_iterator git = govmap.find(gov_id);
+	if(git != govmap.end()) {
+		civ->set_government(&git->second);
+	}
 }
 

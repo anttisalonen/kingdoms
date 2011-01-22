@@ -28,7 +28,8 @@ ai_tunable_parameters::ai_tunable_parameters()
 ai::ai(map& m_, pompelmous& r_, civilization* c)
 	: m(m_),
 	r(r_),
-	myciv(c)
+	myciv(c),
+	planned_new_government_form(0)
 {
 	objectives.push_back(std::make_pair(new defense_objective(&r, myciv, "defense"), 1200));
 	objectives.push_back(std::make_pair(new offense_objective(&r, myciv, "offense"), 1100));
@@ -57,6 +58,9 @@ bool ai::play()
 				break;
 			case msg_unit_disbanded:
 				handle_unit_disbanded(m);
+				break;
+			case msg_anarchy_over:
+				handle_anarchy_over(m);
 				break;
 			default:
 				break;
@@ -198,6 +202,7 @@ void ai::handle_new_advance(unsigned int adv_id)
 	if(it != r.amap.end()) {
 		ai_debug_printf(myciv->civ_id, "Discovered advance '%s'.\n",
 				it->second.advance_name.c_str());
+		check_for_revolution(adv_id);
 	}
 	it = r.amap.find(myciv->research_goal_id);
 	if(it != r.amap.end()) {
@@ -274,4 +279,31 @@ void ai::handle_unit_disbanded(const msg& m)
 	ai_debug_printf(myciv->civ_id, "unit %d disbanded.\n",
 			m.msg_data.disbanded_unit_id);
 }
+
+void ai::handle_anarchy_over(const msg& m)
+{
+	r.set_government(myciv, planned_new_government_form);
+	ai_debug_printf(myciv->civ_id, "Set government to %s.\n",
+			myciv->gov->gov_name.c_str());
+}
+
+void ai::check_for_revolution(unsigned int adv_id)
+{
+	if(adv_id == 0)
+		return;
+	if(myciv->gov->gov_id == ANARCHY_INDEX)
+		return;
+	for(government_map::const_iterator it = r.govmap.begin();
+			it != r.govmap.end();
+			++it) {
+		if(it->second.needed_advance == adv_id) {
+			ai_debug_printf(myciv->civ_id, "Revolution due to discovering %s.\n",
+					it->second.gov_name.c_str());
+			r.start_revolution(myciv);
+			planned_new_government_form = it->first;
+			return;
+		}
+	}
+}
+
 

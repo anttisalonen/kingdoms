@@ -28,7 +28,8 @@ civilization::civilization(std::string name, unsigned int civid,
 	next_city_id(1),
 	next_unit_id(1),
 	points(0),
-	cross_oceans(false)
+	cross_oceans(false),
+	anarchy_period(0)
 {
 	for(std::vector<std::string>::const_iterator it = names_start;
 			it != names_end;
@@ -199,10 +200,17 @@ msg new_relationship(int civid, relationship val)
 	return m;
 }
 
+msg anarchy_over()
+{
+	msg m;
+	m.type = msg_anarchy_over;
+	return m;
+}
+
 void civilization::update_military_expenses()
 {
 	military_expenses = 0;
-	int free_units_togo = gov->free_units;
+	int free_units_togo = gov->free_units + cities.size() * gov->city_units;
 	for(std::map<unsigned int, unit*>::const_iterator it = units.begin();
 			it != units.end(); ++it) {
 		if(it->second->uconf->max_strength > 0) {
@@ -237,6 +245,14 @@ void civilization::increment_resources(const unit_configuration_map& uconfmap,
 		const advance_map& amap, const city_improv_map& cimap,
 		unsigned int road_moves, unsigned int food_eaten_per_citizen)
 {
+	if(anarchy_period) {
+		anarchy_period--;
+		if(!anarchy_period) {
+			add_message(anarchy_over());
+		}
+		return;
+	}
+
 	national_income = 0;
 	int total_science = 0;
 	for(std::map<unsigned int, city*>::iterator cit = cities.begin();
@@ -488,6 +504,12 @@ bool civilization::unit_discovered(const unit_configuration& uconf) const
 {
 	return researched_advances.find(uconf.needed_advance) != researched_advances.end() || 
 			uconf.needed_advance == 0;
+}
+
+bool civilization::advance_discovered(unsigned int adv_id) const
+{
+	return adv_id == 0 ||
+		researched_advances.find(adv_id) != researched_advances.end();
 }
 
 void civilization::set_map(map* m_)
@@ -840,5 +862,15 @@ void civilization::update_resource_worker_map()
 			}
 		}
 	} while (!updateable_cities.empty());
+}
+
+void civilization::set_anarchy_period(unsigned int num)
+{
+	if(num == 0) {
+		add_message(anarchy_over());
+	}
+	else {
+		anarchy_period = num;
+	}
 }
 

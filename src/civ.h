@@ -36,6 +36,7 @@ enum msg_type {
 	msg_new_city_improv,
 	msg_unit_disbanded,
 	msg_new_relationship,
+	msg_anarchy_over,
 };
 
 struct msg {
@@ -79,6 +80,8 @@ struct msg {
 				ar & msg_data.relationship_data.other_civ_id;
 				ar & msg_data.relationship_data.new_relationship;
 				break;
+			case msg_anarchy_over:
+				break;
 		}
 	}
 };
@@ -118,6 +121,7 @@ class civilization {
 		std::vector<unsigned int> check_discoveries(int x, int y, int radius);
 		bool unit_discovered(const unit_configuration& uconf) const;
 		bool improv_discovered(const city_improvement& uconf) const;
+		bool advance_discovered(unsigned int adv_id) const;
 		bool blocked_by_land(int x, int y) const;
 		int get_known_land_owner(int x, int y) const;
 		void eliminate();
@@ -143,6 +147,7 @@ class civilization {
 		coord next_good_resource_spot(const city* c) const;
 		bool can_add_resource_worker(const coord& c) const;
 		void update_resource_worker_map();
+		void set_anarchy_period(unsigned int num);
 		std::string civname;
 		const unsigned int civ_id;
 		color col;
@@ -183,6 +188,7 @@ class civilization {
 		unsigned int points;
 		bool cross_oceans;
 		std::map<coord, unsigned int> resource_workers_map;
+		unsigned int anarchy_period;
 
 		friend class boost::serialization::access;
 		template<class Archive>
@@ -217,6 +223,7 @@ class civilization {
 			ar & points;
 			ar & cross_oceans;
 			ar & resource_workers_map;
+			ar & anarchy_period;
 		}
 };
 

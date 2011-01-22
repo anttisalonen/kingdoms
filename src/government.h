@@ -7,6 +7,9 @@
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/serialization/string.hpp>
 
+#define INITIAL_GOVERNMENT_INDEX	1
+#define ANARCHY_INDEX			2
+
 class government {
 	public:
 		government(unsigned int gov_id_,
@@ -14,8 +17,9 @@ class government {
 		government(); // for serialization
 		unsigned int gov_id;
 		std::string gov_name;
-		int needed_advance;
+		unsigned int needed_advance;
 		int production_cap;
+		int city_units;
 		int free_units;
 		int unit_cost;
 
@@ -25,6 +29,7 @@ class government {
 			ar & gov_id;
 			ar & gov_name;
 			ar & needed_advance;
+			ar & city_units;
 			ar & free_units;
 			ar & unit_cost;
 		}

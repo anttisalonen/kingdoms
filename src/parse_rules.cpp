@@ -229,14 +229,15 @@ resource_configuration parse_terrain_config(const std::string& fp)
 government_map parse_government_config(const std::string& fp)
 {
 	government_map govmap;
-	parse_result governments = parser(fp, 5);
+	parse_result governments = parser(fp, 6);
 
 	for(unsigned int i = 0; i < governments.size(); i++) {
 		government gov(i + 1, governments[i][0]);
 		gov.needed_advance = stoi(governments[i][1]);
 		gov.production_cap = stoi(governments[i][2]);
 		gov.free_units = stoi(governments[i][3]);
-		gov.unit_cost = stoi(governments[i][4]);
+		gov.city_units = stoi(governments[i][4]);
+		gov.unit_cost = stoi(governments[i][5]);
 		govmap.insert(std::make_pair(gov.gov_id, gov));
 	}
 	return govmap;

@@ -119,9 +119,11 @@ class pompelmous
 		pompelmous(const unit_configuration_map& uconfmap_, 
 				const advance_map& amap_, 
 				const city_improv_map& cimap_,
+				const government_map& govmap_,
 				map* m_,
 				unsigned int road_moves_,
 				unsigned int food_eaten_per_citizen_,
+				unsigned int anarchy_period_turns_,
 				int num_turns_);
 		pompelmous(); // for serialization
 		void add_civilization(civilization* civ);
@@ -134,6 +136,7 @@ class pompelmous
 		const unit_configuration_map uconfmap;
 		const advance_map amap;
 		const city_improv_map cimap;
+		const government_map govmap;
 		bool in_war(unsigned int civ1, unsigned int civ2) const;
 		int get_round_number() const;
 		unsigned int get_num_road_moves() const;
@@ -160,6 +163,8 @@ class pompelmous
 		victory_type get_victory_type() const;
 		bool finished() const;
 		bool can_load_unit(unit* u, int x, int y) const;
+		void start_revolution(civilization* civ);
+		void set_government(civilization* civ, int gov_id);
 	private:
 		void broadcast_action(const visible_move_action& a) const;
 		bool next_civ();
@@ -184,6 +189,7 @@ class pompelmous
 		int round_number;
 		const unsigned int road_moves;
 		const unsigned int food_eaten_per_citizen;
+		unsigned int anarchy_period_turns;
 		int num_turns;
 		std::list<action_listener*> action_listeners;
 		int winning_civ;
@@ -197,12 +203,14 @@ class pompelmous
 			ar & const_cast<unit_configuration_map&>(uconfmap);
 			ar & const_cast<advance_map&>(amap);
 			ar & const_cast<city_improv_map&>(cimap);
+			ar & const_cast<government_map&>(govmap);
 			ar & m;
 			ar & civs;
 
 			ar & round_number;
 			ar & const_cast<unsigned int&>(road_moves);
 			ar & const_cast<unsigned int&>(food_eaten_per_citizen);
+			ar & anarchy_period_turns;
 			ar & num_turns;
 			ar & winning_civ;
 			ar & victory;
