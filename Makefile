@@ -28,7 +28,7 @@ LIBKINGDOMSSRCFILES = color.cpp sdl-utils.cpp utils.cpp rect.cpp \
 	   serialize.cpp \
 	   filesystem.cpp \
 	   astar.cpp map-astar.cpp \
-	   parse_rules.cpp
+	   paths.cpp parse_rules.cpp
 
 LIBKINGDOMSSRCS = $(addprefix $(SRCDIR)/, $(LIBKINGDOMSSRCFILES))
 LIBKINGDOMSOBJS = $(LIBKINGDOMSSRCS:.cpp=.o)

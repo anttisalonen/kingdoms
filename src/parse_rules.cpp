@@ -2,8 +2,9 @@
 #include <fstream>
 #include <exception>
 
-#include "config.h"
 #include "parse_rules.h"
+#include "config.h"
+#include "paths.h"
 
 std::vector<std::vector<std::string> > parser(const std::string& filepath, 
 		unsigned int num_fields, bool vararg = false)
@@ -298,11 +299,4 @@ void get_configuration(const std::string& ruleset_name,
 		*resources = parse_resource_config(prefix + "resources.txt");
 }
 
-std::string get_rules_path(const std::string& ruleset_name)
-{
-	std::string prefix = std::string(KINGDOMS_RULESETS_DIR);
-	prefix += ruleset_name;
-	prefix += KINGDOMS_RULESSUBDIR;
-	return prefix;
-}
 

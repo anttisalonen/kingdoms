@@ -53,6 +53,7 @@
 
 #include "gui-resources.h"
 #include "config.h"
+#include "paths.h"
 
 static bool signal_received = false;
 
@@ -559,6 +560,10 @@ void load_menu::setup_buttons()
 	if(want_map) {
 		filenames = get_files_in_directory(path_to_saved_maps(ruleset_name),
 			MAP_FILE_EXTENSION);
+		std::vector<boost::filesystem::path> preinstalled =
+			get_files_in_directory(get_preinstalled_maps_path(ruleset_name),
+					MAP_FILE_EXTENSION);
+		filenames.insert(filenames.end(), preinstalled.begin(), preinstalled.end());
 	}
 	else {
 		filenames = get_files_in_directory(path_to_saved_games(ruleset_name),
