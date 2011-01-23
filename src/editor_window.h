@@ -25,7 +25,7 @@ class editor_window : public main_window {
 		int handle_mousemotion(const SDL_Event& ev);
 		void modify_map(int x, int y, bool remove);
 		int on_terrain_button(int val);
-		int on_resource_button(resource_map::const_iterator it);
+		int on_resource_button(unsigned int res_id);
 		int on_size_button(int val);
 		int on_river_button();
 		int on_save(const std::string& s);

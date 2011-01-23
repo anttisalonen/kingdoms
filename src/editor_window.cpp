@@ -47,7 +47,7 @@ editor_window::editor_window(SDL_Surface* screen_, gui_data& data_, gui_resource
 		if(rit != res.resource_images.end()) {
 			sidebar_buttons.push_back(new texture_button(std::string(""), button_dim,
 						rit->second,
-						boost::bind(&editor_window::on_resource_button, this, it)));
+						boost::bind(&editor_window::on_resource_button, this, it->first)));
 			if((i % 3) == 2) {
 				ypos += tile_h;
 				xpos = sidebar_terrain_xstart;
@@ -109,10 +109,10 @@ editor_window::~editor_window()
 	}
 }
 
-int editor_window::on_resource_button(resource_map::const_iterator it)
+int editor_window::on_resource_button(unsigned int res_id)
 {
 	current_tool = editor_tool_resource;
-	current_tool_index = it->first;
+	current_tool_index = res_id;
 	return 0;
 }
 
