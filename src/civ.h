@@ -88,10 +88,10 @@ struct msg {
 
 class civilization {
 	public:
-		civilization(std::string name, unsigned int civid, const color& c_, map* m_, bool ai_,
+		civilization(std::string name, unsigned int civid, const color& c_, map* m_,
 				const std::vector<std::string>::iterator& names_start,
 				const std::vector<std::string>::iterator& names_end,
-				const government* gov_);
+				const government* gov_, bool minor_civ_);
 		civilization(); // for serialization
 		~civilization();
 		unit* add_unit(int uid, int x, int y, 
@@ -148,6 +148,7 @@ class civilization {
 		bool can_add_resource_worker(const coord& c) const;
 		void update_resource_worker_map();
 		void set_anarchy_period(unsigned int num);
+		bool is_minor_civ() const;
 		std::string civname;
 		const unsigned int civ_id;
 		color col;
@@ -162,7 +163,6 @@ class civilization {
 		int alloc_science;
 		unsigned int research_goal_id;
 		std::set<unsigned int> researched_advances;
-		bool ai;
 		const government* gov;
 	private:
 		void reveal_land(int x, int y, int r);
@@ -189,6 +189,7 @@ class civilization {
 		bool cross_oceans;
 		std::map<coord, unsigned int> resource_workers_map;
 		unsigned int anarchy_period;
+		bool minor_civ;
 
 		friend class boost::serialization::access;
 		template<class Archive>
@@ -208,7 +209,6 @@ class civilization {
 			ar & alloc_science;
 			ar & research_goal_id;
 			ar & researched_advances;
-			ar & ai;
 			ar & const_cast<government*&>(gov);
 			ar & relationships;
 			ar & known_land_map;
@@ -224,6 +224,7 @@ class civilization {
 			ar & cross_oceans;
 			ar & resource_workers_map;
 			ar & anarchy_period;
+			ar & minor_civ;
 		}
 };
 

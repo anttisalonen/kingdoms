@@ -854,10 +854,17 @@ int game_window::handle_civ_messages(std::list<msg>* messages)
 			case msg_civ_discovery:
 				{
 					std::stringstream s;
-					s << "Discovered the civilization of the " << data.r.civs[m.msg_data.discovered_civ_id]->civname << ".";
-					add_gui_msg(s.str());
-					add_subwindow(new diplomacy_window(screen, data, res, myciv,
-								m.msg_data.discovered_civ_id));
+					if(data.r.civs[m.msg_data.discovered_civ_id]->is_minor_civ()) {
+						s << "Discovered some barbarians.";
+						data.r.declare_war_between(myciv->civ_id, m.msg_data.discovered_civ_id);
+						add_gui_msg(s.str());
+					}
+					else  {
+						s << "Discovered the civilization of the " << data.r.civs[m.msg_data.discovered_civ_id]->civname << ".";
+						add_gui_msg(s.str());
+						add_subwindow(new diplomacy_window(screen, data, res, myciv,
+									m.msg_data.discovered_civ_id));
+					}
 				}
 				break;
 			case msg_new_advance:
@@ -915,7 +922,7 @@ int game_window::handle_civ_messages(std::list<msg>* messages)
 				add_gui_msg("Unit disbanded.");
 				break;
 			case msg_new_relationship:
-				{
+				if(!data.r.civs[m.msg_data.relationship_data.other_civ_id]->is_minor_civ()) {
 					std::stringstream s;
 					s << "The " << data.r.civs[m.msg_data.relationship_data.other_civ_id]->civname;
 					switch(m.msg_data.relationship_data.new_relationship) {

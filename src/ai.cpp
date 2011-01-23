@@ -31,11 +31,18 @@ ai::ai(map& m_, pompelmous& r_, civilization* c)
 	myciv(c),
 	planned_new_government_form(0)
 {
-	objectives.push_back(std::make_pair(new defense_objective(&r, myciv, "defense"), 1200));
-	objectives.push_back(std::make_pair(new offense_objective(&r, myciv, "offense"), 1100));
-	objectives.push_back(std::make_pair(new expansion_objective(&r, myciv, "expansion"), 1000));
-	objectives.push_back(std::make_pair(new exploration_objective(&r, myciv, "exploration"), 900));
-	objectives.push_back(std::make_pair(new commerce_objective(&r, myciv, "commerce"), 800));
+	if(!myciv->is_minor_civ()) {
+		objectives.push_back(std::make_pair(new defense_objective(&r, myciv, "defense"), 1200));
+		objectives.push_back(std::make_pair(new offense_objective(&r, myciv, "offense"), 1100));
+		objectives.push_back(std::make_pair(new expansion_objective(&r, myciv, "expansion"), 1000));
+		objectives.push_back(std::make_pair(new commerce_objective(&r, myciv, "commerce"), 800));
+		objectives.push_back(std::make_pair(new exploration_objective(&r, myciv, "exploration"), 900));
+	}
+	else {
+		objectives.push_back(std::make_pair(new defense_objective(&r, myciv, "defense"), 1000));
+		objectives.push_back(std::make_pair(new offense_objective(&r, myciv, "offense"), 4000));
+		objectives.push_back(std::make_pair(new exploration_objective(&r, myciv, "exploration"), 1200));
+	}
 }
 
 bool ai::play()

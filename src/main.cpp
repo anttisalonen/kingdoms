@@ -279,6 +279,8 @@ void score_screen::draw_background()
 	for(std::vector<civilization*>::const_iterator it = civs.begin();
 			it != civs.end();
 			++it) {
+		if((*it)->is_minor_civ())
+			continue;
 		draw_text(screen, font, (*it)->civname.c_str(), 70, yp, 255, 255, 255, false);
 		snprintf(buf, 255, "%d", (*it)->get_points());
 		draw_text(screen, font, buf, screen->w - 150, yp, 255, 255, 255, false);
@@ -374,6 +376,8 @@ void play_game(pompelmous& r, std::map<unsigned int, ai>& ais)
 	}
 
 	for(unsigned int i = 0; i < r.civs.size(); i++) {
+		if(r.civs[i]->is_minor_civ())
+			continue;
 		const std::map<unsigned int, int>& m1 = r.civs[i]->get_built_units();
 		const std::map<unsigned int, int>& m2 = r.civs[i]->get_lost_units();
 		printf("%-20s%-6d points    %4d cities\n%-20s%-6s%-6s\n", r.civs[i]->civname.c_str(),
@@ -408,7 +412,8 @@ int run_game(pompelmous& r)
 	for(unsigned int i = 1; i < r.civs.size(); i++) {
 		std::pair<std::map<unsigned int, ai>::iterator, bool> res =
 			ais.insert(std::make_pair(i, ai(r.get_map(), r, r.civs[i])));
-		r.add_diplomat(i, &res.first->second);
+		if(!r.civs[i]->is_minor_civ())
+			r.add_diplomat(i, &res.first->second);
 	}
 	play_game(r, ais);
 	return 0;
@@ -595,6 +600,7 @@ int run_with_map(map& m)
 	const unsigned int food_eaten_per_citizen = 2;
 	const int num_turns = 300;
 	const unsigned int anarchy_period = 3;
+	const unsigned int num_barbarians = 50;
 
 	std::vector<civilization*> civs;
 	civs = parse_civs_config(KINGDOMS_RULESDIR "civs.txt");
@@ -613,7 +619,8 @@ int run_with_map(map& m)
 	std::map<int, coord> starting_places = m.get_starting_places();
 	if(starting_places.size() < 3) {
 		starting_places.clear();
-		std::vector<coord> starting_places_vect = m.random_starting_places(civs.size());
+		std::vector<coord> starting_places_vect = m.random_starting_places(civs.size(),
+				true, 10);
 		if(starting_places_vect.size() != civs.size()) {
 			printf("Could find only %d starting places (instead of %d).\n",
 					starting_places_vect.size(), civs.size());
@@ -638,7 +645,54 @@ int run_with_map(map& m)
 				(*(r.uconfmap.find(2))).second, road_moves);
 		r.add_civilization(civs[i]);
 	}
+
+	std::vector<std::string> barbarian_names;
+	for(int i = 0; i < 20; i++) {
+		std::stringstream s;
+		s << "Barbarian Dwelling " << (i + 1);
+		barbarian_names.push_back(s.str());
+	}
+	std::vector<civilization*> barbarians;
+	{
+		std::vector<coord> barbarian_spots = m.random_starting_places(num_barbarians,
+				false, 2);
+		int added_barbarians = 0;
+		for(std::vector<coord>::iterator it = barbarian_spots.begin();
+				it != barbarian_spots.end();
+				++it) {
+			bool add_this = true;
+			for(std::map<int, coord>::const_iterator it2 = starting_places.begin();
+					it2 != starting_places.end();
+					++it2) {
+				if(m.manhattan_distance(it->x, it->y,
+							it2->second.x, it2->second.y) < 4) {
+					add_this = false;
+					break;
+				}
+			}
+			if(add_this) {
+				added_barbarians++;
+				int id = r.civs.size();
+				civilization* barb = new civilization("Barbarians",
+						id, color(20, 20, 20),
+						&m, barbarian_names.begin(),
+						barbarian_names.end(),
+						&govmap.begin()->second, true);
+				barbarians.push_back(barb);
+				// warrior
+				barb->add_unit(2, it->x, it->y, 
+						(*(r.uconfmap.find(2))).second, road_moves);
+				r.add_civilization(barb);
+			}
+		}
+		printf("Added %d barbarian tribes.\n",
+				added_barbarians);
+	}
+
 	int ret = run_game(r);
+	for(unsigned int i = 0; i < barbarians.size(); i++) {
+		delete barbarians[i];
+	}
 	for(unsigned int i = 0; i < civs.size(); i++) {
 		delete civs[i];
 	}

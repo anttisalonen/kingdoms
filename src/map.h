@@ -53,7 +53,8 @@ class map {
 		void remove_civ_land(unsigned int civ_id);
 		int wrap_x(int x) const;
 		int wrap_y(int y) const;
-		std::vector<coord> random_starting_places(int num) const;
+		std::vector<coord> random_starting_places(int num,
+				bool check_resources, unsigned int min_distance) const;
 		std::map<int, coord> get_starting_places() const;
 		int get_starter_at(int x, int y) const;
 		void add_starting_place(const coord& c, int civid);

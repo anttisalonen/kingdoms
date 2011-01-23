@@ -950,7 +950,7 @@ void pompelmous::set_government(civilization* civ, int gov_id)
 bool pompelmous::suggest_peace(int civ_id1, int civ_id2)
 {
 	std::map<int, diplomat*>::iterator it = diplomat_handlers.find(civ_id2);
-	bool do_peace = true;
+	bool do_peace = false;
 	if(it != diplomat_handlers.end() && it->second) {
 		do_peace = it->second->peace_suggested(civ_id1);
 	}

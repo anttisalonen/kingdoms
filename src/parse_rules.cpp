@@ -94,8 +94,8 @@ std::vector<civilization*> parse_civs_config(const std::string& fp)
 					color(stoi(pcivs[i][1]),
 						stoi(pcivs[i][2]),
 						stoi(pcivs[i][3])),
-					NULL, false, pcivs[i].begin() + 4, 
-					pcivs[i].end(), NULL));
+					NULL, pcivs[i].begin() + 4, 
+					pcivs[i].end(), NULL, false));
 	}
 	return civs;
 }

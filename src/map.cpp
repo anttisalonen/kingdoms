@@ -673,7 +673,8 @@ void map::remove_civ_land(unsigned int civ_id)
 	}
 }
 
-std::vector<coord> map::random_starting_places(int num) const
+std::vector<coord> map::random_starting_places(int num,
+		bool check_resources, unsigned int min_distance) const
 {
 	std::vector<coord> retval;
 	int tries = 0;
@@ -687,35 +688,39 @@ std::vector<coord> map::random_starting_places(int num) const
 			get_total_city_resources(xp, yp, &f, &p, &c, NULL, 0);
 			if(f < 10 || p < 4 || c < 3)
 				continue;
-			int at_least_two_food = 0;
-			int at_least_one_prod = 0;
-			for(int i = -2; i <= 2; i++) {
-				for(int j = -2; j <= 2; j++) {
-					if(abs(i) == 2 && abs(j) == 2)
-						continue;
+			if(check_resources) {
+				int at_least_two_food = 0;
+				int at_least_one_prod = 0;
+				for(int i = -2; i <= 2; i++) {
+					for(int j = -2; j <= 2; j++) {
+						if(abs(i) == 2 && abs(j) == 2)
+							continue;
 
-					int terr = get_data(xp + i, yp + j);
-					int food = 0, prod = 0, comm = 0;
-					get_resources_by_terrain(terr, false,
-							&food, &prod, &comm);
-					if(food >= 2)
-						at_least_two_food++;
-					if(prod >= 1)
-						at_least_one_prod++;
+						int terr = get_data(xp + i, yp + j);
+						int food = 0, prod = 0, comm = 0;
+						get_resources_by_terrain(terr, false,
+								&food, &prod, &comm);
+						if(food >= 2)
+							at_least_two_food++;
+						if(prod >= 1)
+							at_least_one_prod++;
+					}
 				}
+				if(at_least_two_food < 2)
+					continue;
+				if(at_least_one_prod < 2)
+					continue;
 			}
-			if(at_least_two_food < 2)
-				continue;
-			if(at_least_one_prod < 2)
-				continue;
 			bool too_close = false;
-			for(std::vector<coord>::const_iterator it = retval.begin();
-					it != retval.end();
-					++it) {
-				int manh = manhattan_distance(it->x, it->y, xp, yp);
-				if(manh < 10) {
-					too_close = true;
-					break;
+			if(min_distance) {
+				for(std::vector<coord>::const_iterator it = retval.begin();
+						it != retval.end();
+						++it) {
+					int manh = manhattan_distance(it->x, it->y, xp, yp);
+					if(manh < min_distance) {
+						too_close = true;
+						break;
+					}
 				}
 			}
 			if(!too_close)

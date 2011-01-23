@@ -6,10 +6,10 @@
 #include "map-astar.h"
 
 civilization::civilization(std::string name, unsigned int civid, 
-		const color& c_, map* m_, bool ai_,
+		const color& c_, map* m_,
 		const std::vector<std::string>::iterator& names_start,
 		const std::vector<std::string>::iterator& names_end,
-		const government* gov_)
+		const government* gov_, bool minor_civ_)
 	: civname(name),
 	civ_id(civid),
 	col(c_),
@@ -20,7 +20,6 @@ civilization::civilization(std::string name, unsigned int civid,
 	alloc_gold(5),
 	alloc_science(5),
 	research_goal_id(0),
-	ai(ai_),
 	gov(gov_),
 	relationships(civid + 1, relationship_unknown),
 	known_land_map(buf2d<int>(0, 0, -1)),
@@ -29,7 +28,8 @@ civilization::civilization(std::string name, unsigned int civid,
 	next_unit_id(1),
 	points(0),
 	cross_oceans(false),
-	anarchy_period(0)
+	anarchy_period(0),
+	minor_civ(minor_civ_)
 {
 	for(std::vector<std::string>::const_iterator it = names_start;
 			it != names_end;
@@ -125,7 +125,10 @@ void civilization::eliminate()
 
 bool civilization::eliminated() const
 {
-	return units.empty() && cities.empty();
+	if(minor_civ)
+		return units.empty();
+	else
+		return units.empty() && cities.empty();
 }
 
 void civilization::refill_moves(const unit_configuration_map& uconfmap)
@@ -245,6 +248,9 @@ void civilization::increment_resources(const unit_configuration_map& uconfmap,
 		const advance_map& amap, const city_improv_map& cimap,
 		unsigned int road_moves, unsigned int food_eaten_per_citizen)
 {
+	if(minor_civ)
+		return;
+
 	if(anarchy_period) {
 		anarchy_period--;
 		if(!anarchy_period) {
@@ -374,7 +380,6 @@ void civilization::setup_default_research_goal(const advance_map& amap)
 	}
 }
 
-
 char civilization::fog_at(int x, int y) const
 {
 	return fog.get_value(m->wrap_x(x), m->wrap_y(y));
@@ -452,7 +457,10 @@ bool civilization::discover(unsigned int civid)
 {
 	if(civid != civ_id && get_relationship_to_civ(civid) == relationship_unknown) {
 		add_message(discovered_civ(civid));
-		set_relationship_to_civ(civid, relationship_peace);
+		if(minor_civ)
+			set_relationship_to_civ(civid, relationship_war);
+		else
+			set_relationship_to_civ(civid, relationship_peace);
 		return 1;
 	}
 	return 0;
@@ -872,5 +880,10 @@ void civilization::set_anarchy_period(unsigned int num)
 	else {
 		anarchy_period = num;
 	}
+}
+
+bool civilization::is_minor_civ() const
+{
+	return minor_civ;
 }
 
