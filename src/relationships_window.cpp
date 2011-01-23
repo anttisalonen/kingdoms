@@ -20,18 +20,24 @@ relationships_window::relationships_window(SDL_Surface* screen_, gui_data& data_
 	for(std::vector<civilization*>::const_iterator it = data.r.civs.begin();
 			it != data.r.civs.end();
 			++it) {
+		if((*it)->is_minor_civ())
+			continue;
+		if((*it)->eliminated())
+			continue;
 		if(myciv->get_relationship_to_civ((*it)->civ_id) != relationship_unknown)
 			shown_civs.push_back(*it);
 	}
 
 	if(shown_civs.empty())
 		return;
-	
+
 	int civnum = 0;
 	for(std::list<civilization*>::const_iterator it = shown_civs.begin();
 			it != shown_civs.end();
 			++it) {
 		if((*it)->is_minor_civ())
+			continue;
+		if((*it)->eliminated())
 			continue;
 		if(myciv->get_relationship_to_civ((*it)->civ_id) != relationship_unknown) {
 			float xp, yp;
