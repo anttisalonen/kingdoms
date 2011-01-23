@@ -1,6 +1,8 @@
 #include <sstream>
 #include <fstream>
+#include <exception>
 
+#include "config.h"
 #include "parse_rules.h"
 
 std::vector<std::vector<std::string> > parser(const std::string& filepath, 
@@ -8,6 +10,11 @@ std::vector<std::vector<std::string> > parser(const std::string& filepath,
 {
 	using namespace std;
 	ifstream ifs(filepath.c_str(), ifstream::in);
+	if(!ifs.good()) {
+		std::string s("Could not open file ");
+		s += filepath;
+		throw std::runtime_error(std::string(s));
+	}
 	int linenum = 0;
 	vector<vector<string> > results;
 	while(ifs.good()) {
@@ -265,4 +272,37 @@ resource_map parse_resource_config(const std::string& fp)
 	return rmap;
 }
 
+void get_configuration(const std::string& ruleset_name,
+		std::vector<civilization*>* civs,
+		unit_configuration_map* units,
+		advance_map* advances,
+		city_improv_map* improvs,
+		resource_configuration* terrains,
+		government_map* governments,
+		resource_map* resources)
+{
+	std::string prefix = get_rules_path(ruleset_name);
+	if(civs)
+		*civs = parse_civs_config(prefix + "civs.txt");
+	if(units)
+		*units = parse_unit_config(prefix + "units.txt");
+	if(advances)
+		*advances = parse_advance_config(prefix + "discoveries.txt");
+	if(improvs)
+		*improvs = parse_city_improv_config(prefix + "improvs.txt");
+	if(terrains)
+		*terrains = parse_terrain_config(prefix + "terrain.txt");
+	if(governments)
+		*governments = parse_government_config(prefix + "governments.txt");
+	if(resources)
+		*resources = parse_resource_config(prefix + "resources.txt");
+}
+
+std::string get_rules_path(const std::string& ruleset_name)
+{
+	std::string prefix = std::string(KINGDOMS_RULESETS_DIR);
+	prefix += ruleset_name;
+	prefix += KINGDOMS_RULESSUBDIR;
+	return prefix;
+}
 

@@ -9,7 +9,8 @@ class editorgui : public mapview
 	public:
 		editorgui(SDL_Surface* screen, map& mm, pompelmous& rr,
 				const gui_resource_files& resfiles,
-				const TTF_Font& font_);
+				const TTF_Font& font_,
+				const std::string& ruleset_name);
 		~editorgui();
 		int display();
 		int handle_input(const SDL_Event& ev);

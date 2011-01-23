@@ -2,9 +2,10 @@
 
 editorgui::editorgui(SDL_Surface* screen_, map& mm, pompelmous& rr,
 		const gui_resource_files& resfiles,
-		const TTF_Font& font_)
+		const TTF_Font& font_,
+		const std::string& ruleset_name)
 	: mapview(screen_, mm, rr, resfiles, font_),
-	ew(screen, data, res)
+	ew(screen, data, res, ruleset_name)
 {
 }
 

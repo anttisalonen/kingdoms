@@ -12,7 +12,8 @@ enum tool_type {
 
 class editor_window : public main_window {
 	public:
-		editor_window(SDL_Surface* screen_, gui_data& data_, gui_resources& res_);
+		editor_window(SDL_Surface* screen_, gui_data& data_, gui_resources& res_,
+				const std::string& ruleset_name_);
 		~editor_window();
 		int handle_window_input(const SDL_Event& ev);
 		bool draw_starting_positions();
@@ -61,6 +62,7 @@ class editor_window : public main_window {
 		int old_mouse_sqx;
 		int old_mouse_sqy;
 		bool coastal_protection;
+		std::string ruleset_name;
 };
 
 #endif

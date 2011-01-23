@@ -8,7 +8,7 @@ PREFIX        ?= /usr/local
 INSTALLBINDIR  = $(PREFIX)/bin
 SHAREDIR       = $(PREFIX)/share/kingdoms
 GFXDIR         = $(SHAREDIR)/gfx
-RULESDIR       = $(SHAREDIR)/rules
+RULESETSDIR    = $(SHAREDIR)/rulesets
 
 BINDIR  = bin
 KINGDOMSNAME = kingdoms
@@ -83,11 +83,13 @@ $(EDITOR): $(BINDIR) $(LIBKINGDOMS) $(EDITOROBJS)
 	@rm -f $@.P
 
 install: $(KINGDOMS) $(EDITOR)
-	install -d $(INSTALLBINDIR) $(GFXDIR) $(RULESDIR)
-	install -m 0755 $(KINGDOMS) $(INSTALLBINDIR)
-	install -m 0755 $(EDITOR) $(INSTALLBINDIR)
+	install -d $(INSTALLBINDIR) $(GFXDIR) $(RULESETSDIR)
+	install -s -m 0755 $(KINGDOMS) $(INSTALLBINDIR)
+	install -s -m 0755 $(EDITOR) $(INSTALLBINDIR)
 	install -m 0644 share/gfx/* $(GFXDIR)
-	install -m 0644 share/rules/* $(RULESDIR)
+	cp -a share/rulesets/* $(RULESETSDIR)
+	find $(RULESETSDIR) -type d -exec chmod 0755 {} +
+	find $(RULESETSDIR) -type f -exec chmod 0644 {} +
 
 uninstall:
 	rm -rf $(INSTALLBINDIR)/$(KINGDOMSNAME)
@@ -98,7 +100,7 @@ $(TMPDIR):
 	mkdir -p $(TMPDIR)
 
 discoveries: $(TMPDIR)
-	cat share/rules/discoveries.txt | runhaskell utils/dot.hs | dot -Tpng > $(TMPDIR)/graph.png
+	cat share/rulesets/default/rules/discoveries.txt | runhaskell utils/dot.hs | dot -Tpng > $(TMPDIR)/graph.png
 
 clean:
 	rm -f $(SRCDIR)/*.o $(SRCDIR)/*.dep $(LIBKINGDOMS)

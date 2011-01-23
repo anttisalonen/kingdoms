@@ -13,8 +13,12 @@
 #define KINGDOMS_SHAREDIR	QUOTE(PREFIX)"/share/kingdoms"
 #endif
 
+#define KINGDOMS_RULESETS_DIR	KINGDOMS_SHAREDIR"/rulesets/"
+
 #define KINGDOMS_GFXDIR		KINGDOMS_SHAREDIR"/gfx/"
-#define KINGDOMS_RULESDIR	KINGDOMS_SHAREDIR"/rules/"
+
+#define KINGDOMS_RULESSUBDIR	"/rules/"
+#define KINGDOMS_MAPSSUBDIR	"/maps/"
 
 #endif
 

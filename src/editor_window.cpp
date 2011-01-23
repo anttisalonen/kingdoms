@@ -4,7 +4,8 @@
 #include "serialize.h"
 #include "filesystem.h"
 
-editor_window::editor_window(SDL_Surface* screen_, gui_data& data_, gui_resources& res_)
+editor_window::editor_window(SDL_Surface* screen_, gui_data& data_, gui_resources& res_,
+		const std::string& ruleset_name_)
 	: main_window(screen_, data_, res_, 4),
 	current_tool(editor_tool_terrain),
 	current_tool_index(2),
@@ -14,7 +15,8 @@ editor_window::editor_window(SDL_Surface* screen_, gui_data& data_, gui_resource
 	sidebar_startpos_button_width(100),
 	sidebar_coastal_protection_button_width(100),
 	quitting(false),
-	coastal_protection(false)
+	coastal_protection(false),
+	ruleset_name(ruleset_name_)
 {
 	// terrain buttons
 	int xpos = sidebar_terrain_xstart;
@@ -277,7 +279,8 @@ void editor_window::add_load_map_subwindow()
 	w->add_button(20, win_height - 24, win_width - 40, 16, "Cancel", widget_close);
 	w->add_label(win_width / 2 - 40, 2, 80, 16, "Load map");
 
-	std::vector<boost::filesystem::path> filenames = get_files_in_directory(path_to_saved_games(),
+	std::vector<boost::filesystem::path> filenames = 
+		get_files_in_directory(path_to_saved_maps(ruleset_name),
 			MAP_FILE_EXTENSION);
 
 	int yp = 30;
@@ -405,7 +408,7 @@ int editor_window::on_save(const std::string& s)
 {
 	if(s.empty())
 		return 0;
-	save_map(s.c_str(), data.m);
+	save_map(s.c_str(), ruleset_name, data.m);
 	saved_filename = s;
 	return 1;
 }

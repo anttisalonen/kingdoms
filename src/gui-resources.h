@@ -19,7 +19,7 @@ struct gui_resource_files {
 	std::vector<std::string> roads;
 };
 
-void fetch_gui_resource_files(gui_resource_files* r);
+void fetch_gui_resource_files(const std::string& ruleset_name, gui_resource_files* r);
 
 #endif
 

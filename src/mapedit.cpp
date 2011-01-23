@@ -9,6 +9,8 @@
 
 #include "config.h"
 
+static std::string ruleset_name;
+
 void run_editor()
 {
 	SDL_Surface* screen = SDL_SetVideoMode(1024, 768, 32, SDL_HWSURFACE | SDL_DOUBLEBUF);
@@ -28,14 +30,15 @@ void run_editor()
 	const unsigned int food_eaten_per_citizen = 2;
 	const int num_turns = 300;
 	const int anarchy_period = 1;
-	resource_configuration resconf = parse_terrain_config(KINGDOMS_RULESDIR "terrain.txt");
-	resource_map rmap = parse_resource_config(KINGDOMS_RULESDIR "resources.txt");
-	unit_configuration_map uconfmap = parse_unit_config(KINGDOMS_RULESDIR "units.txt");
-	advance_map amap = parse_advance_config(KINGDOMS_RULESDIR "discoveries.txt");
-	city_improv_map cimap = parse_city_improv_config(KINGDOMS_RULESDIR "improvs.txt");
-	government_map govmap = parse_government_config(KINGDOMS_RULESDIR "governments.txt");
+	resource_configuration resconf;
+	resource_map rmap;
+	unit_configuration_map uconfmap;
+	advance_map amap;
+	city_improv_map cimap;
+	government_map govmap;
 	std::vector<civilization*> civs;
-	civs = parse_civs_config(KINGDOMS_RULESDIR "civs.txt");
+	get_configuration(ruleset_name, &civs, &uconfmap, &amap, &cimap,
+			&resconf, &govmap, &rmap);
 	map m(map_x, map_y, resconf, rmap);
 	pompelmous r(uconfmap, amap, cimap, govmap, &m, road_moves,
 			food_eaten_per_citizen, anarchy_period, num_turns);
@@ -45,8 +48,8 @@ void run_editor()
 		r.add_civilization(civs[i]);
 	}
 	gui_resource_files grr;
-	fetch_gui_resource_files(&grr);
-	editorgui v(screen, r.get_map(), r, grr, *font);
+	fetch_gui_resource_files(ruleset_name, &grr);
+	editorgui v(screen, r.get_map(), r, grr, *font, ruleset_name);
 	bool running = true;
 	while(running) {
 		v.display();
@@ -77,8 +80,22 @@ void run_editor()
 	TTF_CloseFont(font);
 }
 
-int main()
+int main(int argc, char** argv)
 {
+	int c;
+	ruleset_name = "default";
+	while((c = getopt(argc, argv, "r:")) != -1) {
+		switch(c) {
+			case 'r':
+				ruleset_name = std::string(optarg);
+				break;
+			case '?':
+			default:
+				fprintf(stderr, "Unrecognized option: -%c\n",
+						optopt);
+				exit(2);
+		}
+	}
 	if(sdl_init_all())
 		exit(1);
 	try {

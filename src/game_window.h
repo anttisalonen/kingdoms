@@ -6,7 +6,8 @@
 class game_window : public main_window {
 	public:
 		game_window(SDL_Surface* screen_, gui_data& data_, gui_resources& res_,
-				ai* ai_, civilization* myciv_);
+				ai* ai_, civilization* myciv_,
+				const std::string& ruleset_name_);
 		~game_window();
 		int process(int ms);
 		int handle_window_input(const SDL_Event& ev);
@@ -77,6 +78,7 @@ class game_window : public main_window {
 		std::list<std::string> gui_msg_queue;
 		std::list<button*> action_buttons;
 		action action_button_action;
+		std::string ruleset_name;
 		static const color popup_text_color;
 		static const color popup_button_color;
 		static const color popup_background_color;

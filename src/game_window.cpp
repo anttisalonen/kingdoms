@@ -16,7 +16,7 @@ const color game_window::popup_button_color = color(10, 9, 36);
 const color game_window::popup_background_color = color(16, 10, 132);
 
 game_window::game_window(SDL_Surface* screen_, gui_data& data_, gui_resources& res_,
-		ai* ai_, civilization* myciv_)
+		ai* ai_, civilization* myciv_, const std::string& ruleset_name_)
 	: main_window(screen_, data_, res_, 4),
 	current_unit(myciv_->units.end()),
 	blink_unit(false),
@@ -24,7 +24,8 @@ game_window::game_window(SDL_Surface* screen_, gui_data& data_, gui_resources& r
 	myciv(myciv_),
 	internal_ai(ai_),
 	sidebar_info_display(coord(-1, -1)),
-	action_button_action(action_none)
+	action_button_action(action_none),
+	ruleset_name(ruleset_name_)
 {
 }
 
@@ -147,7 +148,7 @@ void game_window::handle_input_gui_mod(const SDL_Event& ev, city** c)
 			{
 				SDLKey k = ev.key.keysym.sym;
 				if(k == SDLK_s && (ev.key.keysym.mod & KMOD_CTRL)) {
-					save_game("manual", data.r);
+					save_game("manual", ruleset_name, data.r);
 					add_gui_msg("Game saved.");
 				}
 				if(k == SDLK_r && (ev.key.keysym.mod & KMOD_CTRL)) {

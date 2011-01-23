@@ -31,6 +31,7 @@
 #include <utility>
 #include <fstream>
 #include <sstream>
+#include <string>
 
 #include <boost/bind/bind.hpp>
 #include <boost/algorithm/string.hpp>
@@ -64,6 +65,8 @@ static int given_seed = 0;
 
 static SDL_Surface* screen = NULL;
 static TTF_Font* font = NULL;
+
+static std::string ruleset_name;
 
 #ifdef __gnu_linux__
 void segv_handler(int sig)
@@ -308,9 +311,10 @@ void play_game(pompelmous& r, std::map<unsigned int, ai>& ais)
 
 	if(use_gui) {
 		gui_resource_files grr;
-		fetch_gui_resource_files(&grr);
+		fetch_gui_resource_files(ruleset_name, &grr);
 		gui g(screen, r.get_map(), r, grr, *font,
-				observer ? &ais.find(0)->second : NULL, r.civs[0]);
+				observer ? &ais.find(0)->second : NULL, r.civs[0],
+				ruleset_name);
 		g.display();
 		g.init_turn();
 		if(observer && skip_rounds > 0)
@@ -354,7 +358,7 @@ void play_game(pompelmous& r, std::map<unsigned int, ai>& ais)
 							else {
 								if(r.get_round_number() % 4 == 0) {
 									printf("Auto-saving.\n");
-									save_game("auto", r);
+									save_game("auto", ruleset_name, r);
 								}
 							}
 						}
@@ -551,10 +555,16 @@ void load_menu::draw_background()
 
 void load_menu::setup_buttons()
 {
-	std::vector<boost::filesystem::path> filenames = get_files_in_directory(path_to_saved_games(),
-			want_map ? MAP_FILE_EXTENSION : SAVE_FILE_EXTENSION);
-	if(!want_map)
+	std::vector<boost::filesystem::path> filenames;
+	if(want_map) {
+		filenames = get_files_in_directory(path_to_saved_maps(ruleset_name),
+			MAP_FILE_EXTENSION);
+	}
+	else {
+		filenames = get_files_in_directory(path_to_saved_games(ruleset_name),
+			SAVE_FILE_EXTENSION);
 		std::reverse(filenames.begin(), filenames.end());
+	}
 	rect fn_rect(320, 220, 360, 30);
 
 	for(std::vector<boost::filesystem::path>::const_iterator it = filenames.begin();
@@ -603,11 +613,11 @@ int run_with_map(map& m)
 	const unsigned int num_barbarians = 50;
 
 	std::vector<civilization*> civs;
-	civs = parse_civs_config(KINGDOMS_RULESDIR "civs.txt");
-	unit_configuration_map uconfmap = parse_unit_config(KINGDOMS_RULESDIR "units.txt");
-	advance_map amap = parse_advance_config(KINGDOMS_RULESDIR "discoveries.txt");
-	city_improv_map cimap = parse_city_improv_config(KINGDOMS_RULESDIR "improvs.txt");
-	government_map govmap = parse_government_config(KINGDOMS_RULESDIR "governments.txt");
+	unit_configuration_map uconfmap;
+	advance_map amap;
+	city_improv_map cimap;
+	government_map govmap;
+	get_configuration(ruleset_name, &civs, &uconfmap, &amap, &cimap, NULL, &govmap, NULL);
 
 	for(unsigned int i = 0; i < civs.size(); i++) {
 		civs[i]->set_map(&m);
@@ -704,8 +714,9 @@ int run_gamedata()
 	const int map_x = 80;
 	const int map_y = 60;
 
-	resource_configuration resconf = parse_terrain_config(KINGDOMS_RULESDIR "terrain.txt");
-	resource_map rmap = parse_resource_config(KINGDOMS_RULESDIR "resources.txt");
+	resource_configuration resconf;
+	resource_map rmap;
+	get_configuration(ruleset_name, NULL, NULL, NULL, NULL, &resconf, NULL, &rmap);
 	map m(map_x, map_y, resconf, rmap);
 	m.create();
 	return run_with_map(m);
@@ -800,7 +811,8 @@ int main(int argc, char **argv)
 {
 	int c;
 	bool succ = true;
-	while((c = getopt(argc, argv, "adoxS:s:")) != -1) {
+	ruleset_name = "default";
+	while((c = getopt(argc, argv, "adoxS:s:r:")) != -1) {
 		switch(c) {
 			case 'S':
 				skip_rounds = atoi(optarg);
@@ -816,6 +828,9 @@ int main(int argc, char **argv)
 				break;
 			case 's':
 				given_seed = atoi(optarg);
+				break;
+			case 'r':
+				ruleset_name = std::string(optarg);
 				break;
 			case '?':
 			default:
@@ -847,10 +862,6 @@ int main(int argc, char **argv)
 
 	try {
 		run_mainmenu();
-	}
-	catch (boost::archive::archive_exception& e) {
-		printf("boost::archive::archive_exception: %s (code %d).\n",
-				e.what(), e.code);
 	}
 	catch (std::exception& e) {
 		printf("std::exception: %s\n", e.what());

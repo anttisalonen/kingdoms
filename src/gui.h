@@ -23,7 +23,8 @@ class gui : public mapview, public action_listener
 				const gui_resource_files& resfiles,
 				const TTF_Font& font_,
 				ai* ai_,
-				civilization* myciv_);
+				civilization* myciv_,
+				const std::string& ruleset_name);
 		~gui();
 		int display();
 		int handle_input(const SDL_Event& ev);

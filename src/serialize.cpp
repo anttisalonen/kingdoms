@@ -35,7 +35,8 @@ int create_dir_if_not_exist(const std::string& s)
 	return 0;
 }
 
-std::string path_to_saved_games()
+std::string path_to_saved(const std::string& ruleset_name,
+		const std::string& save_dir)
 {
 #ifdef __WIN32__
 	std::string s = "./saves/";
@@ -45,9 +46,13 @@ std::string path_to_saved_games()
 	const char* home = getenv("HOME");
 	if(home) {
 		std::string s(home);
-		s += "/.kingdoms";
+		s += "/.kingdoms/";
 		create_dir_if_not_exist(s);
-		s += "/saves/";
+		s += ruleset_name;
+		create_dir_if_not_exist(s);
+		s += "/";
+		s += save_dir;
+		s += "/";
 		create_dir_if_not_exist(s);
 		return s;
 	}
@@ -55,14 +60,24 @@ std::string path_to_saved_games()
 #endif
 }
 
-int save_game(const char* save_suffix, const pompelmous& g)
+std::string path_to_saved_games(const std::string& ruleset_name)
+{
+	return path_to_saved(ruleset_name, "saves");
+}
+
+std::string path_to_saved_maps(const std::string& ruleset_name)
+{
+	return path_to_saved(ruleset_name, "maps");
+}
+
+int save_game(const char* save_suffix, const std::string& ruleset_name, const pompelmous& g)
 {
 	char filename[256];
 	time_t curr_time = time(NULL);
 	struct tm* gmt;
 	gmt = localtime(&curr_time);
 	snprintf(filename, 256, "%s%02d-%02d-%02d_%02d-%02d-%02d-r%d-%s%s",
-			path_to_saved_games().c_str(),
+			path_to_saved_games(ruleset_name).c_str(),
 			gmt->tm_year % 100, gmt->tm_mon + 1, gmt->tm_mday,
 			gmt->tm_hour, gmt->tm_min, gmt->tm_sec,
 			g.get_round_number(), save_suffix,
@@ -94,11 +109,11 @@ bool load_game(const char* filename, pompelmous& g)
 	}
 }
 
-int save_map(const char* fn, const map& m)
+int save_map(const char* fn, const std::string& ruleset_name, const map& m)
 {
 	char filename[256];
 	snprintf(filename, 256, "%s%s%s",
-			path_to_saved_games().c_str(),
+			path_to_saved_maps(ruleset_name).c_str(),
 			fn, MAP_FILE_EXTENSION);
 	std::ofstream ofs(filename, std::ios::out | std::ios::binary | std::ios::trunc);
 	boost::iostreams::filtering_streambuf<boost::iostreams::output> out;

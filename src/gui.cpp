@@ -4,9 +4,11 @@ gui::gui(SDL_Surface* screen_, map& mm, pompelmous& rr,
 		const gui_resource_files& resfiles,
 		const TTF_Font& font_,
 		ai* ai_,
-		civilization* myciv_)
+		civilization* myciv_,
+		const std::string& ruleset_name)
 	: mapview(screen_, mm, rr, resfiles, font_),
-	gw(screen, data, res, ai_, myciv_)
+	gw(screen, data, res, ai_, myciv_,
+			ruleset_name)
 {
 }
 
