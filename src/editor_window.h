@@ -39,6 +39,7 @@ class editor_window : public main_window {
 		int on_civ_startpos(int civid, const widget_window* w);
 		widget_window* standard_popup(int win_width, int win_height) const;
 		bool mouse_tile_moved() const;
+		int on_coastal_protection_button();
 		void save_old_mousepos();
 		tool_type current_tool;
 		int current_tool_index;
@@ -48,15 +49,18 @@ class editor_window : public main_window {
 		const int sidebar_terrain_xstart;
 		const int sidebar_terrain_ystart;
 		const int sidebar_startpos_button_width;
+		const int sidebar_coastal_protection_button_width;
 		int sidebar_resource_ystart;
 		int sidebar_river_ystart;
 		int sidebar_brush_size_ystart;
 		int sidebar_startpos_ystart;
+		int sidebar_coastal_protection_ystart;
 		std::list<button*> sidebar_buttons;
 		std::string saved_filename;
 		bool quitting;
 		int old_mouse_sqx;
 		int old_mouse_sqy;
+		bool coastal_protection;
 };
 
 #endif

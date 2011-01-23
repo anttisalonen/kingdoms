@@ -12,7 +12,9 @@ editor_window::editor_window(SDL_Surface* screen_, gui_data& data_, gui_resource
 	sidebar_terrain_xstart(10),
 	sidebar_terrain_ystart(80),
 	sidebar_startpos_button_width(100),
-	quitting(false)
+	sidebar_coastal_protection_button_width(100),
+	quitting(false),
+	coastal_protection(false)
 {
 	// terrain buttons
 	int xpos = sidebar_terrain_xstart;
@@ -89,6 +91,14 @@ editor_window::editor_window(SDL_Surface* screen_, gui_data& data_, gui_resource
 					color(0, 0, 0),
 					boost::bind(&editor_window::on_startposition_button, this)));
 	}
+
+	xpos = sidebar_terrain_xstart;
+	ypos += tile_h * 2;
+	sidebar_coastal_protection_ystart = ypos;
+	sidebar_buttons.push_back(new plain_button(rect(xpos, ypos, sidebar_coastal_protection_button_width, tile_h),
+				"Protect coasts", &res.font, color(255, 255, 255),
+				color(0, 0, 0),
+				boost::bind(&editor_window::on_coastal_protection_button, this)));
 }
 
 editor_window::~editor_window()
@@ -129,6 +139,12 @@ int editor_window::on_river_button()
 bool editor_window::draw_starting_positions()
 {
 	return true;
+}
+
+int editor_window::on_coastal_protection_button()
+{
+	coastal_protection = !coastal_protection;
+	return 0;
 }
 
 widget_window* editor_window::standard_popup(int win_width, int win_height) const
@@ -206,6 +222,13 @@ void editor_window::draw_sidebar()
 		draw_rect(sidebar_terrain_xstart,
 				sidebar_startpos_ystart,
 				sidebar_startpos_button_width, tile_h,
+				color(255, 255, 255), 1, screen);
+	}
+
+	if(coastal_protection) {
+		draw_rect(sidebar_terrain_xstart,
+				sidebar_coastal_protection_ystart,
+				sidebar_coastal_protection_button_width, tile_h,
 				color(255, 255, 255), 1, screen);
 	}
 }
@@ -409,6 +432,13 @@ int editor_window::handle_mouse_down(const SDL_Event& ev)
 
 void editor_window::set_terrain(int x, int y, int terr)
 {
+	if(coastal_protection) {
+		int t2 = data.m.get_data(x, y);
+		if(data.m.resconf.is_water_tile(t2) ||
+				data.m.resconf.is_water_tile(terr)) {
+			return;
+		}
+	}
 	data.m.set_data(x, y, terr);
 	unsigned int res = data.m.get_resource(x, y);
 	resource_map::const_iterator it = data.m.rmap.find(res);
@@ -452,7 +482,7 @@ void editor_window::modify_map(int x, int y, bool remove)
 			}
 		}
 		else {
-			if(data.m.get_resource(x, y) == (int)current_tool_index)
+			if(data.m.get_resource(x, y) == (unsigned int)current_tool_index)
 				data.m.set_resource(x, y, 0);
 		}
 	}
