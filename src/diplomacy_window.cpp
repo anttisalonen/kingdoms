@@ -77,13 +77,17 @@ int diplomacy_window::on_war()
 
 int diplomacy_window::on_peace()
 {
+	bool had_peace = myciv->get_relationship_to_civ(other_civ_id) == relationship_peace;
 	greetings.clear();
 	buttons.clear();
 	buttons.push_back(new plain_button(rect(screen->w * 0.20, screen->h * 0.77, screen->w * 0.55, screen->h * 0.10),
 				"Exit", &res.font, color(120, 120, 255), color(0, 0, 0),
 				boost::bind(&diplomacy_window::on_exit, this)));
 	if(data.r.suggest_peace(myciv->civ_id, other_civ_id)) {
-		greetings.push_back(std::string("Yup, then peace it is. War's stupid anyway."));
+		if(had_peace)
+			return 1;
+		else
+			greetings.push_back(std::string("Yup, then peace it is. War's stupid anyway."));
 	}
 	else {
 		greetings.push_back(std::string("Ha! Ha! No way!"));
