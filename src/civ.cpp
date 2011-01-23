@@ -320,15 +320,15 @@ void civilization::increment_resources(const unit_configuration_map& uconfmap,
 	update_military_expenses();
 	gold += national_income - military_expenses;
 	{
-		std::map<unsigned int, unit*>::iterator uit = units.begin();
-		while(uit != units.end() && gold < 0) {
-			std::map<unsigned int, unit*>::iterator uit2(uit);
-			uit++;
-			if(uit2->second->uconf->max_strength > 0) {
-				gold += gov->unit_cost;
-				add_message(unit_disbanded(uit2->second->unit_id));
-				remove_unit(uit2->second);
-			}
+		while(gold < 0) {
+			std::map<unsigned int, unit*>::iterator uit = units.begin();
+			while(uit != units.end() && uit->second->uconf->max_strength <= 0)
+				uit++;
+			if(uit == units.end())
+				break;
+			gold += gov->unit_cost;
+			add_message(unit_disbanded(uit->second->unit_id));
+			remove_unit(uit->second);
 		}
 	}
 	science += total_science;
