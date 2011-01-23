@@ -557,13 +557,19 @@ void load_menu::draw_background()
 void load_menu::setup_buttons()
 {
 	std::vector<boost::filesystem::path> filenames;
+	std::string color_marking_path;
 	if(want_map) {
+		std::string saved_maps_path = path_to_saved_maps(ruleset_name);
 		filenames = get_files_in_directory(path_to_saved_maps(ruleset_name),
 			MAP_FILE_EXTENSION);
-		std::vector<boost::filesystem::path> preinstalled =
-			get_files_in_directory(get_preinstalled_maps_path(ruleset_name),
-					MAP_FILE_EXTENSION);
-		filenames.insert(filenames.end(), preinstalled.begin(), preinstalled.end());
+		std::string preinstalled_path = get_preinstalled_maps_path(ruleset_name);
+		if(preinstalled_path != saved_maps_path) {
+			color_marking_path = preinstalled_path;
+			std::vector<boost::filesystem::path> preinstalled =
+				get_files_in_directory(get_preinstalled_maps_path(ruleset_name),
+						MAP_FILE_EXTENSION);
+			filenames.insert(filenames.end(), preinstalled.begin(), preinstalled.end());
+		}
 	}
 	else {
 		filenames = get_files_in_directory(path_to_saved_games(ruleset_name),
@@ -577,8 +583,12 @@ void load_menu::setup_buttons()
 			++it) {
 		std::string s(it->string());
 		std::string fp(it->stem().string());
+		std::string fpath(it->parent_path().string());
 		plain_button* load_game_button = new plain_button(fn_rect,
-				fp.c_str(), font, color(206, 187, 158),
+				fp.c_str(), font,
+				!color_marking_path.empty() && fpath == color_marking_path ? 
+				color(231, 173, 86) : 
+				color(206, 187, 158),
 				color(0, 0, 0),
 				boost::bind(&load_menu::load_game_button, 
 					this, s));

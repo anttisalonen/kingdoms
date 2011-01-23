@@ -25,9 +25,9 @@ std::vector<std::string> get_file_list(const std::string& prefix, const std::str
 void fetch_gui_resource_files(const std::string& ruleset_name, gui_resource_files* r)
 {
 	std::string prefix = get_rules_path(ruleset_name);
-	r->terrains = get_file_list(KINGDOMS_GFXDIR, prefix + "terrain-gfx.txt");
-	r->units = get_file_list(KINGDOMS_GFXDIR, prefix + "units-gfx.txt");
-	r->resources = get_file_list(KINGDOMS_GFXDIR, prefix + "resources-gfx.txt");
+	r->terrains = get_file_list(KINGDOMS_GFXDIR, prefix + "/terrain-gfx.txt");
+	r->units = get_file_list(KINGDOMS_GFXDIR, prefix + "/units-gfx.txt");
+	r->resources = get_file_list(KINGDOMS_GFXDIR, prefix + "/resources-gfx.txt");
 
 	r->roads.clear();
 	r->roads.push_back(KINGDOMS_GFXDIR "road_nw.png");

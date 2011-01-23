@@ -284,19 +284,19 @@ void get_configuration(const std::string& ruleset_name,
 {
 	std::string prefix = get_rules_path(ruleset_name);
 	if(civs)
-		*civs = parse_civs_config(prefix + "civs.txt");
+		*civs = parse_civs_config(prefix + "/civs.txt");
 	if(units)
-		*units = parse_unit_config(prefix + "units.txt");
+		*units = parse_unit_config(prefix + "/units.txt");
 	if(advances)
-		*advances = parse_advance_config(prefix + "discoveries.txt");
+		*advances = parse_advance_config(prefix + "/discoveries.txt");
 	if(improvs)
-		*improvs = parse_city_improv_config(prefix + "improvs.txt");
+		*improvs = parse_city_improv_config(prefix + "/improvs.txt");
 	if(terrains)
-		*terrains = parse_terrain_config(prefix + "terrain.txt");
+		*terrains = parse_terrain_config(prefix + "/terrain.txt");
 	if(governments)
-		*governments = parse_government_config(prefix + "governments.txt");
+		*governments = parse_government_config(prefix + "/governments.txt");
 	if(resources)
-		*resources = parse_resource_config(prefix + "resources.txt");
+		*resources = parse_resource_config(prefix + "/resources.txt");
 }
 
 

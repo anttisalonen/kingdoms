@@ -17,8 +17,8 @@
 
 #define KINGDOMS_GFXDIR		KINGDOMS_SHAREDIR"/gfx/"
 
-#define KINGDOMS_RULESSUBDIR	"/rules/"
-#define KINGDOMS_MAPSSUBDIR	"/maps/"
+#define KINGDOMS_RULESSUBDIR	"/rules"
+#define KINGDOMS_MAPSSUBDIR	"/maps"
 
 #endif
 
