@@ -23,7 +23,7 @@ mapview::mapview(SDL_Surface* screen_, map& mm, pompelmous& rr,
 			sdl_load_image(resfiles.roads[i].c_str()) : NULL;
 	}
 
-	for(unsigned int i = 0; i < 4; i++) {
+	for(unsigned int i = 0; i < 5; i++) {
 		res.terrains.river_overlays[i] = resfiles.rivers.size() > i ? 
 			sdl_load_image(resfiles.rivers[i].c_str()) : NULL;
 	}

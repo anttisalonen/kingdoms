@@ -43,6 +43,7 @@ void fetch_gui_resource_files(gui_resource_files* r)
 	r->rivers.push_back(KINGDOMS_GFXDIR "river_w.png");
 	r->rivers.push_back(KINGDOMS_GFXDIR "river_e.png");
 	r->rivers.push_back(KINGDOMS_GFXDIR "river_s.png");
+	r->rivers.push_back(KINGDOMS_GFXDIR "river.png");
 
 	r->empty_unit = KINGDOMS_GFXDIR "empty.png";
 	r->city = KINGDOMS_GFXDIR "city.png";
