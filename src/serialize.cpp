@@ -5,6 +5,10 @@
 #include <sys/stat.h>
 #include <time.h>
 #include <errno.h>
+#include <boost/iostreams/filter/bzip2.hpp>
+#include <boost/iostreams/filtering_stream.hpp>
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
 #include "serialize.h"
 
 int create_dir_if_not_exist(const std::string& s)
@@ -63,8 +67,11 @@ int save_game(const char* save_suffix, const pompelmous& g)
 			gmt->tm_hour, gmt->tm_min, gmt->tm_sec,
 			g.get_round_number(), save_suffix,
 			SAVE_FILE_EXTENSION);
-	std::ofstream ofs(filename);
-	boost::archive::text_oarchive oa(ofs);
+	std::ofstream ofs(filename, std::ios::out | std::ios::binary | std::ios::trunc);
+	boost::iostreams::filtering_streambuf<boost::iostreams::output> out;
+	out.push(boost::iostreams::bzip2_compressor());
+	out.push(ofs);
+	boost::archive::binary_oarchive oa(out);
 	oa << g;
 	return 0;
 }
@@ -73,11 +80,14 @@ bool load_game(const char* filename, pompelmous& g)
 {
 	try {
 		std::ifstream ifs(filename);
-		boost::archive::text_iarchive ia(ifs);
+		boost::iostreams::filtering_streambuf<boost::iostreams::input> in;
+		in.push(boost::iostreams::bzip2_decompressor());
+		in.push(ifs);
+		boost::archive::binary_iarchive ia(in);
 		ia >> g;
 		return true;
 	}
-	catch(boost::archive::archive_exception& e) {
+	catch(std::exception& e) {
 		fprintf(stderr, "Could not load game %s: %s.\n",
 				filename, e.what());
 		return false;
@@ -90,8 +100,11 @@ int save_map(const char* fn, const map& m)
 	snprintf(filename, 256, "%s%s%s",
 			path_to_saved_games().c_str(),
 			fn, MAP_FILE_EXTENSION);
-	std::ofstream ofs(filename);
-	boost::archive::text_oarchive oa(ofs);
+	std::ofstream ofs(filename, std::ios::out | std::ios::binary | std::ios::trunc);
+	boost::iostreams::filtering_streambuf<boost::iostreams::output> out;
+	out.push(boost::iostreams::bzip2_compressor());
+	out.push(ofs);
+	boost::archive::binary_oarchive oa(out);
 	oa << m;
 	return 0;
 }
@@ -100,11 +113,14 @@ bool load_map(const char* filename, map& m)
 {
 	try {
 		std::ifstream ifs(filename);
-		boost::archive::text_iarchive ia(ifs);
+		boost::iostreams::filtering_streambuf<boost::iostreams::input> in;
+		in.push(boost::iostreams::bzip2_decompressor());
+		in.push(ifs);
+		boost::archive::binary_iarchive ia(in);
 		ia >> m;
 		return true;
 	}
-	catch(boost::archive::archive_exception& e) {
+	catch(std::exception& e) {
 		fprintf(stderr, "Could not load map %s: %s.\n",
 				filename, e.what());
 		return false;
