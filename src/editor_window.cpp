@@ -56,6 +56,15 @@ editor_window::editor_window(SDL_Surface* screen_, gui_data& data_, gui_resource
 		}
 	}
 
+	// river
+	xpos = sidebar_terrain_xstart;
+	ypos += tile_h * 2;
+	sidebar_river_ystart = ypos;
+	rect river_dim(xpos, ypos, tile_w, tile_h);
+	sidebar_buttons.push_back(new texture_button(std::string(""), river_dim,
+				res.terrains.river_overlays[0],
+				boost::bind(&editor_window::on_river_button, this)));
+
 	// brush size buttons
 	xpos = sidebar_terrain_xstart;
 	ypos += tile_h * 2;
@@ -107,6 +116,13 @@ int editor_window::on_terrain_button(int val)
 int editor_window::on_size_button(int val)
 {
 	brush_size = val;
+	return 0;
+}
+
+int editor_window::on_river_button()
+{
+	current_tool = editor_tool_river;
+	current_tool_index = 0;
 	return 0;
 }
 
@@ -172,6 +188,12 @@ void editor_window::draw_sidebar()
 	if(current_tool == editor_tool_resource) {
 		draw_rect(sidebar_terrain_xstart + (tile_w * ((current_tool_index - 1) % 3)),
 				sidebar_resource_ystart + (tile_h * ((current_tool_index - 1) / 3)),
+				tile_w, tile_h, color(255, 255, 255), 1, screen);
+	}
+
+	if(current_tool == editor_tool_river) {
+		draw_rect(sidebar_terrain_xstart,
+				sidebar_river_ystart,
 				tile_w, tile_h, color(255, 255, 255), 1, screen);
 	}
 
@@ -302,6 +324,7 @@ int editor_window::handle_input_gui_mod(const SDL_Event& ev)
 			}
 			break;
 		case SDL_MOUSEBUTTONDOWN:
+			save_old_mousepos();
 			handle_mouse_down(ev);
 			break;
 		case SDL_MOUSEMOTION:
@@ -367,7 +390,16 @@ int editor_window::on_save(const std::string& s)
 int editor_window::handle_mouse_down(const SDL_Event& ev)
 {
 	if(mouse_down_sqx >= 0) {
-		modify_map(mouse_down_sqx, mouse_down_sqy);
+		switch(ev.button.button) {
+			case SDL_BUTTON_LEFT:
+				modify_map(mouse_down_sqx, mouse_down_sqy, false);
+				break;
+			case SDL_BUTTON_RIGHT:
+				modify_map(mouse_down_sqx, mouse_down_sqy, true);
+				break;
+			default:
+				break;
+		}
 	}
 	else {
 		return check_button_click(sidebar_buttons, ev);
@@ -384,14 +416,18 @@ void editor_window::set_terrain(int x, int y, int terr)
 		if(!it->second.allowed_on(terr))
 			data.m.set_resource(x, y, 0);
 	}
+	if(data.m.resconf.is_water_tile(terr))
+		data.m.set_river(x, y, false);
 }
 
-void editor_window::modify_map(int x, int y)
+void editor_window::modify_map(int x, int y, bool remove)
 {
-	for(int i = -(brush_size / 2); i <= brush_size / 2; i++) {
-		for(int j = -(brush_size / 2); j <= brush_size / 2; j++) {
-			if(current_tool == editor_tool_terrain) {
-				data.m.set_data(x + i, y + j, current_tool_index);
+	if(current_tool == editor_tool_terrain) {
+		if(remove)
+			return;
+		for(int i = -(brush_size / 2); i <= brush_size / 2; i++) {
+			for(int j = -(brush_size / 2); j <= brush_size / 2; j++) {
+				set_terrain(x + i, y + j, current_tool_index);
 				if(!data.m.resconf.is_water_tile(current_tool_index)) {
 					for(int k = -1; k <= 1; k++) {
 						for(int l = -1; l <= 1; l++) {
@@ -404,34 +440,73 @@ void editor_window::modify_map(int x, int y)
 					}
 				}
 			}
-			else if(current_tool == editor_tool_resource) {
-				resource_map::const_iterator it = data.m.rmap.find(current_tool_index);
-				if(it != data.m.rmap.end()) {
-					int terr = data.m.get_data(x + i, y + j);
-					if(it->second.allowed_on(terr))
-						data.m.set_resource(x + i, y + j, current_tool_index);
+		}
+	}
+	else if(current_tool == editor_tool_resource) {
+		if(!remove) {
+			resource_map::const_iterator it = data.m.rmap.find(current_tool_index);
+			if(it != data.m.rmap.end()) {
+				int terr = data.m.get_data(x, y);
+				if(it->second.allowed_on(terr))
+					data.m.set_resource(x, y, current_tool_index);
+			}
+		}
+		else {
+			if(data.m.get_resource(x, y) == (int)current_tool_index)
+				data.m.set_resource(x, y, 0);
+		}
+	}
+	else if(current_tool == editor_tool_startpos) {
+		int civid = data.m.get_starter_at(x, y);
+		if(!remove) {
+			if(data.m.can_found_city_on(x, y)) {
+				if(civid != -1) {
+					data.m.remove_starting_place_of(civid);
+				}
+				else {
+					data.m.add_starting_place(coord(x, y), current_tool_index);
 				}
 			}
-			else if(current_tool == editor_tool_startpos) {
-				if(data.m.can_found_city_on(x, y)) {
-					int civid = data.m.get_starter_at(x, y);
-					if(civid != -1) {
-						data.m.remove_starting_place_of(civid);
-					}
-					else {
-						data.m.add_starting_place(coord(x, y), current_tool_index);
-					}
-				}
+		}
+		else {
+			if(civid == current_tool_index) {
+				data.m.remove_starting_place_of(civid);
 			}
+		}
+	}
+	else if(current_tool == editor_tool_river) {
+		if(!remove) {
+			if(!data.m.resconf.is_water_tile(data.m.get_data(x, y))) {
+				data.m.set_river(x, y, true);
+			}
+		}
+		else {
+			data.m.set_river(x, y, false);
 		}
 	}
 }
 
 int editor_window::handle_mousemotion(const SDL_Event& ev)
 {
-	if(mouse_down_sqx >= 0 && current_tool != editor_tool_startpos) {
-		modify_map(mouse_down_sqx, mouse_down_sqy);
+	if(mouse_down_sqx >= 0) {
+		if(mouse_tile_moved() &&
+				current_tool != editor_tool_startpos) {
+			modify_map(mouse_down_sqx, mouse_down_sqy,
+					SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(3));
+		}
+		save_old_mousepos();
 	}
 	return 0;
+}
+
+bool editor_window::mouse_tile_moved() const
+{
+	return old_mouse_sqx != mouse_down_sqx || old_mouse_sqy != mouse_down_sqy;
+}
+
+void editor_window::save_old_mousepos()
+{
+	old_mouse_sqx = mouse_down_sqx;
+	old_mouse_sqy = mouse_down_sqy;
 }
 
