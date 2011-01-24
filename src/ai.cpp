@@ -97,6 +97,14 @@ bool ai::play()
 		}
 	}
 
+	// set tax rate
+	int curr_tax_rate = 0;
+	do {
+		if(!myciv->set_commerce_allocation(curr_tax_rate, 10 - curr_tax_rate))
+			break;
+		curr_tax_rate++;
+	} while(curr_tax_rate <= 10 && myciv->get_military_expenses() > myciv->get_national_income());
+
 	// assign free units to objectives
 	{
 		std::set<unsigned int>::iterator it = free_units.begin();
