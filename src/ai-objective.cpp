@@ -150,4 +150,21 @@ unit_configuration_map::const_iterator objective::choose_best_unit(const pompelm
 	return chosen;
 }
 
+void objective::forget_everything()
+{
+	for(ordersmap_t::iterator it = ordersmap.begin();
+			it != ordersmap.end();
+			++it) {
+		delete it->second;
+	}
+	ordersmap.clear();
+	used_units.clear();
+	for(std::list<objective*>::iterator it = missions.begin();
+			it != missions.end();
+			++it) {
+		delete *it;
+	}
+	missions.clear();
+}
+
 

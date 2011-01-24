@@ -47,6 +47,10 @@ ai::ai(map& m_, pompelmous& r_, civilization* c)
 
 bool ai::play()
 {
+	if(myciv->eliminated()) {
+		return !r.perform_action(myciv->civ_id, action(action_eot));
+	}
+
 	// handle messages
 	while(!myciv->messages.empty())  {
 		msg& m = myciv->messages.front();
@@ -75,6 +79,71 @@ bool ai::play()
 		myciv->messages.pop_front();
 	}
 
+	// set tax rate
+	int curr_tax_rate = 0;
+	do {
+		if(!myciv->set_commerce_allocation(curr_tax_rate, 10 - curr_tax_rate)) {
+			break;
+		}
+		curr_tax_rate++;
+	} while(curr_tax_rate <= 10 && myciv->get_military_expenses() > myciv->get_national_income());
+	ai_debug_printf(myciv->civ_id, "Gold balance: +%d -%d\n",
+			myciv->get_national_income(),
+			myciv->get_military_expenses());
+
+	// negotiate for peace or declare war
+	{
+		bool relations_changed = false;
+		if(want_peace()) {
+			ai_debug_printf(myciv->civ_id, "Feelin' peaceful.\n");
+			for(unsigned int i = 0; i < r.civs.size(); i++) {
+				if(i == myciv->civ_id || r.civs[i]->is_minor_civ() || r.civs[i]->eliminated())
+					continue;
+				if(myciv->get_relationship_to_civ(i) == relationship_war) {
+					if(r.suggest_peace(myciv->civ_id, i)) {
+						ai_debug_printf(myciv->civ_id,
+								"Made peace with %s\n",
+								r.civs[i]->civname.c_str());
+						relations_changed = true;
+					}
+				}
+			}
+		}
+		else {
+			ai_debug_printf(myciv->civ_id, "Feelin' like war.\n");
+			bool already_in_war = false;
+			for(unsigned int i = 0; i < r.civs.size(); i++) {
+				if(i == myciv->civ_id || r.civs[i]->is_minor_civ() || r.civs[i]->eliminated())
+					continue;
+				if(myciv->get_relationship_to_civ(i) == relationship_war) {
+					ai_debug_printf(myciv->civ_id,
+							"Already in war against %s\n",
+							r.civs[i]->civname.c_str());
+					already_in_war = true;
+					break;
+				}
+			}
+			if(!already_in_war) {
+				// just declare war to everyone
+				for(unsigned int i = 0; i < r.civs.size(); i++) {
+					if(i == myciv->civ_id || r.civs[i]->is_minor_civ() || r.civs[i]->eliminated())
+						continue;
+					if(myciv->get_relationship_to_civ(i) == relationship_peace) {
+						r.declare_war_between(myciv->civ_id, i);
+						relations_changed = true;
+						ai_debug_printf(myciv->civ_id,
+								"Declared war against %s\n",
+								r.civs[i]->civname.c_str());
+					}
+				}
+			}
+		}
+		if(relations_changed) {
+			ai_debug_printf(myciv->civ_id, "Relations changed.\n");
+			forget_all_unit_plans();
+		}
+	}
+
 	// assign orders to cities not producing anything
 	for(std::map<unsigned int, city*>::iterator it = myciv->cities.begin();
 			it != myciv->cities.end();
@@ -96,14 +165,6 @@ bool ai::play()
 			free_units.insert(it->second->unit_id);
 		}
 	}
-
-	// set tax rate
-	int curr_tax_rate = 0;
-	do {
-		if(!myciv->set_commerce_allocation(curr_tax_rate, 10 - curr_tax_rate))
-			break;
-		curr_tax_rate++;
-	} while(curr_tax_rate <= 10 && myciv->get_military_expenses() > myciv->get_national_income());
 
 	// assign free units to objectives
 	{
@@ -228,7 +289,6 @@ void ai::handle_new_advance(unsigned int adv_id)
 
 void ai::handle_civ_discovery(int civ_id)
 {
-	r.declare_war_between(myciv->civ_id, civ_id);
 }
 
 void ai::handle_new_improv(const msg& m)
@@ -323,6 +383,33 @@ void ai::check_for_revolution(unsigned int adv_id)
 
 bool ai::peace_suggested(int civ_id)
 {
-	return myciv->get_relationship_to_civ(civ_id) != relationship_war;
+	if(myciv->get_relationship_to_civ(civ_id) != relationship_war) {
+		return true;
+	}
+	else {
+		bool p = want_peace();
+		ai_debug_printf(myciv->civ_id,
+				"Civ ID %s suggested peace - answer: %d\n",
+				r.civs[civ_id]->civname.c_str(), p);
+		return p;
+	}
+}
+
+bool ai::want_peace() const
+{
+	int surplus = myciv->get_national_income() - myciv->get_military_expenses();
+	return myciv->alloc_gold >= 9 &&
+		surplus < 0 &&
+		myciv->gold < -surplus * 3;
+}
+
+void ai::forget_all_unit_plans()
+{
+	for(std::list<std::pair<objective*, int> >::iterator oit = objectives.begin();
+			oit != objectives.end();
+			++oit) {
+		oit->first->forget_everything();
+	}
+	handled_units.clear();
 }
 

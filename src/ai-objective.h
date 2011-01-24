@@ -22,6 +22,7 @@ class objective {
 		virtual bool add_unit(unit* u) = 0;
 		virtual void process(std::set<unsigned int>* freed_units);
 		const std::string& get_name() const;
+		virtual void forget_everything();
 	protected:
 		virtual bool compare_units(const unit_configuration& lhs,
 				const unit_configuration& rhs) const = 0;
@@ -40,11 +41,6 @@ class objective {
 				int* points) const;
 		unit_configuration_map::const_iterator choose_best_unit(const pompelmous& r, 
 				const civilization& myciv, const city& c) const;
-};
-
-class mission : public objective {
-	public:
-		virtual ~mission() { }
 };
 
 

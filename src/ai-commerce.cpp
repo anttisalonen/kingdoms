@@ -363,8 +363,6 @@ connect_cities_orders::connect_cities_orders(const civilization* civ_, unit* u_)
 							found[j]->ypos),
 						false, true);
 				if(!road_path.empty()) {
-					ai_debug_printf(civ->civ_id, "road exists between %d and %d\n",
-							i, j);
 					continue;
 				}
 
@@ -416,9 +414,11 @@ class resource_collector {
 							false, coord(c->xpos, c->ypos),
 							co,
 							false, true);
+#if 0
 					ai_debug_printf(civ.civ_id, "Searching for path on roads from (%d, %d) to (%d, %d): %d\n",
 							c->xpos, c->ypos, co.x, co.y,
 							!road_path.empty());
+#endif
 					if(!road_path.empty()) {
 						// path on road found
 						return false;

@@ -29,6 +29,7 @@ class expansion_objective : public objective {
 		bool add_unit(unit* u);
 		city_production get_city_production(const city& c, int* points) const;
 		void process(std::set<unsigned int>* freed_units);
+		virtual void forget_everything();
 	protected:
 		bool compare_units(const unit_configuration& lhs,
 				const unit_configuration& rhs) const;

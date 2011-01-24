@@ -51,6 +51,8 @@ class ai : public diplomat {
 		void handle_unit_disbanded(const msg& m);
 		void handle_anarchy_over(const msg& m);
 		void check_for_revolution(unsigned int adv_id);
+		bool want_peace() const;
+		void forget_all_unit_plans();
 		std::set<unsigned int> free_units;
 		std::list<std::pair<objective*, int> > objectives;
 		std::set<unsigned int> handled_units;

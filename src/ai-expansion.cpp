@@ -771,3 +771,11 @@ bool transported_orders::replan()
 	}
 }
 
+void expansion_objective::forget_everything()
+{
+	planned_cities.clear();
+	escorters.clear();
+	transportees.clear();
+}
+
+
