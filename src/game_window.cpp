@@ -670,7 +670,7 @@ action game_window::input_to_action(const SDL_Event& ev)
 						(current_unit == myciv->units.end() || (ev.key.keysym.mod & (KMOD_LSHIFT | KMOD_RSHIFT)))) {
 					return action(action_eot);
 				}
-				else if(current_unit != myciv->units.end()) {
+				else if(current_unit != myciv->units.end() && (ev.key.keysym.mod == 0)) {
 					if(k == SDLK_b) {
 						return unit_action(action_found_city, current_unit->second);
 					}
