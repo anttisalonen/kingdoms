@@ -23,7 +23,7 @@
 "Code of Laws"		20	13 0 0 0
 "Monarchy"		30	22 0 0 0
 "Feudalism"		50	23 26 0 0
-"The Wheel"		30	14 0 0 0
+"The Wheel"		30	0 0 0 0
 "Trade"			20	18 0 0 0
 "Republic"		40	23 11 0 0
 "Domestication"		10	0 0 0 0
