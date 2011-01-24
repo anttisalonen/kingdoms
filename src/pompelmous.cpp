@@ -158,7 +158,7 @@ void pompelmous::increment_resources()
 	for(std::vector<civilization*>::iterator it = civs.begin();
 	    it != civs.end();
 	    ++it) {
-		(*it)->increment_resources(uconfmap, amap, cimap,
+		(*it)->increment_resources(uconfmap, amap,
 				road_moves, food_eaten_per_citizen);
 	}
 }

@@ -717,7 +717,7 @@ std::vector<coord> map::random_starting_places(int num,
 						it != retval.end();
 						++it) {
 					int manh = manhattan_distance(it->x, it->y, xp, yp);
-					if(manh < min_distance) {
+					if((unsigned int)manh < min_distance) {
 						too_close = true;
 						break;
 					}

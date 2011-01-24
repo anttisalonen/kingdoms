@@ -634,12 +634,14 @@ int run_with_map(map& m)
 	government_map govmap;
 	get_configuration(ruleset_name, &civs, &uconfmap, &amap, &cimap, NULL, &govmap, NULL);
 
+	pompelmous r(uconfmap, amap, cimap, govmap, &m, road_moves,
+			food_eaten_per_citizen, anarchy_period, num_turns);
+
 	for(unsigned int i = 0; i < civs.size(); i++) {
 		civs[i]->set_map(&m);
 		civs[i]->set_government(&govmap.begin()->second);
+		civs[i]->set_city_improvement_map(&r.cimap);
 	}
-	pompelmous r(uconfmap, amap, cimap, govmap, &m, road_moves,
-			food_eaten_per_citizen, anarchy_period, num_turns);
 
 	std::map<int, coord> starting_places = m.get_starting_places();
 	if(starting_places.size() < 3) {
@@ -702,6 +704,7 @@ int run_with_map(map& m)
 						id, color(20, 20, 20),
 						&m, barbarian_names.begin(),
 						barbarian_names.end(),
+						&r.cimap,
 						&govmap.begin()->second, true);
 				barbarians.push_back(barb);
 				// warrior

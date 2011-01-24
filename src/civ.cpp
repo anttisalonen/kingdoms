@@ -9,6 +9,7 @@ civilization::civilization(std::string name, unsigned int civid,
 		const color& c_, map* m_,
 		const std::vector<std::string>::iterator& names_start,
 		const std::vector<std::string>::iterator& names_end,
+		const city_improv_map* cimap_,
 		const government* gov_, bool minor_civ_)
 	: civname(name),
 	civ_id(civid),
@@ -29,7 +30,8 @@ civilization::civilization(std::string name, unsigned int civid,
 	points(0),
 	cross_oceans(false),
 	anarchy_period(0),
-	minor_civ(minor_civ_)
+	minor_civ(minor_civ_),
+	cimap(cimap_)
 {
 	for(std::vector<std::string>::const_iterator it = names_start;
 			it != names_end;
@@ -210,6 +212,21 @@ msg anarchy_over()
 	return m;
 }
 
+int civilization::get_national_income() const
+{
+	return national_income;
+}
+
+int civilization::get_national_science() const
+{
+	return national_science;
+}
+
+int civilization::get_military_expenses() const
+{
+	return military_expenses;
+}
+
 void civilization::update_military_expenses()
 {
 	military_expenses = 0;
@@ -225,27 +242,46 @@ void civilization::update_military_expenses()
 	}
 }
 
-void civilization::calculate_total_city_commerce(const city& c,
-		const city_improv_map& cimap,
-		int orig_comm, int* add_gold, int* add_science) const
+void civilization::update_national_income_and_science()
 {
+	national_income = 0;
+	national_science = 0;
+	for(std::map<unsigned int, city*>::iterator cit = cities.begin();
+			cit != cities.end();
+			++cit) {
+		int add_gold, add_science;
+		calculate_total_city_commerce(*cit->second, &add_gold, &add_science);
+		national_income += add_gold;
+		national_science += add_science;
+	}
+}
+
+void civilization::calculate_total_city_commerce(const city& c,
+		int* add_gold, int* add_science) const
+{
+	int food, prod, comm;
+	total_resources(c, &food, &prod, &comm);
+	float alloc_gold_f = alloc_gold / 10.0f;
+	float alloc_science_f = alloc_science / 10.0f;
+	*add_gold = comm * alloc_gold_f;
+	*add_science = comm * alloc_science_f;
 	for(std::set<unsigned int>::const_iterator cit = c.built_improvements.begin();
 			cit != c.built_improvements.end();
 			++cit) {
-		city_improv_map::const_iterator ciit = cimap.find(*cit);
-		if(ciit != cimap.end()) {
+		city_improv_map::const_iterator ciit = cimap->find(*cit);
+		if(ciit != cimap->end()) {
 			if(ciit->second.comm_bonus && alloc_gold) {
-				*add_gold += (orig_comm * alloc_gold / 10) * ((ciit->second.comm_bonus + 100) / 100.0f);
+				*add_gold += (comm * alloc_gold_f) * (ciit->second.comm_bonus / 100.0f);
 			}
 			if(ciit->second.science_bonus && alloc_science) {
-				*add_science += (orig_comm * alloc_science / 10) * ((ciit->second.science_bonus + 100) / 100.0f);
+				*add_science += (comm * alloc_science_f) * (ciit->second.science_bonus / 100.0f);
 			}
 		}
 	}
 }
 
 void civilization::increment_resources(const unit_configuration_map& uconfmap,
-		const advance_map& amap, const city_improv_map& cimap,
+		const advance_map& amap,
 		unsigned int road_moves, unsigned int food_eaten_per_citizen)
 {
 	if(minor_civ)
@@ -259,20 +295,13 @@ void civilization::increment_resources(const unit_configuration_map& uconfmap,
 		return;
 	}
 
-	national_income = 0;
-	int total_science = 0;
 	for(std::map<unsigned int, city*>::iterator cit = cities.begin();
 			cit != cities.end();
 			++cit) {
 		int food, prod, comm;
 		city* this_city = cit->second;
 		total_resources(*this_city, &food, &prod, &comm);
-		int add_gold = comm;
-		int add_science = comm;
-		calculate_total_city_commerce(*this_city, cimap, comm, &add_gold, &add_science);
 		this_city->stored_food += food - this_city->get_city_size() * food_eaten_per_citizen;
-		national_income += add_gold;
-		total_science += add_science;
 		this_city->stored_prod += prod;
 		if(this_city->production.current_production_id > -1) {
 			if(this_city->production.producing_unit) {
@@ -282,7 +311,7 @@ void civilization::increment_resources(const unit_configuration_map& uconfmap,
 						unit* u = add_unit(this_city->production.current_production_id, 
 								this_city->xpos, this_city->ypos, prod_unit->second,
 								road_moves);
-						if(this_city->has_barracks(cimap))
+						if(this_city->has_barracks(*cimap))
 							u->veteran = true;
 						this_city->stored_prod -= prod_unit->second.production_cost;
 						add_message(new_unit_msg(u, this_city));
@@ -290,15 +319,15 @@ void civilization::increment_resources(const unit_configuration_map& uconfmap,
 				}
 			}
 			else {
-				city_improv_map::const_iterator prod_improv = cimap.find(this_city->production.current_production_id);
-				if(prod_improv != cimap.end()) {
+				city_improv_map::const_iterator prod_improv = cimap->find(this_city->production.current_production_id);
+				if(prod_improv != cimap->end()) {
 					if((int)prod_improv->second.cost <= this_city->stored_prod) {
 						if(this_city->built_improvements.find(prod_improv->first) ==
 								this_city->built_improvements.end()) {
 							this_city->built_improvements.insert(prod_improv->first);
 							this_city->stored_prod -= prod_improv->second.cost;
 							if(prod_improv->second.palace) {
-								destroy_old_palace(this_city, cimap);
+								destroy_old_palace(this_city);
 							}
 						}
 						add_message(new_improv_msg(this_city, prod_improv->first));
@@ -311,12 +340,13 @@ void civilization::increment_resources(const unit_configuration_map& uconfmap,
 		for(std::set<unsigned int>::const_iterator ciit = this_city->built_improvements.begin();
 				ciit != this_city->built_improvements.end();
 				++ciit) {
-			city_improv_map::const_iterator cnit = cimap.find(*ciit);
-			if(cnit != cimap.end())
+			city_improv_map::const_iterator cnit = cimap->find(*ciit);
+			if(cnit != cimap->end())
 				this_city->accum_culture += cnit->second.culture;
 		}
 	}
 
+	update_national_income_and_science();
 	update_military_expenses();
 	gold += national_income - military_expenses;
 	{
@@ -331,7 +361,7 @@ void civilization::increment_resources(const unit_configuration_map& uconfmap,
 			remove_unit(uit->second);
 		}
 	}
-	science += total_science;
+	science += national_science;
 	advance_map::const_iterator adv = amap.find(research_goal_id);
 	if(adv == amap.end()) {
 		if(researched_advances.empty()) {
@@ -610,7 +640,12 @@ void civilization::set_government(const government* g)
 	gov = g;
 }
 
-void civilization::destroy_old_palace(const city* c, const city_improv_map& cimap)
+void civilization::set_city_improvement_map(const city_improv_map* cimap_)
+{
+	cimap = cimap_;
+}
+
+void civilization::destroy_old_palace(const city* c)
 {
 	// go through all cities
 	for(std::map<unsigned int, city*>::iterator it = cities.begin();
@@ -622,8 +657,8 @@ void civilization::destroy_old_palace(const city* c, const city_improv_map& cima
 					cit != it->second->built_improvements.end();
 					++cit) {
 				// see if this improvement is the palace
-				city_improv_map::const_iterator ciit = cimap.find(*cit);
-				if(ciit != cimap.end()) {
+				city_improv_map::const_iterator ciit = cimap->find(*cit);
+				if(ciit != cimap->end()) {
 					if(ciit->second.palace) {
 						it->second->built_improvements.erase(cit);
 						return;
@@ -885,5 +920,16 @@ void civilization::set_anarchy_period(unsigned int num)
 bool civilization::is_minor_civ() const
 {
 	return minor_civ;
+}
+
+bool civilization::set_commerce_allocation(unsigned int a_gold, unsigned int a_science)
+{
+	if(a_gold + a_science > 10)
+		return false;
+	alloc_gold = a_gold;
+	alloc_science = a_science;
+	update_national_income_and_science();
+	update_military_expenses();
+	return true;
 }
 

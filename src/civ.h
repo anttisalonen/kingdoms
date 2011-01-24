@@ -91,6 +91,7 @@ class civilization {
 		civilization(std::string name, unsigned int civid, const color& c_, map* m_,
 				const std::vector<std::string>::iterator& names_start,
 				const std::vector<std::string>::iterator& names_end,
+				const city_improv_map* cimap_,
 				const government* gov_, bool minor_civ_);
 		civilization(); // for serialization
 		~civilization();
@@ -104,7 +105,6 @@ class civilization {
 		void refill_moves(const unit_configuration_map& uconfmap);
 		void increment_resources(const unit_configuration_map& uconfmap,
 				const advance_map& amap,
-				const city_improv_map& cimap,
 				unsigned int road_moves,
 				unsigned int food_eaten_per_citizen);
 		char fog_at(int x, int y) const;
@@ -128,8 +128,10 @@ class civilization {
 		bool eliminated() const;
 		void set_map(map* m_);
 		void set_government(const government* g);
+		void set_city_improvement_map(const city_improv_map* cimap_);
 		int get_national_income() const;
 		int get_military_expenses() const;
+		int get_national_science() const;
 		void update_city_resource_workers(city* c);
 		bool can_build_unit(const unit_configuration& uc, const city& c) const;
 		bool can_build_improvement(const city_improvement& ci, const city& c) const;
@@ -149,6 +151,7 @@ class civilization {
 		void update_resource_worker_map();
 		void set_anarchy_period(unsigned int num);
 		bool is_minor_civ() const;
+		bool set_commerce_allocation(unsigned int a_gold, unsigned int a_science);
 		std::string civname;
 		const unsigned int civ_id;
 		color col;
@@ -168,13 +171,13 @@ class civilization {
 		void reveal_land(int x, int y, int r);
 		void update_military_expenses();
 		void setup_default_research_goal(const advance_map& amap);
-		void destroy_old_palace(const city* c, const city_improv_map& cimap);
+		void destroy_old_palace(const city* c);
 		void update_ocean_crossing(const unit_configuration_map& uconfmap,
 				const advance_map& amap, int adv_id);
 		void calculate_total_city_commerce(const city& c,
-				const city_improv_map& cimap,
-				int orig_comm, int* add_gold, int* add_science) const;
+				int* add_gold, int* add_science) const;
 		bool has_access_to_resource(const city& c, unsigned int res_id) const;
+		void update_national_income_and_science();
 		std::vector<relationship> relationships;
 		buf2d<int> known_land_map;
 		std::vector<std::string> city_names;
@@ -182,6 +185,7 @@ class civilization {
 		unsigned int next_city_id;
 		unsigned int next_unit_id;
 		int national_income;
+		int national_science;
 		int military_expenses;
 		std::map<unsigned int, int> built_units;
 		std::map<unsigned int, int> lost_units;
@@ -190,6 +194,7 @@ class civilization {
 		std::map<coord, unsigned int> resource_workers_map;
 		unsigned int anarchy_period;
 		bool minor_civ;
+		const city_improv_map* cimap;
 
 		friend class boost::serialization::access;
 		template<class Archive>
@@ -217,6 +222,7 @@ class civilization {
 			ar & next_city_id;
 			ar & next_unit_id;
 			ar & national_income;
+			ar & national_science;
 			ar & military_expenses;
 			ar & built_units;
 			ar & lost_units;
@@ -225,6 +231,7 @@ class civilization {
 			ar & resource_workers_map;
 			ar & anarchy_period;
 			ar & minor_civ;
+			ar & cimap;
 		}
 };
 

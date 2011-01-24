@@ -103,7 +103,7 @@ std::vector<civilization*> parse_civs_config(const std::string& fp)
 						stoi(pcivs[i][2]),
 						stoi(pcivs[i][3])),
 					NULL, pcivs[i].begin() + 4, 
-					pcivs[i].end(), NULL, false));
+					pcivs[i].end(), NULL, NULL, false));
 	}
 	return civs;
 }
