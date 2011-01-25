@@ -47,7 +47,7 @@ ai::ai(map& m_, pompelmous& r_, civilization* c)
 
 bool ai::play()
 {
-	if(myciv->eliminated()) {
+	if(myciv->eliminated() || r.get_victory_type() != victory_none) {
 		return !r.perform_action(myciv->civ_id, action(action_eot));
 	}
 
