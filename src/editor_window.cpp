@@ -1,3 +1,4 @@
+#include <sstream>
 #include <boost/bind.hpp>
 #include <boost/lambda/lambda.hpp>
 #include "editor_window.h"
@@ -374,21 +375,23 @@ int editor_window::on_new_map(const widget_window* w)
 	int xv = 0;
 	int yv = 0;
 	bool wrap_x = true;
-	for(std::list<numeric_textbox*>::const_iterator it = w->numeric_textboxes.begin();
-			it != w->numeric_textboxes.end();
+	for(std::list<widget*>::const_iterator it = w->widgets.begin();
+			it != w->widgets.end();
 			++it) {
 		if((*it)->get_name() == std::string("X dimension")) {
-			xv = (*it)->get_numeric_value();
+			std::string s = (*it)->get_data();
+			if(!s.empty()) {
+				std::stringstream(s) >> xv;
+			}
 		}
 		else if((*it)->get_name() == std::string("Y dimension")) {
-			yv = (*it)->get_numeric_value();
+			std::string s = (*it)->get_data();
+			if(!s.empty()) {
+				std::stringstream(s) >> yv;
+			}
 		}
-	}
-	for(std::list<checkbox*>::const_iterator it = w->checkboxes.begin();
-			it != w->checkboxes.end();
-			++it) {
 		if((*it)->get_name() == std::string("Wrap X")) {
-			wrap_x = (*it)->get_checked();
+			wrap_x = (*it)->get_data() == "1";
 		}
 	}
 	if(xv >= 40 && yv >= 40) {

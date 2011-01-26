@@ -57,6 +57,7 @@ class widget {
 		virtual int draw(SDL_Surface* screen) = 0;
 		virtual int handle_input(const SDL_Event& ev) = 0;
 		virtual const std::string& get_name() const;
+		virtual std::string get_data() const;
 	protected:
 		std::string name;
 	public:
@@ -125,6 +126,7 @@ class textbox : public widget {
 		int draw(SDL_Surface* screen);
 		virtual int handle_input(const SDL_Event& ev);
 		const std::string& get_text() const;
+		virtual std::string get_data() const;
 	protected:
 		std::string text;
 	private:
@@ -151,6 +153,7 @@ class checkbox : public button {
 		~checkbox();
 		int draw(SDL_Surface* screen);
 		bool get_checked() const;
+		std::string get_data() const;
 	private:
 		int on_click();
 		SDL_Surface* surf;
@@ -204,9 +207,7 @@ class widget_window : public window {
 		void add_button(int x, int y, int w, int h, const std::string& text,
 				boost::function<int(const widget_window*)> cb);
 		void add_key_handler(SDLKey k, boost::function<int(const widget_window*)> cb);
-		std::list<numeric_textbox*> numeric_textboxes;
-		std::list<button*> buttons;
-		std::list<checkbox*> checkboxes;
+		std::list<widget*> widgets;
 	private:
 		int on_button_click(boost::function<int(const widget_window*)> cb);
 		void set_focus_widget(int x, int y);

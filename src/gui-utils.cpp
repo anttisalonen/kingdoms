@@ -13,6 +13,11 @@ const std::string& widget::get_name() const
 	return name;
 }
 
+std::string widget::get_data() const
+{
+	return "";
+}
+
 button::button(const std::string& name_, const rect& dim_, boost::function<int()> onclick_)
 	: widget(name_, dim_),
 	onclick(onclick_)
@@ -653,6 +658,11 @@ const std::string& textbox::get_text() const
 	return text;
 }
 
+std::string textbox::get_data() const
+{
+	return text;
+}
+
 numeric_textbox::numeric_textbox(const TTF_Font* font_, const rect& dim_,
 		const color& bg_color_, const color& text_color_,
 		const std::string& name_,
@@ -730,6 +740,11 @@ bool checkbox::get_checked() const
 	return checked;
 }
 
+std::string checkbox::get_data() const
+{
+	return checked ? "1" : "0";
+}
+
 widget_window::widget_window(SDL_Surface* screen_, gui_data& data_,
 		gui_resources& res_,
 		const rect& rect_,
@@ -745,46 +760,20 @@ widget_window::widget_window(SDL_Surface* screen_, gui_data& data_,
 
 widget_window::~widget_window()
 {
-	while(!buttons.empty()) {
-		delete buttons.back();
-		buttons.pop_back();
-	}
-	while(!numeric_textboxes.empty()) {
-		delete numeric_textboxes.back();
-		numeric_textboxes.pop_back();
-	}
-	while(!checkboxes.empty()) {
-		delete checkboxes.back();
-		checkboxes.pop_back();
+	while(!widgets.empty()) {
+		delete widgets.back();
+		widgets.pop_back();
 	}
 }
 
 void widget_window::set_focus_widget(int x, int y)
 {
 	focus_widget = NULL;
-	for(std::list<numeric_textbox*>::iterator it = numeric_textboxes.begin();
-			it != numeric_textboxes.end();
+	for(std::list<widget*>::iterator it = widgets.begin();
+			it != widgets.end();
 			++it) {
 		if(in_rectangle((*it)->dim, x, y)) {
 			focus_widget = *it;
-			return;
-		}
-	}
-	for(std::list<button*>::iterator it = buttons.begin();
-			it != buttons.end();
-			++it) {
-		if(in_rectangle((*it)->dim, x, y)) {
-			if((*it)->onclick)
-				focus_widget = *it;
-			return;
-		}
-	}
-	for(std::list<checkbox*>::iterator it = checkboxes.begin();
-			it != checkboxes.end();
-			++it) {
-		if(in_rectangle((*it)->dim, x, y)) {
-			if((*it)->onclick)
-				focus_widget = *it;
 			return;
 		}
 	}
@@ -804,26 +793,8 @@ int widget_window::handle_window_input(const SDL_Event& ev)
 				return ret;
 		}
 	}
-	for(std::list<numeric_textbox*>::iterator it = numeric_textboxes.begin();
-			it != numeric_textboxes.end();
-			++it) {
-		if(focus_widget != *it)
-			continue;
-		int ret;
-		if((ret = (*it)->handle_input(ev)) != 0)
-			return ret;
-	}
-	for(std::list<button*>::iterator it = buttons.begin();
-			it != buttons.end();
-			++it) {
-		if(focus_widget != *it)
-			continue;
-		int ret;
-		if((ret = (*it)->handle_input(ev)) != 0)
-			return ret;
-	}
-	for(std::list<checkbox*>::iterator it = checkboxes.begin();
-			it != checkboxes.end();
+	for(std::list<widget*>::iterator it = widgets.begin();
+			it != widgets.end();
 			++it) {
 		if(focus_widget != *it)
 			continue;
@@ -837,9 +808,7 @@ int widget_window::handle_window_input(const SDL_Event& ev)
 int widget_window::draw_window()
 {
 	draw_plain_rectangle(screen, dim.x, dim.y, dim.w, dim.h, bg_color);
-	std::for_each(checkboxes.begin(), checkboxes.end(), std::bind2nd(std::mem_fun(&widget::draw), screen));
-	std::for_each(numeric_textboxes.begin(), numeric_textboxes.end(), std::bind2nd(std::mem_fun(&widget::draw), screen));
-	std::for_each(buttons.begin(), buttons.end(), std::bind2nd(std::mem_fun(&widget::draw), screen));
+	std::for_each(widgets.begin(), widgets.end(), std::bind2nd(std::mem_fun(&widget::draw), screen));
 	if(focus_widget) {
 		draw_rect(focus_widget->dim.x, focus_widget->dim.y,
 				focus_widget->dim.w, focus_widget->dim.h,
@@ -866,27 +835,27 @@ void widget_window::set_button_color(const color& c)
 
 void widget_window::add_label(int x, int y, int w, int h, const std::string& text)
 {
-	buttons.push_back(new plain_button(rect(dim.x + x, dim.y + y, w, h), text.c_str(),
+	widgets.push_back(new plain_button(rect(dim.x + x, dim.y + y, w, h), text.c_str(),
 				&res.font, button_color, text_color,
 				NULL));
 }
 
 void widget_window::add_numeric_textbox(int x, int y, const std::string& text, int val)
 {
-	numeric_textboxes.push_back(new numeric_textbox(&res.font,
+	widgets.push_back(new numeric_textbox(&res.font,
 				rect(dim.x + x, dim.y + y, 80, 16), button_color, text_color,
 					text, val));
 }
 
 void widget_window::add_checkbox(int x, int y, int w, int h, const std::string& text, bool checked)
 {
-	checkboxes.push_back(new checkbox(rect(dim.x + x, dim.y + y, w, h), button_color,
+	widgets.push_back(new checkbox(rect(dim.x + x, dim.y + y, w, h), button_color,
 			       text_color, text, checked));
 }
 
 void widget_window::add_button(int x, int y, int w, int h, const std::string& text, boost::function<int(const widget_window*)> cb)
 {
-	buttons.push_back(new plain_button(rect(dim.x + x, dim.y + y, w, h), text.c_str(),
+	widgets.push_back(new plain_button(rect(dim.x + x, dim.y + y, w, h), text.c_str(),
 				&res.font, button_color, text_color,
 				boost::bind(&widget_window::on_button_click, this, cb)));
 }
