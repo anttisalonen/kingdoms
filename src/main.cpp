@@ -34,6 +34,7 @@
 #include <string>
 
 #include <boost/bind/bind.hpp>
+#include <boost/lambda/lambda.hpp>
 #include <boost/algorithm/string.hpp>
 
 #include "filesystem.h"
@@ -306,7 +307,8 @@ void display_end_screen(const pompelmous& r)
 	e.run();
 }
 
-void play_game(pompelmous& r, std::map<unsigned int, ai>& ais)
+void play_game(pompelmous& r, std::map<unsigned int, ai>& ais,
+		unsigned int own_civ_id)
 {
 	bool running = true;
 
@@ -314,7 +316,7 @@ void play_game(pompelmous& r, std::map<unsigned int, ai>& ais)
 		gui_resource_files grr;
 		fetch_gui_resource_files(ruleset_name, &grr);
 		gui g(screen, r.get_map(), r, grr, *font,
-				observer ? &ais.find(0)->second : NULL, r.civs[0],
+				observer ? &ais.find(own_civ_id)->second : NULL, r.civs[own_civ_id],
 				ruleset_name);
 		g.display();
 		g.init_turn();
@@ -322,7 +324,7 @@ void play_game(pompelmous& r, std::map<unsigned int, ai>& ais)
 			automatic_play_until(r, ais, skip_rounds);
 		r.add_action_listener(&g);
 		while(running) {
-			if(r.current_civ_id() == (int)r.civs[0]->civ_id) {
+			if(r.current_civ_id() == (int)own_civ_id) {
 				SDL_Event event;
 				while(SDL_PollEvent(&event)) {
 					switch(event.type) {
@@ -348,7 +350,7 @@ void play_game(pompelmous& r, std::map<unsigned int, ai>& ais)
 						running = false;
 					}
 					else {
-						if(!observer && r.civs[0]->eliminated()) {
+						if(!observer && r.civs[own_civ_id]->eliminated()) {
 							running = false;
 						}
 						else if(r.current_civ_id() == (int)r.civs[0]->civ_id) {
@@ -359,7 +361,8 @@ void play_game(pompelmous& r, std::map<unsigned int, ai>& ais)
 							else {
 								if(r.get_round_number() % 4 == 0) {
 									printf("Auto-saving.\n");
-									save_game("auto", ruleset_name, r);
+									save_game("auto", ruleset_name, r,
+											own_civ_id);
 								}
 							}
 						}
@@ -404,23 +407,21 @@ void play_game(pompelmous& r, std::map<unsigned int, ai>& ais)
 	}
 }
 
-int run_game(pompelmous& r)
+int run_game(pompelmous& r, unsigned int own_civ_id)
 {
 	std::map<unsigned int, ai> ais;
-	if(observer) {
-		std::pair<std::map<unsigned int, ai>::iterator, bool> res =
-			ais.insert(std::make_pair(0, ai(r.get_map(), r, r.civs[0])));
-		r.add_diplomat(0, &res.first->second);
-		if(ai_debug)
-			set_ai_debug_civ(0);
+	if(observer && ai_debug) {
+			set_ai_debug_civ(own_civ_id);
 	}
-	for(unsigned int i = 1; i < r.civs.size(); i++) {
+	for(unsigned int i = 0; i < r.civs.size(); i++) {
+		if(r.civs[i]->civ_id == own_civ_id && !observer)
+			continue;
 		std::pair<std::map<unsigned int, ai>::iterator, bool> res =
 			ais.insert(std::make_pair(i, ai(r.get_map(), r, r.civs[i])));
 		if(!r.civs[i]->is_minor_civ())
 			r.add_diplomat(i, &res.first->second);
 	}
-	play_game(r, ais);
+	play_game(r, ais, own_civ_id);
 	return 0;
 }
 
@@ -509,6 +510,104 @@ int main_menu::quit_button()
 	return 1;
 }
 
+class game_configuration_window {
+	public:
+		game_configuration_window(SDL_Surface* screen_,
+				TTF_Font* font_, const std::vector<civilization*>& civs) :
+			bg(sdl_load_image(get_beige_bg_file().c_str())),
+			w(screen_, *font_, rect(0, 0, screen->w, screen->h),
+					bg),
+			map_size(2)
+	{
+		w.set_text_color(color(255, 255, 255));
+		w.set_button_color(color(128, 40, 40));
+		w.add_key_handler(SDLK_ESCAPE, widget_close);
+		w.set_show_focus(false);
+		w.add_button(screen->w / 2 - 40, screen->h - 40, 80, 24, "Go",
+				boost::bind(&game_configuration_window::go,
+					this, boost::lambda::_1));
+		std::vector<std::pair<rect, std::string> > map_size_buttons;
+		map_size_buttons.push_back(std::make_pair(rect(100, 120, 16, 16),
+					"0"));
+		map_size_buttons.push_back(std::make_pair(rect(100, 140, 16, 16),
+					"1"));
+		map_size_buttons.push_back(std::make_pair(rect(100, 160, 16, 16),
+					"2"));
+		map_size_buttons.push_back(std::make_pair(rect(100, 180, 16, 16),
+					"3"));
+		map_size_buttons.push_back(std::make_pair(rect(100, 200, 16, 16),
+					"4"));
+		w.add_label(100, 100, 120, 16, "Map size");
+		w.add_label(120, 120, 100, 16, "Tiny");
+		w.add_label(120, 140, 100, 16, "Small");
+		w.add_label(120, 160, 100, 16, "Medium");
+		w.add_label(120, 180, 100, 16, "Large");
+		w.add_label(120, 200, 100, 16, "Huge");
+		w.add_radio_button_set("Map size buttons", map_size_buttons, 2);
+		std::vector<std::string> civnames;
+		for(unsigned int i = 0; i < civs.size(); i++)
+			civnames.push_back(civs[i]->civname);
+		w.add_combo_box(250, 100, 100, 16, "My civilization",
+				civnames, 8);
+	}
+		int run();
+		int get_map_size() const { return map_size; }
+		const std::string& get_own_civ_name() const { return chosen_civ; }
+	protected:
+		void draw_background();
+		void setup_buttons();
+	private:
+		int go(const widget_window* w);
+		SDL_Surface* bg;
+		widget_window w;
+		int map_size;
+		std::string chosen_civ;
+};
+
+int game_configuration_window::run()
+{
+	w.draw_window();
+	bool running = true;
+	int ret = 0;
+	while(running) {
+		SDL_Event event;
+		if(SDL_WaitEvent(&event)) {
+			if((event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE)
+					|| (event.type == SDL_QUIT)) {
+				ret = 1;
+				running = false;
+			}
+			else if(w.handle_window_input(event))
+				running = false;
+			else if(event.type == SDL_MOUSEBUTTONUP)
+				w.draw_window();
+		}
+		else {
+			fprintf(stderr, "Error on SDL_WaitEvent: %s\n",
+					SDL_GetError());
+		}
+	}
+	for(std::list<widget*>::const_iterator it = w.widgets.begin();
+			it != w.widgets.end();
+			++it) {
+		if((*it)->get_name() == std::string("Map size buttons")) {
+			std::string s = (*it)->get_data();
+			if(!s.empty()) {
+				std::stringstream(s) >> map_size;
+			}
+		}
+		if((*it)->get_name() == std::string("My civilization")) {
+			chosen_civ = (*it)->get_data();
+		}
+	}
+	return ret;
+}
+
+int game_configuration_window::go(const widget_window* w)
+{
+	return 1;
+}
+
 class load_menu : public menu {
 	public:
 		load_menu(SDL_Surface* screen_,
@@ -521,6 +620,7 @@ class load_menu : public menu {
 	}
 		pompelmous* get_loaded_game();
 		map* get_loaded_map();
+		unsigned int get_own_civ_id() const;
 	protected:
 		void draw_background();
 		void setup_buttons();
@@ -531,6 +631,7 @@ class load_menu : public menu {
 		map loaded_map;
 		bool load_successful;
 		bool want_map;
+		unsigned int own_civ_id;
 };
 
 pompelmous* load_menu::get_loaded_game()
@@ -547,6 +648,11 @@ map* load_menu::get_loaded_map()
 		return &loaded_map;
 	else
 		return NULL;
+}
+
+unsigned int load_menu::get_own_civ_id() const
+{
+	return own_civ_id;
 }
 
 void load_menu::draw_background()
@@ -608,9 +714,10 @@ void load_menu::setup_buttons()
 
 int load_menu::load_game_button(const std::string& fn)
 {
+	own_civ_id = 0;
 	load_successful = want_map ?
 		load_map(fn.c_str(), loaded_map) :
-		load_game(fn.c_str(), loaded);
+		load_game(fn.c_str(), loaded, own_civ_id);
 	return 1;
 }
 
@@ -619,20 +726,22 @@ int load_menu::cancel_load_game()
 	return 1;
 }
 
-int run_with_map(map& m)
+int run_with_map(map& m, std::vector<civilization*>& civs, int own_civ_id)
 {
 	const int road_moves = 3;
 	const unsigned int food_eaten_per_citizen = 2;
 	const int num_turns = 300;
 	const unsigned int anarchy_period = 3;
 	const unsigned int num_barbarians = 50;
+	bool self_included = false;
+	if(own_civ_id == -1)
+		own_civ_id = 0;
 
-	std::vector<civilization*> civs;
 	unit_configuration_map uconfmap;
 	advance_map amap;
 	city_improv_map cimap;
 	government_map govmap;
-	get_configuration(ruleset_name, &civs, &uconfmap, &amap, &cimap, NULL, &govmap, NULL);
+	get_configuration(ruleset_name, NULL, &uconfmap, &amap, &cimap, NULL, &govmap, NULL);
 
 	pompelmous r(uconfmap, amap, cimap, govmap, &m, road_moves,
 			food_eaten_per_citizen, anarchy_period, num_turns);
@@ -652,7 +761,7 @@ int run_with_map(map& m)
 			printf("Could find only %d starting places (instead of %d).\n",
 					starting_places_vect.size(), civs.size());
 			if(starting_places_vect.size() < 3) {
-				exit(1);
+				return 1;
 			}
 		}
 		for(unsigned int i = 0; i < starting_places_vect.size(); i++) {
@@ -662,8 +771,19 @@ int run_with_map(map& m)
 	for(std::map<int, coord>::const_iterator it = starting_places.begin();
 			it != starting_places.end();
 			++it) {
+		if(own_civ_id == it->first) {
+			self_included = true;
+		}
+	}
+	for(std::map<int, coord>::const_iterator it = starting_places.begin();
+			it != starting_places.end();
+			++it) {
 		// settler
 		int i = it->first;
+		if(!self_included) {
+			i = own_civ_id;
+			self_included = true;
+		}
 		const coord& c = it->second;
 		civs[i]->add_unit(0, c.x, c.y, 
 				(*(r.uconfmap.find(0))).second, road_moves);
@@ -717,17 +837,37 @@ int run_with_map(map& m)
 				added_barbarians);
 	}
 
-	int ret = run_game(r);
+	int ret = run_game(r, own_civ_id);
 	for(unsigned int i = 0; i < barbarians.size(); i++) {
 		delete barbarians[i];
-	}
-	for(unsigned int i = 0; i < civs.size(); i++) {
-		delete civs[i];
 	}
 	return ret;
 }
 
-int run_gamedata()
+int enter_game_configuration_window(std::vector<civilization*>& civs)
+{
+	game_configuration_window w(screen, font, civs);
+	if(w.run())
+		return 0;
+	resource_configuration resconf;
+	resource_map rmap;
+	get_configuration(ruleset_name, NULL, NULL, NULL, NULL, &resconf, NULL, &rmap);
+	int map_x, map_y;
+	map_x = w.get_map_size() * 20 + 60;
+	map_y = map_x - 20;
+	map m(map_x, map_y, resconf, rmap);
+	m.create();
+	int own_civ_id = 0;
+	for(unsigned int i = 0; i < civs.size(); i++) {
+		if(civs[i]->civname == w.get_own_civ_name()) {
+			own_civ_id = i;
+			break;
+		}
+	}
+	return run_with_map(m, civs, own_civ_id);
+}
+
+int run_gamedata(std::vector<civilization*>& civs)
 {
 	const int map_x = 80;
 	const int map_y = 60;
@@ -737,17 +877,17 @@ int run_gamedata()
 	get_configuration(ruleset_name, NULL, NULL, NULL, NULL, &resconf, NULL, &rmap);
 	map m(map_x, map_y, resconf, rmap);
 	m.create();
-	return run_with_map(m);
+	return run_with_map(m, civs, -1);
 }
 
-int run_loaded_gamedata(bool want_map)
+int run_loaded_gamedata(bool want_map, std::vector<civilization*>& civs)
 {
 	load_menu l(screen, font, want_map);
 	l.run();
 	if(!want_map) {
 		pompelmous* r = l.get_loaded_game();
 		if(r) {
-			run_game(*r);
+			run_game(*r, l.get_own_civ_id());
 			return 0;
 		}
 		else {
@@ -757,7 +897,7 @@ int run_loaded_gamedata(bool want_map)
 	else {
 		map* m = l.get_loaded_map();
 		if(m) {
-			run_with_map(*m);
+			run_with_map(*m, civs, -1);
 			return 0;
 		}
 		else {
@@ -798,30 +938,40 @@ void run_mainmenu()
 			while(running) {
 				m.run();
 				main_menu::main_menu_selection s = m.get_selection();
+				std::vector<civilization*> civs;
+				get_configuration(ruleset_name, &civs, NULL, NULL, NULL, NULL, NULL, NULL);
 				switch(s) {
 					case main_menu::main_menu_start:
 						setup_seed();
-						run_gamedata();
+						enter_game_configuration_window(civs);
 						break;
 					case main_menu::main_menu_load:
 						setup_seed();
-						run_loaded_gamedata(false);
+						run_loaded_gamedata(false, civs);
 						break;
 					case main_menu::main_menu_map:
 						setup_seed();
-						run_loaded_gamedata(true);
+						run_loaded_gamedata(true, civs);
 						break;
 					default:
 						running = false;
 						break;
+				}
+				for(unsigned int i = 0; i < civs.size(); i++) {
+					delete civs[i];
 				}
 			}
 			TTF_CloseFont(font);
 		}
 	}
 	else {
+		std::vector<civilization*> civs;
+		get_configuration(ruleset_name, &civs, NULL, NULL, NULL, NULL, NULL, NULL);
 		setup_seed();
-		run_gamedata();
+		run_gamedata(civs);
+		for(unsigned int i = 0; i < civs.size(); i++) {
+			delete civs[i];
+		}
 	}
 }
 

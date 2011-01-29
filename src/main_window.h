@@ -14,7 +14,7 @@ struct camera {
 	int cam_y;
 };
 
-class main_window : public window {
+class main_window : public kingdoms_window {
 	public:
 		main_window(SDL_Surface* screen_, gui_data& data_,
 				gui_resources& res_,

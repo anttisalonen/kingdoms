@@ -4,7 +4,7 @@
 
 discovery_window::discovery_window(SDL_Surface* screen_, gui_data& data_, gui_resources& res_,
 		civilization* myciv_, unsigned int discovered_id_)
-	: window(screen_, data_, res_),
+	: kingdoms_window(screen_, data_, res_),
 	myciv(myciv_),
 	discovered_id(discovered_id_)
 {

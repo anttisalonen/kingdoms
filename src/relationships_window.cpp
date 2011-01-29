@@ -9,7 +9,7 @@ const int relationships_window::button_width = 192;
 const int relationships_window::button_height = 24;;
 relationships_window::relationships_window(SDL_Surface* screen_, gui_data& data_, gui_resources& res_,
 		ai* ai_, civilization* myciv_)
-	: window(screen_, data_, res_),
+	: kingdoms_window(screen_, data_, res_),
 	myciv(myciv_),
 	internal_ai(ai_)
 {

@@ -475,10 +475,8 @@ int check_button_click(const std::list<button*>& buttons,
 	return 0;
 }
 
-window::window(SDL_Surface* screen_, gui_data& data_, gui_resources& res_)
-	: screen(screen_),
-	data(data_),
-	res(res_)
+window::window(SDL_Surface* screen_)
+	: screen(screen_)
 {
 }
 
@@ -535,6 +533,14 @@ int window::num_subwindows() const
 	return subwindows.size();
 }
 
+kingdoms_window::kingdoms_window(SDL_Surface* screen_, gui_data& data_,
+		gui_resources& res_)
+	: window(screen_),
+	data(data_),
+	res(res_)
+{
+}
+
 input_text_window::input_text_window(SDL_Surface* screen_, gui_data& data_,
 		gui_resources& res_,
 		const rect& rect_,
@@ -545,7 +551,7 @@ input_text_window::input_text_window(SDL_Surface* screen_, gui_data& data_,
 		const color& button_text_color_,
 		boost::function<int(const std::string&)> on_ok_,
 		boost::function<int(const std::string&)> on_cancel_)
-	: window(screen_, data_, res_),
+	: kingdoms_window(screen_, data_, res_),
 	dims(rect_),
 	info_string(info_string_),
 	bg_color(bg_color_),
@@ -745,16 +751,273 @@ std::string checkbox::get_data() const
 	return checked ? "1" : "0";
 }
 
-widget_window::widget_window(SDL_Surface* screen_, gui_data& data_,
-		gui_resources& res_,
+SDL_Surface* make_radio_button_surface1(const rect& dim,
+		const color& circle_col)
+{
+	SDL_Surface* button_surf = SDL_CreateRGBSurface(SDL_SWSURFACE, dim.w,
+			dim.h, 32, rmask, gmask, bmask, amask);
+	if(!button_surf)
+		return NULL;
+	draw_rect(0, 0, dim.w - 1, dim.h - 1, circle_col, 1, button_surf);
+	return button_surf;
+}
+
+SDL_Surface* make_radio_button_surface2(const rect& dim,
+		const color& circle_col)
+{
+	SDL_Surface* button_surf = SDL_CreateRGBSurface(SDL_SWSURFACE, dim.w,
+			dim.h, 32, rmask, gmask, bmask, amask);
+	if(!button_surf)
+		return NULL;
+	color inner_col(circle_col);
+	inner_col.r *= 0.5f;
+	inner_col.g *= 0.5f;
+	inner_col.b *= 0.5f;
+	draw_plain_rectangle(button_surf, 3, 3, dim.w - 7, dim.h - 7, inner_col);
+	return button_surf;
+}
+
+radio_button::radio_button(const rect& dim_,
+		const color& circle_col_,
+		const std::string& name_,
+		const std::string& option_name_,
+		bool chosen_,
+		boost::function<int()> on_click_)
+	: button(name_, dim_, boost::bind(&radio_button::on_click_handler, this)),
+	surf1(make_radio_button_surface1(dim_, circle_col_)),
+	surf2(make_radio_button_surface2(dim_, circle_col_)),
+	option_name(option_name_),
+	chosen(chosen_),
+	radio_onclick(on_click_)
+{
+}
+
+radio_button::~radio_button()
+{
+	SDL_FreeSurface(surf2);
+	SDL_FreeSurface(surf1);
+}
+
+int radio_button::on_click_handler()
+{
+	chosen = true;
+	return radio_onclick();
+}
+
+void radio_button::set_chosen(bool c)
+{
+	chosen = c;
+}
+
+int radio_button::draw(SDL_Surface* screen)
+{
+	if(button::draw_surface(screen, surf1))
+		return 1;
+	if(chosen)
+		return button::draw_surface(screen, surf2);
+	else
+		return 0;
+}
+
+bool radio_button::get_chosen() const
+{
+	return chosen;
+}
+
+std::string radio_button::get_data() const
+{
+	return chosen ? option_name : "";
+}
+
+combo_box::combo_box(const rect& dim_, const std::string& name_,
+		const std::vector<std::string>& items_,
+		const TTF_Font* font_,
+		const color& bg_col_, const color& text_col_,
+		unsigned int max_items_expanded_)
+	: widget(name_, dim_),
+	orig_h(dim_.h),
+	items(items_),
+	font(font_),
+	bg_col(bg_col_),
+	text_col(text_col_),
+	surf(NULL),
+	expanded_index(-1),
+	chosen_index(0),
+	max_items_expanded(max_items_expanded_)
+{
+	if(items.size() == 0)
+		return;
+	setup_surface();
+}
+
+void combo_box::draw_arrow(int x, int y, bool up)
+{
+	int ax, ay, bx, by, cx, cy;
+	if(up) {
+		ax = x + 2;
+		ay = y + orig_h - 2;
+		bx = x + orig_h - 2;
+		by = y + orig_h - 2;
+		cx = x + orig_h / 2;
+		cy = y + 2;
+	}
+	else {
+		ax = x + 2;
+		ay = y + 2;
+		bx = x + orig_h - 2;
+		by = y + 2;
+		cx = x + orig_h / 2;
+		cy = y + orig_h - 2;
+	}
+	draw_line(surf, ax, ay, bx, by, text_col);
+	draw_line(surf, ax, ay, cx, cy, text_col);
+	draw_line(surf, bx, by, cx, cy, text_col);
+}
+
+void combo_box::draw_text_box(int x, int y, int ind)
+{
+	draw_plain_rectangle(surf, x, y, dim.w, orig_h, bg_col);
+	draw_text(surf, font, items[ind].c_str(),
+			x + 2, y + 2, text_col.r, text_col.g, text_col.b,
+			false);
+}
+
+void combo_box::setup_surface()
+{
+	if(surf) {
+		SDL_FreeSurface(surf);
+		surf = NULL;
+	}
+	if(expanded_index == -1) {
+		dim.h = orig_h;
+		surf = SDL_CreateRGBSurface(SDL_SWSURFACE, dim.w,
+				dim.h, 32, rmask, gmask, bmask, amask);
+		if(!surf)
+			return;
+		draw_text_box(0, 0, chosen_index);
+		draw_arrow(dim.w - dim.h, 0, false);
+	}
+	else {
+		num_items_expanded = std::min(max_items_expanded, items.size());
+		dim.h = orig_h * (num_items_expanded + 1);
+		surf = SDL_CreateRGBSurface(SDL_SWSURFACE, dim.w,
+				dim.h, 32, rmask, gmask, bmask, amask);
+		if(!surf)
+			return;
+		draw_text_box(0, 0, chosen_index);
+		for(unsigned int i = 0; i < num_items_expanded; i++) {
+			draw_text_box(0, (i + 1) * 16, expanded_index + i);
+		}
+		draw_arrow(dim.w - orig_h, 0, false);
+		draw_arrow(dim.w - orig_h, orig_h, true);
+		draw_arrow(dim.w - orig_h, dim.h - orig_h, false);
+	}
+}
+
+combo_box::~combo_box()
+{
+	SDL_FreeSurface(surf);
+}
+
+int combo_box::draw(SDL_Surface* screen)
+{
+	SDL_Rect dest;
+	dest.x = dim.x;
+	dest.y = dim.y;
+
+	if(SDL_BlitSurface(surf, NULL, screen, &dest)) {
+		fprintf(stderr, "Unable to blit surface: %s\n", SDL_GetError());
+		return 1;
+	}
+	return 0;
+}
+
+int combo_box::handle_input(const SDL_Event& ev)
+{
+	if(ev.type == SDL_MOUSEBUTTONUP && 
+			in_rectangle(rect(dim.x, dim.y, dim.w, dim.h),
+				ev.button.x, ev.button.y)) {
+		if(expanded_index == -1) {
+			// expand
+			expanded_index = chosen_index;
+			if(items.size() - chosen_index < max_items_expanded) {
+				if(chosen_index > max_items_expanded)
+					expanded_index = chosen_index - max_items_expanded;
+				else
+					expanded_index = 0;
+			}
+		}
+		else {
+			if(in_rectangle(rect(dim.x, dim.y, dim.w, orig_h),
+						ev.button.x, ev.button.y)) {
+				// chosen item chosen
+				expanded_index = -1;
+			}
+			else if(in_rectangle(rect(dim.x + dim.w - orig_h,
+							dim.y + orig_h,
+							orig_h,
+							orig_h),
+						ev.button.x, ev.button.y)) {
+				// arrow up
+				expanded_index--;
+				if(expanded_index < 0)
+					expanded_index = 0;
+			}
+			else if(in_rectangle(rect(dim.x + dim.w - orig_h,
+							dim.y + dim.h - orig_h,
+							orig_h,
+							orig_h),
+						ev.button.x, ev.button.y)) {
+				// arrow down
+				expanded_index++;
+				if(expanded_index + num_items_expanded >= (int)items.size())
+					expanded_index = items.size() - num_items_expanded;
+			}
+			else if(ev.button.x < dim.x + dim.w - orig_h) {
+				// item from the list chosen
+				chosen_index = clamp<int>(0, (ev.button.y - dim.y) / 16 - 1,
+						items.size() - 1);
+				expanded_index = -1;
+			}
+			// else scroll bar
+		}
+		setup_surface();
+	}
+	return 0;
+}
+
+std::string combo_box::get_data() const
+{
+	return items[chosen_index];
+}
+
+widget_window::widget_window(SDL_Surface* screen_, const TTF_Font& font_,
 		const rect& rect_,
 		const color& bg_color_)
-	: window(screen_, data_, res_),
+: window(screen_),
+	font(font_),
 	dim(rect_),
 	bg_color(bg_color_),
 	text_color(color(0, 0, 0)),
 	button_color(255, 255, 255),
-	focus_widget(NULL)
+	focus_widget(NULL),
+	bg_img(NULL),
+	show_focus(true)
+{
+}
+
+widget_window::widget_window(SDL_Surface* screen_, const TTF_Font& font_,
+		const rect& rect_,
+		const SDL_Surface* bg_img_)
+: window(screen_),
+	font(font_),
+	dim(rect_),
+	bg_color(color(0, 0, 0)),
+	text_color(color(0, 0, 0)),
+	button_color(255, 255, 255),
+	focus_widget(NULL),
+	bg_img(bg_img_),
+	show_focus(true)
 {
 }
 
@@ -807,9 +1070,12 @@ int widget_window::handle_window_input(const SDL_Event& ev)
 
 int widget_window::draw_window()
 {
-	draw_plain_rectangle(screen, dim.x, dim.y, dim.w, dim.h, bg_color);
+	if(bg_img)
+		draw_image(dim.x, dim.y, bg_img, screen);
+	else
+		draw_plain_rectangle(screen, dim.x, dim.y, dim.w, dim.h, bg_color);
 	std::for_each(widgets.begin(), widgets.end(), std::bind2nd(std::mem_fun(&widget::draw), screen));
-	if(focus_widget) {
+	if(show_focus && focus_widget) {
 		draw_rect(focus_widget->dim.x, focus_widget->dim.y,
 				focus_widget->dim.w, focus_widget->dim.h,
 				color(255, 255, 255), 1, screen);
@@ -833,16 +1099,21 @@ void widget_window::set_button_color(const color& c)
 	button_color = c;
 }
 
+void widget_window::set_show_focus(bool f)
+{
+	show_focus = f;
+}
+
 void widget_window::add_label(int x, int y, int w, int h, const std::string& text)
 {
 	widgets.push_back(new plain_button(rect(dim.x + x, dim.y + y, w, h), text.c_str(),
-				&res.font, button_color, text_color,
+				&font, button_color, text_color,
 				NULL));
 }
 
 void widget_window::add_numeric_textbox(int x, int y, const std::string& text, int val)
 {
-	widgets.push_back(new numeric_textbox(&res.font,
+	widgets.push_back(new numeric_textbox(&font,
 				rect(dim.x + x, dim.y + y, 80, 16), button_color, text_color,
 					text, val));
 }
@@ -856,8 +1127,62 @@ void widget_window::add_checkbox(int x, int y, int w, int h, const std::string& 
 void widget_window::add_button(int x, int y, int w, int h, const std::string& text, boost::function<int(const widget_window*)> cb)
 {
 	widgets.push_back(new plain_button(rect(dim.x + x, dim.y + y, w, h), text.c_str(),
-				&res.font, button_color, text_color,
+				&font, button_color, text_color,
 				boost::bind(&widget_window::on_button_click, this, cb)));
+}
+
+void widget_window::add_radio_button_set(const std::string& name,
+		const std::vector<std::pair<rect, std::string> >& buttons,
+		unsigned int chosen_index)
+{
+	if(buttons.empty())
+		return;
+	if(chosen_index >= buttons.size())
+		chosen_index = 0;
+	for(unsigned int i = 0; i < buttons.size(); i++) {
+		radio_button* r = new radio_button(rect(buttons[i].first.x + dim.x,
+					buttons[i].first.y + dim.y,
+					buttons[i].first.w, buttons[i].first.h),
+				button_color,
+				name,
+				buttons[i].second,
+				chosen_index == i,
+				boost::bind(&widget_window::on_radio_button_click,
+					this, name, buttons[i].second));
+		radio_button_groups[name].push_back(r);
+		widgets.push_back(r);
+	}
+}
+
+void widget_window::add_combo_box(int x, int y, int w, int h,
+		const std::string& name,
+		const std::vector<std::string>& items,
+		unsigned int num_items_expanded)
+{
+	if(items.empty())
+		return;
+	widgets.push_back(new combo_box(rect(dim.x + x, dim.y + y, w, h), name,
+				items,
+				&font,
+				button_color,
+				text_color,
+				num_items_expanded));
+}
+
+int widget_window::on_radio_button_click(const std::string& name, const std::string& option_name)
+{
+	std::map<std::string, std::vector<radio_button*> >::iterator it =
+		radio_button_groups.find(name);
+	if(it != radio_button_groups.end()) {
+		for(std::vector<radio_button*>::iterator rit = it->second.begin();
+				rit != it->second.end();
+				++rit) {
+			if((*rit)->get_data() != option_name) {
+				(*rit)->set_chosen(false);
+			}
+		}
+	}
+	return 0;
 }
 
 void widget_window::add_key_handler(SDLKey k, boost::function<int(const widget_window*)> cb)

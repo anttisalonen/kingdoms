@@ -4,7 +4,7 @@
 
 main_window::main_window(SDL_Surface* screen_, gui_data& data_, gui_resources& res_,
 		int sidebar_size_)
-	: window(screen_, data_, res_),
+	: kingdoms_window(screen_, data_, res_),
 	tile_w(32),
 	tile_h(32),
 	cam_total_tiles_x((screen->w + tile_w - 1) / tile_w),

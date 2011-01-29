@@ -97,7 +97,7 @@ class plain_button : public button {
 
 class window {
 	public:
-		window(SDL_Surface* screen_, gui_data& data_, gui_resources& res_);
+		window(SDL_Surface* screen_);
 		virtual ~window() { } 
 		int draw();
 		int process(int ms);
@@ -111,10 +111,17 @@ class window {
 		virtual void init_window_turn() { }
 		int num_subwindows() const;
 		SDL_Surface* screen;
-		gui_data& data;
-		gui_resources& res;
 	private:
 		std::list<window*> subwindows;
+};
+
+class kingdoms_window : public window {
+	public:
+		kingdoms_window(SDL_Surface* screen_, gui_data& data_,
+				gui_resources& res_);
+	protected:
+		gui_data& data;
+		gui_resources& res;
 };
 
 class textbox : public widget {
@@ -161,9 +168,59 @@ class checkbox : public button {
 		color frame_col;
 };
 
-class input_text_window : public window {
+class radio_button : public button {
 	public:
-		input_text_window(SDL_Surface* screen_, gui_data& data_,
+		radio_button(const rect& dim_,
+				const color& circle_col_,
+				const std::string& name_,
+				const std::string& option_name_,
+			       	bool chosen_,
+				boost::function<int()> on_click_);
+		~radio_button();
+		void set_chosen(bool c);
+		int draw(SDL_Surface* screen);
+		bool get_chosen() const;
+		std::string get_data() const;
+	private:
+		int on_click_handler();
+		SDL_Surface* surf1;
+		SDL_Surface* surf2;
+		std::string option_name;
+		bool chosen;
+		boost::function<int()> radio_onclick;
+};
+
+class combo_box : public widget {
+	public:
+		combo_box(const rect& dim_, const std::string& name_,
+				const std::vector<std::string>& items_,
+				const TTF_Font* font_,
+				const color& bg_col_, const color& text_col_,
+				unsigned int max_items_expanded_);
+		~combo_box();
+		int draw(SDL_Surface* screen);
+		virtual int handle_input(const SDL_Event& ev);
+		std::string get_data() const;
+	private:
+		void setup_surface();
+		void draw_arrow(int x, int y, bool up);
+		void draw_text_box(int x, int y, int ind);
+		int orig_h;
+		std::vector<std::string> items;
+		const TTF_Font* font;
+		color bg_col;
+		color text_col;
+		SDL_Surface* surf;
+		int expanded_index;
+		unsigned int chosen_index;
+		unsigned int max_items_expanded;
+		unsigned int num_items_expanded;
+};
+
+class input_text_window : public kingdoms_window {
+	public:
+		input_text_window(SDL_Surface* screen_, 
+				gui_data& data_,
 				gui_resources& res_,
 				const rect& rect_,
 				const std::string& info_string_,
@@ -191,15 +248,20 @@ class input_text_window : public window {
 
 class widget_window : public window {
 	public:
-		widget_window(SDL_Surface* screen_, gui_data& data_,
-				gui_resources& res_,
+		widget_window(SDL_Surface* screen_,
+				const TTF_Font& font_,
 				const rect& rect_,
 				const color& bg_color_);
+		widget_window(SDL_Surface* screen_,
+				const TTF_Font& font_,
+				const rect& rect_,
+				const SDL_Surface* bg_img_);
 		~widget_window();
 		int handle_window_input(const SDL_Event& ev);
 		int draw_window();
 		void set_text_color(const color& c);
 		void set_button_color(const color& c);
+		void set_show_focus(bool f);
 		void add_label(int x, int y, int w, int h, const std::string& text);
 		void add_numeric_textbox(int x, int y, const std::string& text, int val);
 		void add_checkbox(int x, int y, int w, int h,
@@ -207,16 +269,28 @@ class widget_window : public window {
 		void add_button(int x, int y, int w, int h, const std::string& text,
 				boost::function<int(const widget_window*)> cb);
 		void add_key_handler(SDLKey k, boost::function<int(const widget_window*)> cb);
+		void add_radio_button_set(const std::string& name,
+				const std::vector<std::pair<rect, std::string> >& buttons,
+				unsigned int chosen_index);
+		void add_combo_box(int x, int y, int w, int h,
+				const std::string& name,
+				const std::vector<std::string>& items,
+				unsigned int num_items_expanded);
 		std::list<widget*> widgets;
 	private:
 		int on_button_click(boost::function<int(const widget_window*)> cb);
 		void set_focus_widget(int x, int y);
+		int on_radio_button_click(const std::string& name, const std::string& option_name);
+		const TTF_Font& font;
 		rect dim;
 		color bg_color;
 		color text_color;
 		color button_color;
 		widget* focus_widget;
+		const SDL_Surface* bg_img;
+		bool show_focus;
 		std::map<SDLKey, boost::function<int(const widget_window*)> > key_handlers;
+		std::map<std::string, std::vector<radio_button*> > radio_button_groups;
 };
 
 int widget_close(const widget_window* w);

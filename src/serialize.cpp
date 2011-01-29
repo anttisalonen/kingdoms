@@ -70,7 +70,9 @@ std::string path_to_saved_maps(const std::string& ruleset_name)
 	return path_to_saved(ruleset_name, "maps");
 }
 
-int save_game(const char* save_suffix, const std::string& ruleset_name, const pompelmous& g)
+int save_game(const char* save_suffix, const std::string& ruleset_name,
+		const pompelmous& g,
+		unsigned int own_civ_id)
 {
 	char filename[256];
 	time_t curr_time = time(NULL);
@@ -87,11 +89,13 @@ int save_game(const char* save_suffix, const std::string& ruleset_name, const po
 	out.push(boost::iostreams::bzip2_compressor());
 	out.push(ofs);
 	boost::archive::binary_oarchive oa(out);
+	oa << own_civ_id;
 	oa << g;
 	return 0;
 }
 
-bool load_game(const char* filename, pompelmous& g)
+bool load_game(const char* filename, pompelmous& g,
+		unsigned int& own_civ_id)
 {
 	try {
 		std::ifstream ifs(filename);
@@ -99,6 +103,7 @@ bool load_game(const char* filename, pompelmous& g)
 		in.push(boost::iostreams::bzip2_decompressor());
 		in.push(ifs);
 		boost::archive::binary_iarchive ia(in);
+		ia >> own_civ_id;
 		ia >> g;
 		return true;
 	}

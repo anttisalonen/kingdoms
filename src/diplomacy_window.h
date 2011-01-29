@@ -14,7 +14,7 @@
 #include "civ.h"
 #include "rect.h"
 
-class diplomacy_window : public window {
+class diplomacy_window : public kingdoms_window {
 	public:
 		diplomacy_window(SDL_Surface* screen_, gui_data& data_, gui_resources& res_, 
 				civilization* myciv_, int other_civ_id_);

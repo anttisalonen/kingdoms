@@ -15,7 +15,7 @@
 #include "rect.h"
 #include "ai.h"
 
-class production_window : public window {
+class production_window : public kingdoms_window {
 	typedef int(production_window::*production_window_fun)();
 	public:
 		production_window(SDL_Surface* screen_,

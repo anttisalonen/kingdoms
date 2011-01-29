@@ -14,7 +14,7 @@
 #include "civ.h"
 #include "rect.h"
 
-class discovery_window : public window {
+class discovery_window : public kingdoms_window {
 	public:
 		discovery_window(SDL_Surface* screen_, gui_data& data_, gui_resources& res_, 
 				civilization* myciv_, unsigned int discovered_id_);

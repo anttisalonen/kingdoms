@@ -20,6 +20,7 @@ struct gui_resource_files {
 };
 
 void fetch_gui_resource_files(const std::string& ruleset_name, gui_resource_files* r);
+std::string get_beige_bg_file();
 
 #endif
 

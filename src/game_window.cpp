@@ -119,7 +119,7 @@ void game_window::add_revolution_confirm_window(const char* msg)
 		return;
 	int win_height = 72;
 	int win_width = 600;
-	widget_window* w = new widget_window(screen, data, res,
+	widget_window* w = new widget_window(screen, res.font,
 			rect(screen->w / 2 - win_width / 2,
 				screen->h / 2 - win_height / 2,
 				win_width, win_height),
@@ -148,7 +148,8 @@ void game_window::handle_input_gui_mod(const SDL_Event& ev, city** c)
 			{
 				SDLKey k = ev.key.keysym.sym;
 				if(k == SDLK_s && (ev.key.keysym.mod & KMOD_CTRL)) {
-					save_game("manual", ruleset_name, data.r);
+					save_game("manual", ruleset_name, data.r,
+							myciv->civ_id);
 					add_gui_msg("Game saved.");
 				}
 				if(k == SDLK_r && (ev.key.keysym.mod & KMOD_CTRL)) {
@@ -967,7 +968,7 @@ void game_window::add_choose_revolution_window()
 	}
 	int win_height = std::min(screen->h - 10, (num_options + 1) * 32 + 8);
 	int win_width = 400;
-	widget_window* w = new widget_window(screen, data, res,
+	widget_window* w = new widget_window(screen, res.font,
 			rect(screen->w / 2 - win_width / 2,
 				screen->h / 2 - win_height / 2,
 				win_width, win_height),

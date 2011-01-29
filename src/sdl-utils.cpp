@@ -45,7 +45,7 @@ void sdl_put_pixel(SDL_Surface* screen, int x, int y, const color& c)
 	}
 }
 
-color sdl_get_pixel(SDL_Surface* screen, int x, int y)
+color sdl_get_pixel(const SDL_Surface* screen, int x, int y)
 {
 	Uint8 r, g, b;
 	Uint32 pixel = 0;
@@ -212,4 +212,19 @@ int sdl_init_all()
 	return 0;
 }
 
+SDL_Surface* sdl_copy_surface(const SDL_Surface* surf, bool flip_x, bool flip_y)
+{
+	SDL_Surface* surf2 = SDL_CreateRGBSurface(SDL_SWSURFACE, surf->w,
+			surf->h, 32, rmask, gmask, bmask, amask);
+	if(!surf2)
+		return NULL;
+	for(int i = 0; i < surf->w; i++) {
+		for(int j = 0; j < surf->h; j++) {
+			sdl_put_pixel(surf2, i, j,
+					sdl_get_pixel(surf, flip_x ? surf->w - i - 1 : i,
+						flip_y ? surf->h - j - 1 : j));
+		}
+	}
+	return surf2;
+}
 

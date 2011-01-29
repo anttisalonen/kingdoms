@@ -56,3 +56,8 @@ void fetch_gui_resource_files(const std::string& ruleset_name, gui_resource_file
 	r->mine = KINGDOMS_GFXDIR "mine.png";
 }
 
+std::string get_beige_bg_file()
+{
+	return KINGDOMS_GFXDIR "beige_bg.png";
+}
+

@@ -16,7 +16,7 @@
 #include "ai.h"
 #include "production_window.h"
 
-class city_window : public window {
+class city_window : public kingdoms_window {
 	public:
 		city_window(SDL_Surface* screen_, gui_data& data_, gui_resources& res_, city* c_,
 				ai* ai_, civilization* myciv_);

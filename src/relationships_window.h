@@ -15,7 +15,7 @@
 #include "rect.h"
 #include "ai.h"
 
-class relationships_window : public window {
+class relationships_window : public kingdoms_window {
 	public:
 		relationships_window(SDL_Surface* screen_, gui_data& data_, gui_resources& res_,
 				ai* ai_, civilization* myciv_);

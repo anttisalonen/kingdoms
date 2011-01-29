@@ -4,7 +4,7 @@
 
 diplomacy_window::diplomacy_window(SDL_Surface* screen_, gui_data& data_, gui_resources& res_,
 		civilization* myciv_, int other_civ_id_)
-	: window(screen_, data_, res_),
+	: kingdoms_window(screen_, data_, res_),
 	myciv(myciv_),
 	other_civ_id(other_civ_id_)
 {

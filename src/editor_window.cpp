@@ -154,7 +154,7 @@ widget_window* editor_window::standard_popup(int win_width, int win_height) cons
 {
 	color text_color(255, 255, 255);
 	color button_color(80, 0, 0);
-	widget_window* w = new widget_window(screen, data, res,
+	widget_window* w = new widget_window(screen, res.font,
 			rect(screen->w / 2 - 100, 100,
 				win_width, win_height),
 			color(160, 0, 0));
@@ -323,7 +323,7 @@ int editor_window::handle_input_gui_mod(const SDL_Event& ev)
 				if(k == SDLK_n && (ev.key.keysym.mod & KMOD_CTRL)) {
 					color text_color(255, 255, 255);
 					color button_color(80, 0, 0);
-					widget_window* w = new widget_window(screen, data, res,
+					widget_window* w = new widget_window(screen, res.font,
 							rect(screen->w / 2 - 100,
 								screen->h / 2 - 50,
 								200, 100), color(160, 0, 0));

@@ -6,7 +6,7 @@
 
 production_window::production_window(SDL_Surface* screen_, gui_data& data_, gui_resources& res_, city* c_,
 		civilization* myciv_, const rect& bg_, const color& bgcol_, const std::string& text_, bool allow_zoom_)
-	: window(screen_, data_, res_),
+	: kingdoms_window(screen_, data_, res_),
 	c(c_),
 	myciv(myciv_),
 	bg(bg_),
