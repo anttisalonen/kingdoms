@@ -43,6 +43,20 @@ ai::ai(map& m_, pompelmous& r_, civilization* c)
 		objectives.push_back(std::make_pair(new offense_objective(&r, myciv, "offense"), 4000));
 		objectives.push_back(std::make_pair(new exploration_objective(&r, myciv, "exploration"), 1200));
 	}
+	for(std::list<std::pair<objective*, int> >::iterator it = objectives.begin();
+			it != objectives.end();
+			++it) {
+	}
+}
+
+ai::~ai()
+{
+	for(std::list<std::pair<objective*, int> >::iterator it = objectives.begin();
+			it != objectives.end();
+			++it) {
+		delete it->first;
+	}
+	objectives.clear();
 }
 
 bool ai::play()

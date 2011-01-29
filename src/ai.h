@@ -39,6 +39,7 @@ struct ai_tunable_parameters {
 class ai : public diplomat {
 	public:
 		ai(map& m_, pompelmous& r_, civilization* c);
+		~ai();
 		bool play();
 		bool peace_suggested(int civ_id);
 	private:

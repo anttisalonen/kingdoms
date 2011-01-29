@@ -25,6 +25,7 @@ typedef std::map<unsigned int, coord> city_plan_map_t;
 class expansion_objective : public objective {
 	public:
 		expansion_objective(pompelmous* r_, civilization* myciv_, const std::string& n);
+		~expansion_objective() {}
 		int get_unit_points(const unit& u) const;
 		bool add_unit(unit* u);
 		city_production get_city_production(const city& c, int* points) const;

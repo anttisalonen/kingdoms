@@ -8,6 +8,7 @@
 class commerce_objective : public objective {
 	public:
 		commerce_objective(pompelmous* r_, civilization* myciv_, const std::string& n);
+		~commerce_objective() { }
 		int get_unit_points(const unit& u) const;
 		bool add_unit(unit* u);
 	protected:

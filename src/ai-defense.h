@@ -7,8 +7,8 @@
 
 class defense_objective : public objective {
 	public:
-		virtual ~defense_objective() {}
 		defense_objective(pompelmous* r_, civilization* myciv_, const std::string& n);
+		virtual ~defense_objective() {}
 		virtual int get_unit_points(const unit& u) const;
 		virtual bool add_unit(unit* u);
 	protected:

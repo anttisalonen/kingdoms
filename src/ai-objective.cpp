@@ -8,6 +8,22 @@ objective::objective(pompelmous* r_, civilization* myciv_, const std::string& ob
 {
 }
 
+objective::~objective()
+{
+	for(std::map<unsigned int, orders*>::iterator it = ordersmap.begin();
+			it != ordersmap.end();
+			++it) {
+		delete it->second;
+	}
+	ordersmap.clear();
+	for(std::list<objective*>::iterator it = missions.begin();
+			it != missions.end();
+			++it) {
+		delete *it;
+	}
+	missions.clear();
+}
+
 city_production objective::get_city_production(const city& c, int* points) const
 {
 	int upoints = -1;

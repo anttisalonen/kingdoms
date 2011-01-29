@@ -77,6 +77,9 @@ mapview::~mapview()
 		if(res.terrains.road_overlays[i])
 			SDL_FreeSurface(res.terrains.road_overlays[i]);
 	}
+	for(unsigned int i = 0; i < 5; i++) {
+		SDL_FreeSurface(res.terrains.river_overlays[i]);
+	}
 	for(unsigned int i = 0; i < res.terrains.textures.size(); i++) {
 		SDL_FreeSurface(res.terrains.textures[i]);
 	}

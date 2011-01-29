@@ -9,6 +9,7 @@
 class exploration_objective : public objective {
 	public:
 		exploration_objective(pompelmous* r_, civilization* myciv_, const std::string& n);
+		~exploration_objective() {}
 		int get_unit_points(const unit& u) const;
 		bool add_unit(unit* u);
 	protected:

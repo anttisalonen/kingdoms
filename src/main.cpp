@@ -91,13 +91,13 @@ void signal_handler(int sig)
 	signal_received = true;
 }
 
-void automatic_play_until(pompelmous& r, std::map<unsigned int, ai>& ais, int num_turns)
+void automatic_play_until(pompelmous& r, std::map<unsigned int, ai*>& ais, int num_turns)
 {
 	while(!signal_received &&
 			r.get_round_number() <= num_turns && !r.finished()) {
-		std::map<unsigned int, ai>::iterator ait = ais.find(r.current_civ_id());
+		std::map<unsigned int, ai*>::iterator ait = ais.find(r.current_civ_id());
 		if(ait != ais.end()) {
-			ait->second.play();
+			ait->second->play();
 		}
 	}
 }
@@ -307,7 +307,7 @@ void display_end_screen(const pompelmous& r)
 	e.run();
 }
 
-void play_game(pompelmous& r, std::map<unsigned int, ai>& ais,
+void play_game(pompelmous& r, std::map<unsigned int, ai*>& ais,
 		unsigned int own_civ_id)
 {
 	bool running = true;
@@ -316,7 +316,7 @@ void play_game(pompelmous& r, std::map<unsigned int, ai>& ais,
 		gui_resource_files grr;
 		fetch_gui_resource_files(ruleset_name, &grr);
 		gui g(screen, r.get_map(), r, grr, *font,
-				observer ? &ais.find(own_civ_id)->second : NULL, r.civs[own_civ_id],
+				observer ? ais.find(own_civ_id)->second : NULL, r.civs[own_civ_id],
 				ruleset_name);
 		g.display();
 		g.init_turn();
@@ -344,9 +344,9 @@ void play_game(pompelmous& r, std::map<unsigned int, ai>& ais,
 				g.process(50);
 			}
 			else {
-				std::map<unsigned int, ai>::iterator ait = ais.find(r.current_civ_id());
+				std::map<unsigned int, ai*>::iterator ait = ais.find(r.current_civ_id());
 				if(ait != ais.end()) {
-					if(ait->second.play()) {
+					if(ait->second->play()) {
 						running = false;
 					}
 					else {
@@ -409,19 +409,25 @@ void play_game(pompelmous& r, std::map<unsigned int, ai>& ais,
 
 int run_game(pompelmous& r, unsigned int own_civ_id)
 {
-	std::map<unsigned int, ai> ais;
+	std::map<unsigned int, ai*> ais;
 	if(observer && ai_debug) {
 			set_ai_debug_civ(own_civ_id);
 	}
 	for(unsigned int i = 0; i < r.civs.size(); i++) {
 		if(r.civs[i]->civ_id == own_civ_id && !observer)
 			continue;
-		std::pair<std::map<unsigned int, ai>::iterator, bool> res =
-			ais.insert(std::make_pair(i, ai(r.get_map(), r, r.civs[i])));
+		ai* a = new ai(r.get_map(), r, r.civs[i]);
+		std::pair<std::map<unsigned int, ai*>::iterator, bool> res =
+			ais.insert(std::make_pair(i, a));
 		if(!r.civs[i]->is_minor_civ())
-			r.add_diplomat(i, &res.first->second);
+			r.add_diplomat(i, res.first->second);
 	}
 	play_game(r, ais, own_civ_id);
+	for(std::map<unsigned int, ai*>::iterator it = ais.begin();
+			it != ais.end();
+			++it) {
+		delete it->second;
+	}
 	return 0;
 }
 
@@ -436,6 +442,7 @@ class main_menu : public menu {
 
 		main_menu(SDL_Surface* screen_,
 				TTF_Font* font_);
+		~main_menu();
 		main_menu_selection get_selection() const;
 	protected:
 		void draw_background();
@@ -453,6 +460,12 @@ main_menu::main_menu(SDL_Surface* screen_,
 	sel(main_menu::main_menu_quit),
 	bg_img(NULL)
 {
+}
+
+main_menu::~main_menu()
+{
+	SDL_FreeSurface(bg_img);
+	bg_img = NULL;
 }
 
 main_menu::main_menu_selection main_menu::get_selection() const
@@ -550,6 +563,11 @@ class game_configuration_window {
 		w.add_combo_box(250, 100, 100, 16, "My civilization",
 				civnames, 8);
 	}
+		~game_configuration_window()
+		{
+			SDL_FreeSurface(bg);
+			bg = NULL;
+		}
 		int run();
 		int get_map_size() const { return map_size; }
 		const std::string& get_own_civ_name() const { return chosen_civ; }
