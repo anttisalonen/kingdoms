@@ -780,17 +780,25 @@ int run_with_map(map& m, std::vector<civilization*>& civs, int own_civ_id)
 	std::map<int, coord> starting_places = m.get_starting_places();
 	if(starting_places.size() < 3) {
 		starting_places.clear();
-		std::vector<coord> starting_places_vect = m.random_starting_places(civs.size(),
-				true, 10);
-		if(starting_places_vect.size() != civs.size()) {
-			printf("Could find only %d starting places (instead of %d).\n",
-					starting_places_vect.size(), civs.size());
-			if(starting_places_vect.size() < 3) {
-				return 1;
+		bool found = false;
+		int min_distance = 10;
+		while(!found) {
+			std::vector<coord> starting_places_vect = m.random_starting_places(civs.size(),
+					true, min_distance);
+			if(starting_places_vect.size() != civs.size()) {
+				printf("Could find only %d starting places (instead of %d).\n",
+						starting_places_vect.size(), civs.size());
 			}
-		}
-		for(unsigned int i = 0; i < starting_places_vect.size(); i++) {
-			starting_places[i] = starting_places_vect[i];
+			if(starting_places_vect.size() >= 3) {
+				for(unsigned int i = 0; i < starting_places_vect.size(); i++) {
+					starting_places[i] = starting_places_vect[i];
+				}
+				found = true;
+			}
+			if(min_distance > 2)
+				min_distance--;
+			else
+				return 1;
 		}
 	}
 	for(std::map<int, coord>::const_iterator it = starting_places.begin();
