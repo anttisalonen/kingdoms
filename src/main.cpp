@@ -311,12 +311,19 @@ void play_game(pompelmous& r, std::map<unsigned int, ai*>& ais,
 		unsigned int own_civ_id)
 {
 	bool running = true;
+	unsigned int own_civ_index = 0;
+	for(unsigned int i = 0; i < r.civs.size(); i++) {
+		if(r.civs[i]->civ_id == own_civ_id) {
+			own_civ_index = i;
+			break;
+		}
+	}
 
 	if(use_gui) {
 		gui_resource_files grr;
 		fetch_gui_resource_files(ruleset_name, &grr);
 		gui g(screen, r.get_map(), r, grr, *font,
-				observer ? ais.find(own_civ_id)->second : NULL, r.civs[own_civ_id],
+				observer ? ais.find(own_civ_id)->second : NULL, r.civs[own_civ_index],
 				ruleset_name);
 		g.display();
 		g.init_turn();
@@ -350,7 +357,7 @@ void play_game(pompelmous& r, std::map<unsigned int, ai*>& ais,
 						running = false;
 					}
 					else {
-						if(!observer && r.civs[own_civ_id]->eliminated()) {
+						if(!observer && r.civs[own_civ_index]->eliminated()) {
 							running = false;
 						}
 						else if(r.current_civ_id() == (int)r.civs[0]->civ_id) {
