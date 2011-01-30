@@ -95,15 +95,23 @@ bool ai::play()
 
 	// set tax rate
 	int curr_tax_rate = 0;
-	do {
-		if(!myciv->set_commerce_allocation(curr_tax_rate, 10 - curr_tax_rate)) {
-			break;
-		}
-		curr_tax_rate++;
-	} while(curr_tax_rate <= 10 && myciv->get_military_expenses() > myciv->get_national_income());
-	ai_debug_printf(myciv->civ_id, "Gold balance: +%d -%d\n",
+	if(myciv->gold < (int)myciv->cities.size() * myciv->gov->unit_cost) {
+		curr_tax_rate = 10;
+		myciv->set_commerce_allocation(curr_tax_rate, 10 - curr_tax_rate);
+	}
+	else {
+		do {
+			if(!myciv->set_commerce_allocation(curr_tax_rate, 10 - curr_tax_rate)) {
+				break;
+			}
+			curr_tax_rate++;
+		} while(curr_tax_rate <= 10 &&
+				myciv->get_military_expenses() > myciv->get_national_income());
+	}
+	ai_debug_printf(myciv->civ_id, "Gold balance: +%d -%d: Tax rate: %d0%%\n",
 			myciv->get_national_income(),
-			myciv->get_military_expenses());
+			myciv->get_military_expenses(),
+			myciv->alloc_gold);
 
 	// negotiate for peace or declare war
 	{
