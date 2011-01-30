@@ -27,6 +27,7 @@ class expansion_objective : public objective {
 		expansion_objective(pompelmous* r_, civilization* myciv_, const std::string& n);
 		~expansion_objective() {}
 		int get_unit_points(const unit& u) const;
+		int improvement_value(const city_improvement& ci) const;
 		bool add_unit(unit* u);
 		city_production get_city_production(const city& c, int* points) const;
 		void process(std::set<unsigned int>* freed_units);
@@ -35,7 +36,6 @@ class expansion_objective : public objective {
 		bool compare_units(const unit_configuration& lhs,
 				const unit_configuration& rhs) const;
 		bool usable_unit(const unit_configuration& uc) const;
-		int improvement_value(const city_improvement& ci) const;
 	private:
 		ai_tunables_found_city found_city;
 		city_plan_map_t planned_cities;

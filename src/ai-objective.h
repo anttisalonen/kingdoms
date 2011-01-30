@@ -18,6 +18,7 @@ class objective {
 		objective(pompelmous* r_, civilization* myciv_, const std::string& obj_name_);
 		virtual ~objective();
 		virtual int get_unit_points(const unit& u) const = 0;
+		virtual int improvement_value(const city_improvement& ci) const = 0;
 		virtual city_production get_city_production(const city& c, int* points) const;
 		virtual bool add_unit(unit* u) = 0;
 		virtual void process(std::set<unsigned int>* freed_units);
@@ -27,7 +28,6 @@ class objective {
 		virtual bool compare_units(const unit_configuration& lhs,
 				const unit_configuration& rhs) const = 0;
 		virtual bool usable_unit(const unit_configuration& uc) const = 0;
-		virtual int improvement_value(const city_improvement& ci) const = 0;
 		std::list<unsigned int> used_units;
 		std::list<objective*> missions;
 		pompelmous* r;

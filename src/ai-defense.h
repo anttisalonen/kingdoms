@@ -10,12 +10,12 @@ class defense_objective : public objective {
 		defense_objective(pompelmous* r_, civilization* myciv_, const std::string& n);
 		virtual ~defense_objective() {}
 		virtual int get_unit_points(const unit& u) const;
+		virtual int improvement_value(const city_improvement& ci) const;
 		virtual bool add_unit(unit* u);
 	protected:
 		virtual bool compare_units(const unit_configuration& lhs,
 				const unit_configuration& rhs) const;
 		virtual bool usable_unit(const unit_configuration& uc) const;
-		virtual int improvement_value(const city_improvement& ci) const;
 	private:
 		int unit_strength_prio_coeff;
 		int defense_units_prio_coeff;

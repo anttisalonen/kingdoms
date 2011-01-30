@@ -11,12 +11,12 @@ class exploration_objective : public objective {
 		exploration_objective(pompelmous* r_, civilization* myciv_, const std::string& n);
 		~exploration_objective() {}
 		int get_unit_points(const unit& u) const;
+		int improvement_value(const city_improvement& ci) const;
 		bool add_unit(unit* u);
 	protected:
 		bool compare_units(const unit_configuration& lhs,
 				const unit_configuration& rhs) const;
 		bool usable_unit(const unit_configuration& uc) const;
-		int improvement_value(const city_improvement& ci) const;
 	private:
 		orders* create_exploration_orders(unit* u) const;
 };
