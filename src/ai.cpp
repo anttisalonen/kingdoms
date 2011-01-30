@@ -311,6 +311,8 @@ void ai::handle_new_advance(unsigned int adv_id)
 
 void ai::handle_civ_discovery(int civ_id)
 {
+	if(myciv->is_minor_civ())
+		r.declare_war_between(myciv->civ_id, civ_id);
 }
 
 void ai::handle_new_improv(const msg& m)
@@ -405,6 +407,8 @@ void ai::check_for_revolution(unsigned int adv_id)
 
 bool ai::peace_suggested(int civ_id)
 {
+	if(myciv->is_minor_civ())
+		return false;
 	if(myciv->get_relationship_to_civ(civ_id) != relationship_war) {
 		return true;
 	}
@@ -419,6 +423,9 @@ bool ai::peace_suggested(int civ_id)
 
 bool ai::want_peace() const
 {
+	if(myciv->is_minor_civ())
+		return false;
+
 	int surplus = myciv->get_national_income() - myciv->get_military_expenses();
 	return myciv->alloc_gold >= 9 &&
 		surplus < 0 &&
