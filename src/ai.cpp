@@ -41,7 +41,7 @@ ai::ai(map& m_, pompelmous& r_, civilization* c)
 	else {
 		objectives.push_back(std::make_pair(new defense_objective(&r, myciv, "defense"), 1000));
 		objectives.push_back(std::make_pair(new offense_objective(&r, myciv, "offense"), 4000));
-		objectives.push_back(std::make_pair(new exploration_objective(&r, myciv, "exploration"), 1200));
+		objectives.push_back(std::make_pair(new exploration_objective(&r, myciv, "exploration"), 500));
 	}
 	for(std::list<std::pair<objective*, int> >::iterator it = objectives.begin();
 			it != objectives.end();
