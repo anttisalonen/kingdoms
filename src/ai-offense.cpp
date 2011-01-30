@@ -14,6 +14,8 @@ class enemy_picker {
 			const city* c = myciv->m->city_on_spot(co.x, co.y);
 			const std::list<unit*>& units = myciv->m->units_on_spot(co.x, co.y);
 			int civid = -1;
+			if(myciv->fog_at(co.x, co.y) != 2)
+				return false;
 			if(c)
 				civid = c->civ_id;
 			else if(!units.empty())
