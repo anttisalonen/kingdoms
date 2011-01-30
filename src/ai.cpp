@@ -294,6 +294,145 @@ bool ai::assign_free_unit(unit* u)
 	}
 }
 
+int ai::get_research_goal_points(const advance& a, int levels) const
+{
+	return get_research_goal_points_worker(a, levels, levels);
+}
+
+int ai::get_research_goal_points_worker(const advance& a,
+		int levels, int total_levels) const
+{
+	int total_points = 0;
+	if(levels == total_levels)
+		ai_debug_printf(myciv->civ_id,
+				"Research goal %s:\n",
+				a.advance_name.c_str());
+	for(unit_configuration_map::const_iterator uit = r.uconfmap.begin();
+			uit != r.uconfmap.end();
+			++uit) {
+		if(uit->second.needed_advance == a.advance_id) {
+			int unit_points = 0;
+			for(std::map<unsigned int, city*>::const_iterator cit = myciv->cities.begin();
+					cit != myciv->cities.end();
+					++cit) {
+				unit dummy(0, uit->first, cit->second->xpos, cit->second->ypos, myciv->civ_id,
+						uit->second, r.get_num_road_moves());
+				for(std::list<std::pair<objective*, int> >::const_iterator oit = objectives.begin();
+						oit != objectives.end();
+						++oit) {
+					int city_obj_unit_points = oit->first->get_unit_points(dummy);
+					if(city_obj_unit_points > unit_points) {
+						unit_points = city_obj_unit_points;
+					}
+				}
+			}
+			if(levels == total_levels)
+				ai_debug_printf(myciv->civ_id,
+						"\tUnit %s: %d\n", uit->second.unit_name.c_str(),
+						unit_points);
+			total_points += unit_points;
+		}
+	}
+	for(city_improv_map::const_iterator ciit = r.cimap.begin();
+			ciit != r.cimap.end();
+			++ciit) {
+		if(ciit->second.needed_advance == a.advance_id) {
+			int city_points = 0;
+			for(std::map<unsigned int, city*>::const_iterator cit = myciv->cities.begin();
+					cit != myciv->cities.end();
+					++cit) {
+				for(std::list<std::pair<objective*, int> >::const_iterator oit = objectives.begin();
+						oit != objectives.end();
+						++oit) {
+					int city_obj_points = oit->first->improvement_value(ciit->second);
+					if(city_obj_points > city_points) {
+						city_points = city_obj_points;
+					}
+				}
+				if(levels == total_levels)
+					ai_debug_printf(myciv->civ_id,
+							"\tCity improvement: %s: %d\n", ciit->second.improv_name.c_str(),
+							city_points);
+				total_points += city_points;
+			}
+		}
+	}
+	for(government_map::const_iterator git = r.govmap.begin();
+			git != r.govmap.end();
+			++git) {
+		if(git->second.needed_advance == a.advance_id) {
+			int gov_points = std::max(0, get_government_value(git->second) - get_government_value(*myciv->gov));
+			if(levels == total_levels)
+				ai_debug_printf(myciv->civ_id,
+						"\tGovernment: %s: %d\n", git->second.gov_name.c_str(),
+						gov_points);
+			total_points += gov_points;
+		}
+	}
+	if(levels > 0) {
+		for(advance_map::const_iterator ait = r.amap.begin();
+				ait != r.amap.end();
+				++ait) {
+			for(int i = 0; i < max_num_needed_advances; i++) {
+				if(ait->second.needed_advances[i] == a.advance_id) {
+					int adv_points = get_research_goal_points_worker(ait->second,
+							levels - 1, total_levels);
+					adv_points *= levels / (float)total_levels;
+					if(levels == total_levels)
+						ai_debug_printf(myciv->civ_id,
+								"\tAdvance: %s: %d\n", ait->second.advance_name.c_str(),
+								adv_points);
+					total_points += adv_points;
+				}
+			}
+		}
+	}
+	if(levels == total_levels)
+		ai_debug_printf(myciv->civ_id,
+				"\tTotal for %s: %d\n", a.advance_name.c_str(),
+				total_points);
+	return total_points;
+}
+
+int ai::get_government_value(const government& gov) const
+{
+	int gov_points = 0;
+	switch(gov.production_cap) {
+		case 1:
+		case 2:
+			break;
+		case 3:
+			gov_points += 400;
+			break;
+		default:
+			gov_points += 1000;
+			break;
+	}
+	gov_points += gov.free_units * 100;
+	gov_points += gov.city_units * 100 * myciv->cities.size();
+	gov_points -= gov.unit_cost * 100;
+	ai_debug_printf(myciv->civ_id, "Value of Government '%s': %d\n",
+			gov.gov_name.c_str(), gov_points);
+	return gov_points;
+}
+
+void ai::setup_research_goal()
+{
+	myciv->research_goal_id = 0;
+	int best_goal_points = -1;
+	for(advance_map::const_iterator it = r.amap.begin();
+			it != r.amap.end();
+			++it) {
+		if(myciv->allowed_research_goal(it)) {
+			int this_goal_points = get_research_goal_points(it->second, 3);
+			if(this_goal_points > best_goal_points) {
+				myciv->research_goal_id = it->first;
+				best_goal_points = this_goal_points;
+			}
+		}
+	}
+}
+
 void ai::handle_new_advance(unsigned int adv_id)
 {
 	advance_map::const_iterator it = r.amap.find(adv_id);
@@ -302,6 +441,7 @@ void ai::handle_new_advance(unsigned int adv_id)
 				it->second.advance_name.c_str());
 		check_for_revolution(adv_id);
 	}
+	setup_research_goal();
 	it = r.amap.find(myciv->research_goal_id);
 	if(it != r.amap.end()) {
 		ai_debug_printf(myciv->civ_id, "Now researching '%s'.\n",
@@ -396,11 +536,15 @@ void ai::check_for_revolution(unsigned int adv_id)
 			it != r.govmap.end();
 			++it) {
 		if(it->second.needed_advance == adv_id) {
-			ai_debug_printf(myciv->civ_id, "Revolution due to discovering %s.\n",
-					it->second.gov_name.c_str());
-			r.start_revolution(myciv);
-			planned_new_government_form = it->first;
-			return;
+			int g1points = get_government_value(*myciv->gov);
+			int g2points = get_government_value(it->second);
+			if(g2points > g1points) {
+				ai_debug_printf(myciv->civ_id, "Revolution due to discovering %s.\n",
+						it->second.gov_name.c_str());
+				r.start_revolution(myciv);
+				planned_new_government_form = it->first;
+				return;
+			}
 		}
 	}
 }
