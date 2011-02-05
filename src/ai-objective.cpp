@@ -156,6 +156,8 @@ unit_configuration_map::const_iterator objective::choose_best_unit(const pompelm
 			++it) {
 		if(!myciv.can_build_unit(it->second, c))
 			continue;
+		if(c.get_city_size() < (int)it->second.population_cost)
+			continue;
 		if(usable_unit(it->second)) {
 			if(chosen == r.uconfmap.end() || 
 				compare_units(it->second, chosen->second)) {

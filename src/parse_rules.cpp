@@ -137,7 +137,7 @@ unit_bonus get_unit_bonus(const std::string& s)
 
 unit_configuration_map parse_unit_config(const std::string& fp)
 {
-	parse_result units = parser(fp, 8 + max_num_unit_needed_resources + max_num_unit_bonuses);
+	parse_result units = parser(fp, 9 + max_num_unit_needed_resources + max_num_unit_bonuses);
 	unit_configuration_map uconfmap;
 	for(unsigned int i = 0; i < units.size(); i++) {
 		unit_configuration u;
@@ -145,19 +145,20 @@ unit_configuration_map parse_unit_config(const std::string& fp)
 		u.max_moves = stoi(units[i][1]);
 		u.max_strength = stoi(units[i][2]);
 		u.production_cost = stoi(units[i][3]);
-		u.needed_advance = stoi(units[i][4]);
+		u.population_cost = stoi(units[i][4]);
+		u.needed_advance = stoi(units[i][5]);
 		for(unsigned int j = 0; j < max_num_unit_needed_resources; j++) {
-			u.needed_resources[j] = stoi(units[i][5 + j]);
+			u.needed_resources[j] = stoi(units[i][6 + j]);
 		}
-		u.carry_units = stoi(units[i][5 + max_num_unit_needed_resources]);
-		u.unit_group_mask = stoi(units[i][6 + max_num_unit_needed_resources]);
+		u.carry_units = stoi(units[i][6 + max_num_unit_needed_resources]);
+		u.unit_group_mask = stoi(units[i][7 + max_num_unit_needed_resources]);
 		for(unsigned int j = 0; j < max_num_unit_bonuses; j++) {
-			u.unit_bonuses[j] = get_unit_bonus(units[i][7 + max_num_unit_needed_resources + j]);
+			u.unit_bonuses[j] = get_unit_bonus(units[i][8 + max_num_unit_needed_resources + j]);
 		}
-		u.settler = get_flag(units[i][7 + max_num_unit_needed_resources + max_num_unit_bonuses], 0);
-		u.worker = get_flag(units[i][7 + max_num_unit_needed_resources + max_num_unit_bonuses], 1);
-		u.sea_unit = get_flag(units[i][7 + max_num_unit_needed_resources + max_num_unit_bonuses], 2);
-		u.ocean_unit = get_flag(units[i][7 + max_num_unit_needed_resources + max_num_unit_bonuses], 3);
+		u.settler = get_flag(units[i][8 + max_num_unit_needed_resources + max_num_unit_bonuses], 0);
+		u.worker = get_flag(units[i][8 + max_num_unit_needed_resources + max_num_unit_bonuses], 1);
+		u.sea_unit = get_flag(units[i][8 + max_num_unit_needed_resources + max_num_unit_bonuses], 2);
+		u.ocean_unit = get_flag(units[i][8 + max_num_unit_needed_resources + max_num_unit_bonuses], 3);
 		uconfmap.insert(std::make_pair(i, u));
 	}
 	return uconfmap;

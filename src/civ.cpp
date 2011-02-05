@@ -308,13 +308,17 @@ void civilization::increment_resources(const unit_configuration_map& uconfmap,
 				unit_configuration_map::const_iterator prod_unit = uconfmap.find(this_city->production.current_production_id);
 				if(prod_unit != uconfmap.end()) {
 					if((int)prod_unit->second.production_cost <= this_city->stored_prod) {
-						unit* u = add_unit(this_city->production.current_production_id, 
-								this_city->xpos, this_city->ypos, prod_unit->second,
-								road_moves);
-						if(this_city->has_barracks(*cimap))
-							u->veteran = true;
-						this_city->stored_prod -= prod_unit->second.production_cost;
-						add_message(new_unit_msg(u, this_city));
+						if((int)prod_unit->second.population_cost < this_city->get_city_size()) {
+							for(unsigned int i = 0; i < prod_unit->second.population_cost; i++)
+								this_city->decrement_city_size();
+							unit* u = add_unit(this_city->production.current_production_id, 
+									this_city->xpos, this_city->ypos, prod_unit->second,
+									road_moves);
+							if(this_city->has_barracks(*cimap))
+								u->veteran = true;
+							this_city->stored_prod -= prod_unit->second.production_cost;
+							add_message(new_unit_msg(u, this_city));
+						}
 					}
 				}
 			}

@@ -1,16 +1,16 @@
-# name - moves - strength - cost - needed advance - needed resource 1 - needed resource 2 - needed resource 3 - needed resource 4 - transportable units - unit group mask - bonus 1 - bonus 2 - bonus 3 - bonus 4 - flags
+# name - moves - strength - cost - population cost - needed advance - needed resource 1 - needed resource 2 - needed resource 3 - needed resource 4 - transportable units - unit group mask - bonus 1 - bonus 2 - bonus 3 - bonus 4 - flags
 # flags: settler worker sea-unit ocean-unit
 # groups: 1: horses
 #         2: catapults
-"Settlers"	1	0	40	0	0	0	0	0	0	0	0	0	0	0	1000
-"Worker"	1	0	20	0	0	0	0	0	0	0	0	0	0	0	0100
-"Warrior"	1	1	10	0	0	0	0	0	0	0	0	0	0	0	0000
-"Archer"	1	2	20	1	0	0	0	0	0	0	0	0	0	0	0000
-"Spearman"	1	3	30	2	0	0	0	0	0	0	1:50	0	0	0	0000
-"Trireme"	3	0	30	6	0	0	0	0	2	0	0	0	0	0	0010
-"Caravel"	4	1	30	7	0	0	0	0	2	0	0	0	0	0	0011
-"Horseman"	2	3	20	14	2	0	0	0	0	1	2:50	0	0	0	0000
-"Catapult"	1	2	40	18	0	0	0	0	0	2	c:100	0	0	0	0000
-"Chariot"	2	4	40	25	2	0	0	0	0	1	0	0	0	0	0000
-"Swordsman"	1	4	30	21	3	0	0	0	0	0	0	0	0	0	0000
-"Knight"	2	5	40	24	2	3	0	0	0	1	0	0	0	0	0000
+"Settlers"	1	0	40	1	0	0	0	0	0	0	0	0	0	0	0	1000
+"Worker"	1	0	20	0	0	0	0	0	0	0	0	0	0	0	0	0100
+"Warrior"	1	1	10	0	0	0	0	0	0	0	0	0	0	0	0	0000
+"Archer"	1	2	20	0	1	0	0	0	0	0	0	0	0	0	0	0000
+"Spearman"	1	3	30	0	2	0	0	0	0	0	0	1:50	0	0	0	0000
+"Trireme"	3	0	30	0	6	0	0	0	0	2	0	0	0	0	0	0010
+"Caravel"	4	1	30	0	7	0	0	0	0	2	0	0	0	0	0	0011
+"Horseman"	2	3	20	0	14	2	0	0	0	0	1	2:50	0	0	0	0000
+"Catapult"	1	2	40	0	18	0	0	0	0	0	2	c:100	0	0	0	0000
+"Chariot"	2	4	40	0	25	2	0	0	0	0	1	0	0	0	0	0000
+"Swordsman"	1	4	30	0	21	3	0	0	0	0	0	0	0	0	0	0000
+"Knight"	2	5	40	0	24	2	3	0	0	0	1	0	0	0	0	0000

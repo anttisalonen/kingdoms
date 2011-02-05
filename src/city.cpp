@@ -82,6 +82,7 @@ void city::decrement_city_size()
 {
 	if(city_size > 0) {
 		city_size--;
+		stored_food = 0;
 		if(entertainers == 0) {
 			if(resource_coords.size() > 1)
 				resource_coords.pop_back();

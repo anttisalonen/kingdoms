@@ -47,6 +47,7 @@ class unit_configuration {
 		bool settler;
 		bool worker;
 		unsigned int production_cost;
+		unsigned int population_cost;
 		unsigned int max_strength;
 		unsigned int needed_advance;
 		bool sea_unit;
@@ -66,6 +67,7 @@ class unit_configuration {
 			ar & settler;
 			ar & worker;
 			ar & production_cost;
+			ar & population_cost;
 			ar & max_strength;
 			ar & needed_advance;
 			ar & sea_unit;
