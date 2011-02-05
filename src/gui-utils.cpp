@@ -975,7 +975,7 @@ int combo_box::handle_input(const SDL_Event& ev)
 			}
 			else if(ev.button.x < dim.x + dim.w - orig_h) {
 				// item from the list chosen
-				chosen_index = clamp<int>(0, (ev.button.y - dim.y) / 16 - 1,
+				chosen_index = clamp<int>(0, expanded_index + (ev.button.y - dim.y) / 16 - 1,
 						items.size() - 1);
 				expanded_index = -1;
 			}
