@@ -533,12 +533,14 @@ int main_menu::quit_button()
 class game_configuration_window {
 	public:
 		game_configuration_window(SDL_Surface* screen_,
-				TTF_Font* font_, const std::vector<civilization*>& civs) :
+				TTF_Font* font_, bool create_map, const std::vector<civilization*>& civs) :
 			bg(sdl_load_image(get_beige_bg_file().c_str())),
 			w(screen_, *font_, rect(0, 0, screen->w, screen->h),
 					bg),
 			map_size(2)
 	{
+		int start_x = screen->w / 2 - 300;
+		int start_y = screen->h / 2 - 200;
 		w.set_text_color(color(255, 255, 255));
 		w.set_button_color(color(128, 40, 40));
 		w.add_key_handler(SDLK_ESCAPE, widget_close);
@@ -546,28 +548,31 @@ class game_configuration_window {
 		w.add_button(screen->w / 2 - 40, screen->h - 40, 80, 24, "Go",
 				boost::bind(&game_configuration_window::go,
 					this, boost::lambda::_1));
-		std::vector<std::pair<rect, std::string> > map_size_buttons;
-		map_size_buttons.push_back(std::make_pair(rect(100, 120, 16, 16),
-					"0"));
-		map_size_buttons.push_back(std::make_pair(rect(100, 140, 16, 16),
-					"1"));
-		map_size_buttons.push_back(std::make_pair(rect(100, 160, 16, 16),
-					"2"));
-		map_size_buttons.push_back(std::make_pair(rect(100, 180, 16, 16),
-					"3"));
-		map_size_buttons.push_back(std::make_pair(rect(100, 200, 16, 16),
-					"4"));
-		w.add_label(100, 100, 120, 16, "Map size");
-		w.add_label(120, 120, 100, 16, "Tiny");
-		w.add_label(120, 140, 100, 16, "Small");
-		w.add_label(120, 160, 100, 16, "Medium");
-		w.add_label(120, 180, 100, 16, "Large");
-		w.add_label(120, 200, 100, 16, "Huge");
-		w.add_radio_button_set("Map size buttons", map_size_buttons, 2);
+		if(create_map) {
+			std::vector<std::pair<rect, std::string> > map_size_buttons;
+			map_size_buttons.push_back(std::make_pair(rect(start_x + 100, start_y + 120, 16, 16),
+						"0"));
+			map_size_buttons.push_back(std::make_pair(rect(start_x + 100, start_y + 140, 16, 16),
+						"1"));
+			map_size_buttons.push_back(std::make_pair(rect(start_x + 100, start_y + 160, 16, 16),
+						"2"));
+			map_size_buttons.push_back(std::make_pair(rect(start_x + 100, start_y + 180, 16, 16),
+						"3"));
+			map_size_buttons.push_back(std::make_pair(rect(start_x + 100, start_y + 200, 16, 16),
+						"4"));
+			w.add_label(start_x + 100, start_y + 100, 120, 16, "Map size");
+			w.add_label(start_x + 120, start_y + 120, 100, 16, "Tiny");
+			w.add_label(start_x + 120, start_y + 140, 100, 16, "Small");
+			w.add_label(start_x + 120, start_y + 160, 100, 16, "Medium");
+			w.add_label(start_x + 120, start_y + 180, 100, 16, "Large");
+			w.add_label(start_x + 120, start_y + 200, 100, 16, "Huge");
+			w.add_radio_button_set("Map size buttons", map_size_buttons, 2);
+		}
 		std::vector<std::string> civnames;
 		for(unsigned int i = 0; i < civs.size(); i++)
 			civnames.push_back(civs[i]->civname);
-		w.add_combo_box(250, 100, 100, 16, "My civilization",
+		w.add_label(start_x + 250, start_y + 80, 100, 16, "Your civilization");
+		w.add_combo_box(start_x + 250, start_y + 100, 100, 16, "My civilization",
 				civnames, 8);
 	}
 		~game_configuration_window()
@@ -885,19 +890,22 @@ int run_with_map(map& m, std::vector<civilization*>& civs, int own_civ_id)
 	return ret;
 }
 
-int enter_game_configuration_window(std::vector<civilization*>& civs)
+int enter_game_configuration_window(map* m, std::vector<civilization*>& civs)
 {
-	game_configuration_window w(screen, font, civs);
+	bool create_map = m == NULL;
+	game_configuration_window w(screen, font, create_map, civs);
 	if(w.run())
 		return 0;
 	resource_configuration resconf;
 	resource_map rmap;
 	get_configuration(ruleset_name, NULL, NULL, NULL, NULL, &resconf, NULL, &rmap);
-	int map_x, map_y;
-	map_x = w.get_map_size() * 20 + 60;
-	map_y = map_x - 20;
-	map m(map_x, map_y, resconf, rmap);
-	m.create();
+	if(create_map) {
+		int map_x, map_y;
+		map_x = w.get_map_size() * 20 + 60;
+		map_y = map_x - 20;
+		m = new map(map_x, map_y, resconf, rmap);
+		m->create();
+	}
 	int own_civ_id = 0;
 	for(unsigned int i = 0; i < civs.size(); i++) {
 		if(civs[i]->civname == w.get_own_civ_name()) {
@@ -905,7 +913,10 @@ int enter_game_configuration_window(std::vector<civilization*>& civs)
 			break;
 		}
 	}
-	return run_with_map(m, civs, own_civ_id);
+	int ret = run_with_map(*m, civs, own_civ_id);
+	if(create_map)
+		delete m;
+	return ret;
 }
 
 int run_gamedata(std::vector<civilization*>& civs)
@@ -938,7 +949,8 @@ int run_loaded_gamedata(bool want_map, std::vector<civilization*>& civs)
 	else {
 		map* m = l.get_loaded_map();
 		if(m) {
-			run_with_map(*m, civs, -1);
+			// TODO: currently works only if none or all civ starting places set
+			enter_game_configuration_window(m, civs);
 			return 0;
 		}
 		else {
@@ -984,7 +996,7 @@ void run_mainmenu()
 				switch(s) {
 					case main_menu::main_menu_start:
 						setup_seed();
-						enter_game_configuration_window(civs);
+						enter_game_configuration_window(NULL, civs);
 						break;
 					case main_menu::main_menu_load:
 						setup_seed();
