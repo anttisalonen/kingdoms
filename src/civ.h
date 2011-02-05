@@ -153,7 +153,7 @@ class civilization {
 		bool is_minor_civ() const;
 		bool set_commerce_allocation(unsigned int a_gold, unsigned int a_science);
 		std::string civname;
-		const unsigned int civ_id;
+		unsigned int civ_id;
 		color col;
 		std::map<unsigned int, unit*> units;
 		std::map<unsigned int, city*> cities;
@@ -201,7 +201,7 @@ class civilization {
 		void serialize(Archive& ar, const unsigned int version)
 		{
 			ar & civname;
-			ar & const_cast<unsigned int&>(civ_id);
+			ar & civ_id;
 			ar & col;
 			ar & units;
 			ar & cities;

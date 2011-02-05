@@ -808,22 +808,30 @@ int run_with_map(map& m, std::vector<civilization*>& civs, int own_civ_id)
 			self_included = true;
 		}
 	}
+	// remap civ ids in order to have correct civ ids in pompelmous
+	// TODO: rework pompelmous to use std::map<unsigned int, civilization*>
+	// instead of std::vector<unsigned int>
+	int assigned_civ_id = 0;
 	for(std::map<int, coord>::const_iterator it = starting_places.begin();
 			it != starting_places.end();
 			++it) {
-		// settler
 		int i = it->first;
 		if(!self_included) {
 			i = own_civ_id;
+			own_civ_id = assigned_civ_id;
 			self_included = true;
 		}
 		const coord& c = it->second;
+		// rename the civ id because of civ indexing in pompelmous
+		civs[i]->civ_id = assigned_civ_id;
+		// settler
 		civs[i]->add_unit(0, c.x, c.y, 
 				(*(r.uconfmap.find(0))).second, road_moves);
 		// warrior
 		civs[i]->add_unit(2, c.x, c.y, 
 				(*(r.uconfmap.find(2))).second, road_moves);
 		r.add_civilization(civs[i]);
+		assigned_civ_id++;
 	}
 
 	std::vector<std::string> barbarian_names;
