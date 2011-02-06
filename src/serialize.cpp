@@ -98,7 +98,7 @@ bool load_game(const char* filename, pompelmous& g,
 		unsigned int& own_civ_id)
 {
 	try {
-		std::ifstream ifs(filename);
+		std::ifstream ifs(filename, std::ios::in | std::ios::binary);
 		boost::iostreams::filtering_streambuf<boost::iostreams::input> in;
 		in.push(boost::iostreams::bzip2_decompressor());
 		in.push(ifs);
@@ -132,7 +132,7 @@ int save_map(const char* fn, const std::string& ruleset_name, const map& m)
 bool load_map(const char* filename, map& m)
 {
 	try {
-		std::ifstream ifs(filename);
+		std::ifstream ifs(filename, std::ios::in | std::ios::binary);
 		boost::iostreams::filtering_streambuf<boost::iostreams::input> in;
 		in.push(boost::iostreams::bzip2_decompressor());
 		in.push(ifs);
