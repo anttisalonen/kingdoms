@@ -1,4 +1,5 @@
 CXX      ?= g++
+AR       ?= ar
 CXXFLAGS ?= -O2
 CXXFLAGS += -Wall
 CXXFLAGS += -DPREFIX=$(PREFIX)
