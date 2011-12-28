@@ -1033,6 +1033,16 @@ int main(int argc, char **argv)
 	int c;
 	bool succ = true;
 	ruleset_name = "default";
+
+	// work around some locale issues with boost and g++ that result in
+	// a crash ("locale::facet::_S_create_c_locale name not valid") when
+	// trying to load a game.
+	if(!getenv("LC_ALL")) {
+		if(setenv("LC_ALL", "C", 0)) {
+			perror("setenv");
+		}
+	}
+
 	while((c = getopt(argc, argv, "adoxS:s:r:")) != -1) {
 		switch(c) {
 			case 'S':
