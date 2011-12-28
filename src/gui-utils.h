@@ -213,7 +213,7 @@ class combo_box : public widget {
 		SDL_Surface* surf;
 		int expanded_index;
 		unsigned int chosen_index;
-		unsigned int max_items_expanded;
+		size_t max_items_expanded;
 		unsigned int num_items_expanded;
 };
 
