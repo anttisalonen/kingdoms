@@ -248,7 +248,7 @@ bool improve_city_orders::replan()
 			succ = true;
 		else
 			succ = goto_orders::replan();
-		ai_debug_printf(civ->civ_id, "target: (%d, %d) - path: %d - succ: %d\n",
+		ai_debug_printf(civ->civ_id, "target: (%d, %d) - path: %lu - succ: %d\n",
 				tgtx, tgty, path.size(), succ);
 		return succ;
 	}
@@ -301,7 +301,7 @@ build_road_orders::build_road_orders(const civilization* civ_, unit* u_)
 
 bool build_road_orders::replan()
 {
-	ai_debug_printf(civ->civ_id, "Road path has size %d\n",
+	ai_debug_printf(civ->civ_id, "Road path has size %lu\n",
 			road_path.size());
 
 	if(!road_path.empty()) {

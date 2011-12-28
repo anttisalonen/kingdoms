@@ -63,7 +63,7 @@ std::vector<std::vector<std::string> > parser(const std::string& filepath,
 			results.push_back(values);
 		}
 		else if(values.size() != 0) {
-			fprintf(stderr, "Warning: parsing %s - line %d: parsed %d "
+			fprintf(stderr, "Warning: parsing %s - line %d: parsed %lu "
 					"tokens - wanted %d:\n",
 					filepath.c_str(),
 					linenum, values.size(), num_fields);

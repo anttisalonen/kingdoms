@@ -414,7 +414,7 @@ bool expansion_objective::add_unit(unit* u)
 		tgty = -1;
 		transport_orders* o = NULL;
 		std::list<unsigned int> transportee_ids;
-		ai_debug_printf(myciv->civ_id, "Checking %d potential transportees at (%d, %d).\n",
+		ai_debug_printf(myciv->civ_id, "Checking %lu potential transportees at (%d, %d).\n",
 				trit->second.size(), u->xpos, u->ypos);
 		for(std::list<std::pair<coord, unsigned int> >::iterator it = trit->second.begin();
 				it != trit->second.end();) {
@@ -535,7 +535,7 @@ found_city_orders::found_city_orders(const civilization* civ_,
 
 action found_city_orders::get_action()
 {
-	ai_debug_printf(civ->civ_id, "action at path size: %d\n", path.size());
+	ai_debug_printf(civ->civ_id, "action at path size: %lu\n", path.size());
 	if(path.empty()) {
 		int new_city_points = points_for_city_founding(civ,
 				found_city, planned, u->unit_id, 1, coord(u->xpos, u->ypos));
@@ -582,7 +582,7 @@ bool found_city_orders::replan()
 		failed = true;
 	else
 		goto_orders::replan();
-	ai_debug_printf(civ->civ_id, "replan: %d (%d, %d) - path %d\n",
+	ai_debug_printf(civ->civ_id, "replan: %d (%d, %d) - path %lu\n",
 			city_points, tgtx, tgty, path.size());
 	return !failed;
 }
@@ -683,7 +683,7 @@ action transport_orders::get_action()
 			++trit;
 		}
 	}
-	ai_debug_printf(civ->civ_id, "Transporter %d: off to (%d, %d) (Now at (%d, %d)): %s (%d)\n",
+	ai_debug_printf(civ->civ_id, "Transporter %d: off to (%d, %d) (Now at (%d, %d)): %s (%lu)\n",
 			u->unit_id, tgtx, tgty, u->xpos, u->ypos, goto_orders::get_action().to_string().c_str(),
 			path.size());
 	return goto_orders::get_action();

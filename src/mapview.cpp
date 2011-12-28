@@ -49,7 +49,7 @@ mapview::mapview(SDL_Surface* screen_, map& mm, pompelmous& rr,
 			}
 		}
 		else {
-			fprintf(stderr, "Warning: units with ID >= %d have no graphics, and no default image file is defined.\n",
+			fprintf(stderr, "Warning: units with ID >= %lu have no graphics, and no default image file is defined.\n",
 					resfiles.units.size());
 		}
 	}
