@@ -29,9 +29,8 @@ mapview::mapview(SDL_Surface* screen_, map& mm, pompelmous& rr,
 	}
 
 	// unit images
-	res.plain_unit_images.resize(rr.uconfmap.size());
 	for(unsigned int i = 0; i < resfiles.units.size(); i++) {
-		res.plain_unit_images[i] = sdl_load_image(resfiles.units[i].c_str());
+		res.plain_unit_images.push_back(sdl_load_image(resfiles.units[i].c_str()));
 	}
 	if(resfiles.units.size() < rr.uconfmap.size()) {
 		if(!resfiles.empty_unit.empty()) {
