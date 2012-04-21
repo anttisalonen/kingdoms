@@ -81,14 +81,25 @@ void run_editor()
 	TTF_CloseFont(font);
 }
 
+void usage(const char* pn)
+{
+	fprintf(stderr, "Usage: %s [-r <ruleset name>]\n\n",
+			pn);
+	fprintf(stderr, "\t-r ruleset: use custom ruleset\n");
+}
+
 int main(int argc, char** argv)
 {
 	int c;
 	ruleset_name = "default";
-	while((c = getopt(argc, argv, "r:")) != -1) {
+	while((c = getopt(argc, argv, "r:h")) != -1) {
 		switch(c) {
 			case 'r':
 				ruleset_name = std::string(optarg);
+				break;
+			case 'h':
+				usage(argv[0]);
+				exit(2);
 				break;
 			case '?':
 			default:

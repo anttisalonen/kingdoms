@@ -1028,6 +1028,18 @@ void run_mainmenu()
 	}
 }
 
+void usage(const char* pn)
+{
+	fprintf(stderr, "Usage: %s [-S <rounds>] [-d] [-o] [-x] [-s <seed>] [-r <ruleset name>]\n\n",
+			pn);
+	fprintf(stderr, "\t-S rounds:  skip a number of rounds\n");
+	fprintf(stderr, "\t-d:         AI debug mode\n");
+	fprintf(stderr, "\t-o:         observer mode\n");
+	fprintf(stderr, "\t-x:         disable GUI\n");
+	fprintf(stderr, "\t-s seed:    set random seed\n");
+	fprintf(stderr, "\t-r ruleset: use custom ruleset\n");
+}
+
 int main(int argc, char **argv)
 {
 	int c;
@@ -1043,7 +1055,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	while((c = getopt(argc, argv, "adoxS:s:r:")) != -1) {
+	while((c = getopt(argc, argv, "adoxS:s:r:h")) != -1) {
 		switch(c) {
 			case 'S':
 				skip_rounds = atoi(optarg);
@@ -1062,6 +1074,10 @@ int main(int argc, char **argv)
 				break;
 			case 'r':
 				ruleset_name = std::string(optarg);
+				break;
+			case 'h':
+				usage(argv[0]);
+				exit(2);
 				break;
 			case '?':
 			default:
