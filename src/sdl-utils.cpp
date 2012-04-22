@@ -64,6 +64,11 @@ color sdl_get_pixel(const SDL_Surface* screen, int x, int y)
 			}
 			break;
 
+		case 3: {
+				throw std::runtime_error("I don't know how to get the pixel color from a 24-bit surface.");
+			}
+			break;
+
 		case 4: { /* Probably 32-bpp */
 				Uint32 *bufp;
 				bufp = (Uint32 *)screen->pixels + y*screen->pitch/4 + x;

@@ -17,8 +17,11 @@ RULESETSDIR    = $(SHAREDIR)/rulesets
 BINDIR  = bin
 KINGDOMSNAME = kingdoms
 EDITORNAME = kingdoms-mapedit
+CONVERTNAME = kingdoms-mapconvert
+
 KINGDOMS = $(BINDIR)/$(KINGDOMSNAME)
 EDITOR   = $(BINDIR)/$(EDITORNAME)
+CONVERT  = $(BINDIR)/$(CONVERTNAME)
 
 SRCDIR = src
 TMPDIR = tmp
@@ -64,9 +67,15 @@ EDITORSRCS = $(addprefix $(SRCDIR)/, $(EDITORSRCFILES))
 EDITOROBJS = $(EDITORSRCS:.cpp=.o)
 EDITORDEPS = $(EDITORSRCS:.cpp=.dep)
 
+CONVERTSRCFILES = mapconvert.cpp
+
+CONVERTSRCS = $(addprefix $(SRCDIR)/, $(CONVERTSRCFILES))
+CONVERTOBJS = $(CONVERTSRCS:.cpp=.o)
+CONVERTDEPS = $(CONVERTSRCS:.cpp=.dep)
+
 .PHONY: clean all
 
-all: $(KINGDOMS) $(EDITOR)
+all: $(KINGDOMS) $(EDITOR) $(CONVERT)
 
 $(BINDIR):
 	mkdir -p $(BINDIR)
@@ -80,16 +89,20 @@ $(KINGDOMS): $(BINDIR) $(LIBKINGDOMS) $(KINGDOMSOBJS)
 $(EDITOR): $(BINDIR) $(LIBKINGDOMS) $(EDITOROBJS)
 	$(CXX) $(LDFLAGS) $(EDITOROBJS) $(LIBKINGDOMS) -o $(EDITOR)
 
+$(CONVERT): $(BINDIR) $(LIBKINGDOMS) $(CONVERTOBJS)
+	$(CXX) $(LDFLAGS) $(CONVERTOBJS) $(LIBKINGDOMS) -o $(CONVERT)
+
 %.dep: %.cpp
 	@rm -f $@
 	@$(CC) -MM $(CPPFLAGS) $< > $@.P
 	@sed 's,\($(notdir $*)\)\.o[ :]*,$(dir $*)\1.o $@ : ,g' < $@.P > $@
 	@rm -f $@.P
 
-install: $(KINGDOMS) $(EDITOR)
+install: $(KINGDOMS) $(EDITOR) $(CONVERT)
 	install -d $(INSTALLBINDIR) $(GFXDIR) $(RULESETSDIR)
 	install -s -m 0755 $(KINGDOMS) $(INSTALLBINDIR)
 	install -s -m 0755 $(EDITOR) $(INSTALLBINDIR)
+	install -s -m 0755 $(CONVERT) $(INSTALLBINDIR)
 	install -m 0644 share/gfx/* $(GFXDIR)
 	cp -a share/rulesets/* $(RULESETSDIR)
 	find $(RULESETSDIR) -type d -exec chmod 0755 {} +
@@ -98,6 +111,7 @@ install: $(KINGDOMS) $(EDITOR)
 uninstall:
 	rm -rf $(INSTALLBINDIR)/$(KINGDOMSNAME)
 	rm -rf $(INSTALLBINDIR)/$(EDITORNAME)
+	rm -rf $(INSTALLBINDIR)/$(CONVERTNAME)
 	rm -rf $(SHAREDIR)
 
 $(TMPDIR):
@@ -113,4 +127,5 @@ clean:
 -include $(LIBKINGDOMSDEPS)
 -include $(KINGDOMSDEPS)
 -include $(EDITORDEPS)
+-include $(CONVERTDEPS)
 
