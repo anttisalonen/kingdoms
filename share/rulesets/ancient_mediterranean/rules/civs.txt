@@ -1,0 +1,32 @@
+# civ name - color (r, g, b)
+Romans		255 0   0	Rome Antium Tarquirii Capua Neapolis Venusia Tarentum Brundisium Heraclea Thurii Ancona Volsinii Perusia Ariminium Pisae Mediolanium
+Egyptians	255 255 0	Memphis Cairo Heliopolis Bubastis Dahshur Helwan Meydum Herakleopolis Lahun Qus Thebes Thinis Zawty Dehnet Abusir "El Hiba" Nekhen
+Mycenaeans	255 255 255	Corinth Aegae Ithaca Heraklion Apollonia Cythera Delphi Dion Elateia Assus Amida Larissa Marathon Rhodes Andros Juktas Epidauros
+Minoans		40  40  255	Knossos Phaistos Malia Zakros Saklouria Tylissos Armenoi Maleme Amnisos Myrtos Zou Palaikastro Kamaizi Mochlos Lebena Kommos
+Iberians	40  255 40	Cessetani Lacetani Sedetani Belli Coerenses Tapori Paesuri Leuni Neri Cunetes Tamarici Aurini Selini Vardulli Calvri Gaeditani
+Gauls		128 80  80	Parisii Lutetia Alesia Agedincum Tricasses Turones Lugudunum Lemovices Gergovia Namnetes Avaricum Burdigala Vesontio
+Carthaginians	93  175 83	Carthago Utica Clupea Neapolis Ruspina Hadrumento Thapsus Thugga Thabraca Rusicade Maktar Thala Theveste Thaenae Thacape Acholla Saldae
+Macedonians	83  83  199	Bottiaea Crousis Bisaltia Krestonia Pieria Eordea Elimeia Orestis Lynkestis Pelagonia Sintike Edonis Pieris Odomantike Anthemus Amphadotis
+Etrurians	50  255 255	Velzna Clevsin Perusia Curtun Arretium Velch Vetluna Caisra Fufluna Felathri Felsina Spica Atria Alalia Tarchna Mantua Campeva
+Phoenicians	192 64  64	Tyre Byblos Sidon Simyra Arwad Berytus Amrit Akka Porphyreon Safita Dor Ugarit Zemar Amia Sarepta Tripoli Berut Botrys Iol Cirta Genoa Sexi Gadir Gunugu Tipassa
+Hittites	90  90  220	Hattusa Sapinuwa Tuwanuwa Kayseri Kummani Turhal Hakpisa Nerik Amasya Zalpa Aleppo Antalya Tarsus Milet Mersin Karabel Kemah Giresun Bursa Efes Adana Hama Izmir
+Lydians		192 128 192	Sardis Magnesia Smyrna Philadelphia Thyatira Colophon Erythrae Ephesus Chios Phocaea Pergamum Mytilene Eumenia Laodicea Alabanda Mylasa Bargylia Milelus Patmos
+Israelites	20  140 250	Jerusalem Hebron Debir Arad Jarmut Gabaon Jaffa Gaza Jericho Dan Gilgal Hesbon Jazer Gerar Beersheba Kadesh Punon Jahaza Beser Mahanaim
+Babylonians	60  60  60	Sumer Kish Uruk Ur Nippur Lagash Ngirsu Umma Hamazi Adab Mari Akshak Akkad Isin Kuara Zabala Kisurra Marad Dilbat Borsippa Kutha Der
+Teutons		128 0 128	Cherusci Langobardi Saxones Rugii Frisii Gepidi Vandali Lugii Marcomanni Chatti Gutones Venedi Burgundiones 
+Persians	165 209 5	Persepolis Pasargadae Susa Bagistana Behistun Bactria Van Damas Elam Yehud Maka Aria Dahae
+Britons		64 0 0		Lundein Cerin Mercia Anglia Lindsey Elmet Glouvia Buellt Gwent Wessex Powys Cerniw Regia Kent Deira Ebrauc Bryneich Bernicia Gwynedd Powys Ceredigion
+Medes		255 255 192	Ekbatana Rhagae Laodicea Apamea Paracetani Arizanti Aspadana Kashan Gazacas 
+Sabas		192 255 240	Sanaa Marib Timna Zatar Aden Najran Shabwa Qana Samharm Adulis Wiqro
+Assyrians	47 198 75	Nineveh Ashur Calah Arbela Arrapakha Nisibis Gozan Haran Tushpa Opis Sippar Musasir Samal Marqash Harmath
+# Goths         60  60  200	
+# Huns		128 128 0	
+# Dacians	100 0 100	Argedava Sarmizegetusa 
+# Scythians	
+# Trojans		
+# Nubians		
+# Kolchis	
+# Sea Peoples	
+# Imazighen	
+# Picts		
+# Massagatae	

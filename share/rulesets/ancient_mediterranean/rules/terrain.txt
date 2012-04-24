@@ -1,0 +1,26 @@
+# Terrain name - food - production - commerce - type - temperature - humidity - flags
+# types: 0: sea
+#        1: land
+#        2: hill
+#        3: mountain
+#        4: ocean
+#
+# temperatures: 1 => cold, 9 => hot, 0 => any
+# humidities:   1 => dry,  9 => humid, 0 => any
+#
+# flags:
+#	can found city on
+#	irrigatable
+#	mineable
+#	roadable
+Sea		1 0 2 0 0 0 0000
+Ocean		1 0 1 4 0 0 0000
+Grassland	2 0 1 1 5 4 1101
+Forest		1 2 0 1 0 6 1001
+Plains		1 1 0 1 7 2 1101
+Hills		1 2 0 2 0 0 1011
+Mountains	0 2 0 3 0 0 0010
+Tundra		1 0 1 1 3 0 1001
+Glacier		0 0 0 1 1 0 0000
+Desert		0 0 0 1 9 1 0000
+Jungle		1 0 1 1 8 9 1000

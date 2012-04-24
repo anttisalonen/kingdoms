@@ -1,0 +1,4 @@
+wheat.png
+horses.png
+iron.png
+fish.png

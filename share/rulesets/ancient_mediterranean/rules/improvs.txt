@@ -1,0 +1,14 @@
+# name - cost - needed advance - commerce bonus (in %) - science bonus (in %) - city defense bonus (in %) - culture - happiness - flags
+# flags: barracks
+#	 granary
+#	 palace
+"Palace"	200	0	0	0	0	2	1	001
+"Barracks"	30	1	0	0	0	0	0	100
+"Granary"	30	3	0	0	0	0	0	010
+"Marketplace"	30	4	25	0	0	0	0	000
+"Temple"	40	5	0	0	0	1	1	000
+"Library"	40	13	0	25	0	1	0	000
+"City Walls"	60	16	0	0	25	0	0	000
+"Colosseum"	80	20	0	0	0	2	2	000
+"Courthouse"	60	22	25	0	0	1	0	000
+

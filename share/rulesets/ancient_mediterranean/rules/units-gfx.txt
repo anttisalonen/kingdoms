@@ -1,0 +1,12 @@
+settlers.png
+worker.png
+warrior.png
+archer.png
+spearman.png
+trireme.png
+caravel.png
+horseman.png
+catapult.png
+chariot.png
+swordsman.png
+knight.png
