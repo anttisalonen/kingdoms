@@ -151,8 +151,10 @@ int menu::run()
 						running = false;
 					break;
 				case SDL_MOUSEBUTTONUP:
-					if(check_button_click(buttons, event))
-						running = false;
+					if(event.button.button == SDL_BUTTON_LEFT) {
+						if(check_button_click(buttons, event))
+							running = false;
+					}
 					break;
 				case SDL_QUIT:
 					raise(2);
