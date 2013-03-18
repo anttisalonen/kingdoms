@@ -977,9 +977,17 @@ void setup_seed()
 void run_mainmenu()
 {
 	if(use_gui) {
-		screen = SDL_SetVideoMode(1024, 768, 32, SDL_HWSURFACE | SDL_DOUBLEBUF);
+		const SDL_VideoInfo* vi = SDL_GetVideoInfo();
+		int w, h;
+		if(!vi) {
+			fprintf(stderr, "Unable to retrieve video information: %s\n", SDL_GetError());
+			return;
+		}
+		w = vi->current_w;
+		h = vi->current_h;
+		screen = SDL_SetVideoMode(w, h, 32, SDL_HWSURFACE | SDL_DOUBLEBUF | SDL_FULLSCREEN);
 		if (!screen) {
-			fprintf(stderr, "Unable to set %dx%d video: %s\n", 1024, 768, SDL_GetError());
+			fprintf(stderr, "Unable to set %dx%d video: %s\n", w, h, SDL_GetError());
 			return;
 		}
 		SDL_WM_SetCaption("Kingdoms", NULL);
