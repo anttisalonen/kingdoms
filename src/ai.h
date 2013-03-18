@@ -62,7 +62,6 @@ class ai : public diplomat {
 		std::list<std::pair<objective*, int> > objectives;
 		std::set<unsigned int> handled_units;
 		std::map<unsigned int, objective*> building_cities;
-		map& m;
 		pompelmous& r;
 		civilization* myciv;
 		unsigned int planned_new_government_form;

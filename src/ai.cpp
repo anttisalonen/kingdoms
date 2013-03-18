@@ -26,8 +26,7 @@ ai_tunable_parameters::ai_tunable_parameters()
 }
 
 ai::ai(map& m_, pompelmous& r_, civilization* c)
-	: m(m_),
-	r(r_),
+	: r(r_),
 	myciv(c),
 	planned_new_government_form(0)
 {
