@@ -762,9 +762,9 @@ int run_with_map(map& m, std::vector<civilization*>& civs, int own_civ_id)
 {
 	const int road_moves = 3;
 	const unsigned int food_eaten_per_citizen = 2;
-	const int num_turns = 300;
-	const unsigned int anarchy_period = 3;
-	const unsigned int num_barbarians = 50;
+	const int num_turns = 400;
+	const unsigned int anarchy_period = 1;
+	const unsigned int num_barbarians = 100;
 	bool self_included = false;
 	if(own_civ_id == -1)
 		own_civ_id = 0;
