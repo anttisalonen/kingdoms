@@ -5,10 +5,10 @@
 #include <sys/stat.h>
 #include <time.h>
 #include <errno.h>
-#include <boost/iostreams/filter/bzip2.hpp>
+#include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
-#include <boost/archive/binary_iarchive.hpp>
-#include <boost/archive/binary_oarchive.hpp>
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
 #include "serialize.h"
 
 int create_dir_if_not_exist(const std::string& s)
@@ -85,10 +85,10 @@ int save_game(const char* save_suffix, const std::string& ruleset_name,
 			g.get_round_number(), save_suffix,
 			SAVE_FILE_EXTENSION);
 	std::ofstream ofs(filename, std::ios::out | std::ios::binary | std::ios::trunc);
-	boost::iostreams::filtering_streambuf<boost::iostreams::output> out;
-	out.push(boost::iostreams::bzip2_compressor());
+	boost::iostreams::filtering_ostream out;
+	out.push(boost::iostreams::gzip_compressor());
 	out.push(ofs);
-	boost::archive::binary_oarchive oa(out);
+	boost::archive::text_oarchive oa(out);
 	oa << own_civ_id;
 	oa << g;
 	return 0;
@@ -99,10 +99,10 @@ bool load_game(const char* filename, pompelmous& g,
 {
 	try {
 		std::ifstream ifs(filename, std::ios::in | std::ios::binary);
-		boost::iostreams::filtering_streambuf<boost::iostreams::input> in;
-		in.push(boost::iostreams::bzip2_decompressor());
+		boost::iostreams::filtering_istream in;
+		in.push(boost::iostreams::gzip_decompressor());
 		in.push(ifs);
-		boost::archive::binary_iarchive ia(in);
+		boost::archive::text_iarchive ia(in);
 		ia >> own_civ_id;
 		ia >> g;
 		return true;
@@ -121,10 +121,10 @@ int save_map(const char* fn, const std::string& ruleset_name, const map& m)
 			path_to_saved_maps(ruleset_name).c_str(),
 			fn, MAP_FILE_EXTENSION);
 	std::ofstream ofs(filename, std::ios::out | std::ios::binary | std::ios::trunc);
-	boost::iostreams::filtering_streambuf<boost::iostreams::output> out;
-	out.push(boost::iostreams::bzip2_compressor());
+	boost::iostreams::filtering_ostream out;
+	out.push(boost::iostreams::gzip_compressor());
 	out.push(ofs);
-	boost::archive::binary_oarchive oa(out);
+	boost::archive::text_oarchive oa(out);
 	oa << m;
 	return 0;
 }
@@ -133,10 +133,10 @@ bool load_map(const char* filename, map& m)
 {
 	try {
 		std::ifstream ifs(filename, std::ios::in | std::ios::binary);
-		boost::iostreams::filtering_streambuf<boost::iostreams::input> in;
-		in.push(boost::iostreams::bzip2_decompressor());
+		boost::iostreams::filtering_istream in;
+		in.push(boost::iostreams::gzip_decompressor());
 		in.push(ifs);
-		boost::archive::binary_iarchive ia(in);
+		boost::archive::text_iarchive ia(in);
 		ia >> m;
 		return true;
 	}
