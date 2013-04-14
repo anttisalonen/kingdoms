@@ -30,7 +30,8 @@ int draw_text(SDL_Surface* screen, const TTF_Font* font, const char* str,
 		int x, int y, 
 		Uint8 r, Uint8 g, Uint8 b, bool centered = false);
 int draw_line(SDL_Surface* screen, int start_x, int start_y, int end_x, int end_y, const color& col);
-int draw_plain_rectangle(SDL_Surface* screen, int x, int y, int w, int h, const color& col);
+void draw_fading_border(SDL_Surface* surf, int fade_steps, const color& col, int x, int y, int w, int h);
+int draw_plain_rectangle(SDL_Surface* screen, int x, int y, int w, int h, const color& col, int fade_steps = 6);
 int sdl_init_all();
 SDL_Surface* sdl_copy_surface(const SDL_Surface* surf, bool flip_x, bool flip_y);
 

@@ -91,16 +91,7 @@ SDL_Surface* make_label(const char* text, const TTF_Font* font,
 		return NULL;
 	Uint32 button_bg_col = SDL_MapRGB(button_surf->format, bg_col.r, bg_col.g, bg_col.b);
 	SDL_FillRect(button_surf, NULL, button_bg_col);
-	const int fade_steps = 10;
-	for(int i = 0; i < fade_steps; i++) {
-		color fade_col(bg_col.r * i / fade_steps,
-				bg_col.g * i / fade_steps,
-				bg_col.b * i / fade_steps);
-		draw_line(button_surf, i, i, w - i, i, fade_col);
-		draw_line(button_surf, i, i, i, h - i, fade_col);
-		draw_line(button_surf, w - i, i, w - i, h - i, fade_col);
-		draw_line(button_surf, i, h - i, w - i, h - i, fade_col);
-	}
+	draw_fading_border(button_surf, 6, bg_col, 0, 0, w, h);
 	SDL_Color text_sdl_col = {static_cast<Uint8>(text_col.r), static_cast<Uint8>(text_col.g), static_cast<Uint8>(text_col.b)};
 	SDL_Surface* button_text = TTF_RenderUTF8_Blended((TTF_Font*)font, text, text_sdl_col);
 	if(button_text) {
@@ -876,7 +867,7 @@ void combo_box::draw_arrow(int x, int y, bool up)
 
 void combo_box::draw_text_box(int x, int y, int ind)
 {
-	draw_plain_rectangle(surf, x, y, dim.w, orig_h, bg_col);
+	draw_plain_rectangle(surf, x, y, dim.w, orig_h, bg_col, 1);
 	draw_text(surf, font, items[ind].c_str(),
 			x + 2, y + 2, text_col.r, text_col.g, text_col.b,
 			false);

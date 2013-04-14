@@ -179,7 +179,24 @@ int draw_line(SDL_Surface* screen, int x0, int y0, int x1, int y1, const color& 
 	return 0;
 }
 
-int draw_plain_rectangle(SDL_Surface* screen, int x, int y, int w, int h, const color& col)
+void draw_fading_border(SDL_Surface* surf, int fade_steps, const color& col, int x, int y, int w, int h)
+{
+	for(int i = 0; i < fade_steps; i++) {
+		color fade_col(col.r * i / fade_steps,
+				col.g * i / fade_steps,
+				col.b * i / fade_steps);
+		int x0 = x + i;
+		int y0 = y + i;
+		int x1 = x + w - i;
+		int y1 = y + h - i;
+		draw_line(surf, x0, y0, x1, y0, fade_col);
+		draw_line(surf, x0, y0, x0, y1, fade_col);
+		draw_line(surf, x1, y0, x1, y1, fade_col);
+		draw_line(surf, x0, y1, x1, y1, fade_col);
+	}
+}
+
+int draw_plain_rectangle(SDL_Surface* screen, int x, int y, int w, int h, const color& col, int fade_steps)
 {
 	SDL_Rect rect;
 	rect.x = x;
@@ -188,6 +205,8 @@ int draw_plain_rectangle(SDL_Surface* screen, int x, int y, int w, int h, const 
 	rect.h = h;
 	Uint32 bgcol = SDL_MapRGB(screen->format, col.r, col.g, col.b);
 	SDL_FillRect(screen, &rect, bgcol);
+	if(fade_steps)
+		draw_fading_border(screen, fade_steps, col, x, y, w, h);
 	return 0;
 }
 
