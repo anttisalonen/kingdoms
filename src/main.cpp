@@ -984,11 +984,22 @@ void setup_seed()
 	}
 }
 
-void run_mainmenu(bool fullscreen)
+void run_mainmenu(bool fullscreen, int resolution_width, int resolution_height)
 {
 	if(use_gui) {
 		int w, h;
+		unsigned int flags = SDL_HWSURFACE | SDL_DOUBLEBUF;
+
 		if(fullscreen) {
+			flags |= SDL_FULLSCREEN;
+		}
+
+		if(resolution_width && resolution_height) {
+			// user specified
+			w = resolution_width;
+			h = resolution_height;
+		} else if(fullscreen) {
+			// maximum
 			const SDL_VideoInfo* vi = SDL_GetVideoInfo();
 			if(!vi) {
 				fprintf(stderr, "Unable to retrieve video information: %s\n", SDL_GetError());
@@ -996,11 +1007,13 @@ void run_mainmenu(bool fullscreen)
 			}
 			w = vi->current_w;
 			h = vi->current_h;
-			screen = SDL_SetVideoMode(w, h, 32, SDL_HWSURFACE | SDL_DOUBLEBUF | SDL_FULLSCREEN);
 		} else {
-			screen = SDL_SetVideoMode(1024, 768, 32, SDL_HWSURFACE | SDL_DOUBLEBUF);
+			// default
+			w = 1024;
+			h = 768;
 		}
 
+		screen = SDL_SetVideoMode(w, h, 32, flags);
 		if (!screen) {
 			fprintf(stderr, "Unable to set %dx%d video: %s\n", w, h, SDL_GetError());
 			return;
@@ -1055,15 +1068,16 @@ void run_mainmenu(bool fullscreen)
 
 void usage(const char* pn)
 {
-	fprintf(stderr, "Usage: %s [-S <rounds>] [-d] [-o] [-x] [-s <seed>] [-r <ruleset name>]\n\n",
+	fprintf(stderr, "Usage: %s [options]\n\n",
 			pn);
-	fprintf(stderr, "\t-S rounds:  skip a number of rounds\n");
-	fprintf(stderr, "\t-d:         AI debug mode\n");
-	fprintf(stderr, "\t-o:         observer mode\n");
-	fprintf(stderr, "\t-x:         disable GUI\n");
-	fprintf(stderr, "\t-s seed:    set random seed\n");
-	fprintf(stderr, "\t-r ruleset: use custom ruleset\n");
-	fprintf(stderr, "\t-f:         run fullscreen\n");
+	fprintf(stderr, "\t-S rounds:        skip a number of rounds\n");
+	fprintf(stderr, "\t-d:               AI debug mode\n");
+	fprintf(stderr, "\t-o:               observer mode\n");
+	fprintf(stderr, "\t-x:               disable GUI\n");
+	fprintf(stderr, "\t-s seed:          set random seed\n");
+	fprintf(stderr, "\t-r ruleset:       use custom ruleset\n");
+	fprintf(stderr, "\t-f:               run fullscreen\n");
+	fprintf(stderr, "\t-R WIDTHxHEIGHT:  set resolution\n");
 }
 
 int main(int argc, char **argv)
@@ -1071,6 +1085,8 @@ int main(int argc, char **argv)
 	int c;
 	bool succ = true;
 	bool fullscreen = false;
+	int resolution_width = 0;
+	int resolution_height = 0;
 	ruleset_name = "default";
 
 	// work around some locale issues with boost and g++ that result in
@@ -1082,7 +1098,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	while((c = getopt(argc, argv, "adoxS:s:r:hf")) != -1) {
+	while((c = getopt(argc, argv, "adoxS:s:r:hfR:")) != -1) {
 		switch(c) {
 			case 'S':
 				skip_rounds = atoi(optarg);
@@ -1104,6 +1120,19 @@ int main(int argc, char **argv)
 				break;
 			case 'f':
 				fullscreen = true;
+				break;
+			case 'R':
+				{
+					std::string res(optarg);
+					auto n = res.find_first_of('x');
+					if(n != std::string::npos) {
+						resolution_height = std::stoi(res.substr(n + 1));
+						resolution_width = stoi(res.substr(0, n));
+						fprintf(stderr, "Parsed %dx%d resolution.\n",
+								resolution_width,
+								resolution_height);
+					}
+				}
 				break;
 			case 'h':
 				usage(argv[0]);
@@ -1138,7 +1167,7 @@ int main(int argc, char **argv)
 		observer = true;
 
 	try {
-		run_mainmenu(fullscreen);
+		run_mainmenu(fullscreen, resolution_width, resolution_height);
 	}
 	catch (std::exception& e) {
 		printf("std::exception: %s\n", e.what());
