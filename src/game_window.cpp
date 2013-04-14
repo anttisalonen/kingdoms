@@ -233,10 +233,12 @@ void game_window::draw_sidebar()
 {
 	draw_minimap();
 	draw_civ_info();
-	if(!internal_ai && current_unit != myciv->units.end())
+	if(!internal_ai && current_unit != myciv->units.end()) {
 		draw_unit_info();
-	else
-		draw_eot();
+	} else {
+		if(!blink_unit)
+			draw_eot();
+	}
 	display_tile_info();
 }
 
