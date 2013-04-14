@@ -1176,6 +1176,8 @@ void game_window::handle_action(const visible_move_action& a)
 {
 	if(abs(a.change.x) > 1 || abs(a.change.y) > 1)
 		return;
+	if(a.combat == combat_result_won)
+		return;
 	int newx = data.m.wrap_x(a.u->xpos + a.change.x);
 	int newy = data.m.wrap_y(a.u->ypos + a.change.y);
 	if((myciv->fog_at(a.u->xpos, a.u->ypos) != 2 || myciv->fog_at(newx, newy) != 2) &&
