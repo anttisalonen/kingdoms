@@ -51,7 +51,7 @@ class game_window : public main_window {
 		void display_tile_info() const;
 		std::string unit_strength_info_string(const unit* u) const;
 		bool write_unit_info(const unit* u, int* written_lines) const;
-		void add_gui_msg(const std::string& s);
+		void add_gui_msg(const std::string& s, bool popup = false);
 		void update_action_buttons();
 		void add_revolution_confirm_window(const char* msg);
 		int start_revolution(const widget_window* w);
@@ -60,6 +60,8 @@ class game_window : public main_window {
 		int choose_government(unsigned int gov_id, const widget_window* w);
 		void check_revolution_notifier(unsigned int adv_id);
 		void add_confirm_window(const char* msg, std::function<int(const widget_window*)> cb);
+		void add_popup_window(const char* msg);
+		widget_window* create_popup_window(const char* msg, int& win_width, int& win_height);
 
 
 		int unit_wait();

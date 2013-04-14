@@ -123,10 +123,10 @@ int game_window::handle_window_input(const SDL_Event& ev)
 	return am_quitting;
 }
 
-void game_window::add_confirm_window(const char* msg, std::function<int(const widget_window*)> cb)
+widget_window* game_window::create_popup_window(const char* msg, int& win_width, int& win_height)
 {
-	int win_height = 72;
-	int win_width = 600;
+	win_height = 108;
+	win_width = 600;
 	widget_window* w = new widget_window(screen, res.font,
 			rect(screen->w / 2 - win_width / 2,
 				screen->h / 2 - win_height / 2,
@@ -135,11 +135,29 @@ void game_window::add_confirm_window(const char* msg, std::function<int(const wi
 	w->set_text_color(popup_text_color);
 	w->set_button_color(popup_button_color);
 	w->add_key_handler(SDLK_ESCAPE, widget_close);
+	w->add_label(10, 8, win_width - 20, 60, msg);
+	return w;
+}
+
+void game_window::add_popup_window(const char* msg)
+{
+	int win_width;
+	int win_height;
+	auto w = create_popup_window(msg, win_width, win_height);
+	w->add_key_handler(SDLK_RETURN, widget_close);
+	w->add_button(10, win_height - 32, win_width - 20, 24, "OK", widget_close);
+	add_subwindow(w);
+}
+
+void game_window::add_confirm_window(const char* msg, std::function<int(const widget_window*)> cb)
+{
+	int win_width;
+	int win_height;
+	auto w = create_popup_window(msg, win_width, win_height);
 	w->add_key_handler(SDLK_n, widget_close);
 	w->add_key_handler(SDLK_y, cb);
-	w->add_label(10, 8, win_width - 20, 24, msg);
-	w->add_button(20, 40, win_width / 2 - 40, 24, "No", widget_close);
-	w->add_button(win_width / 2 + 20, 40, win_width / 2 - 40, 24, "Yes!", cb);
+	w->add_button(10, win_height - 32, win_width / 2 - 15, 24, "No", widget_close);
+	w->add_button(win_width / 2 + 5, win_height - 32, win_width / 2 - 15, 24, "Yes!", cb);
 	add_subwindow(w);
 }
 
@@ -849,11 +867,15 @@ int game_window::try_perform_action(const action& a, city** c)
 	return 0;
 }
 
-void game_window::add_gui_msg(const std::string& s)
+void game_window::add_gui_msg(const std::string& s, bool popup)
 {
 	gui_msg_queue.push_back(s);
 	if(gui_msg_queue.size() >= 7)
 		gui_msg_queue.pop_front();
+
+	if(popup) {
+		add_popup_window(s.c_str());
+	}
 }
 
 void game_window::check_revolution_notifier(unsigned int adv_id)
@@ -962,10 +984,12 @@ int game_window::handle_civ_messages(std::list<msg>* messages)
 			case msg_new_relationship:
 				if(!data.r.civs[m.msg_data.relationship_data.other_civ_id]->is_minor_civ()) {
 					std::stringstream s;
+					bool popup = false;
 					s << "The " << data.r.civs[m.msg_data.relationship_data.other_civ_id]->civname;
 					switch(m.msg_data.relationship_data.new_relationship) {
 						case relationship_war:
 							s << " are in war with us!";
+							popup = true;
 							break;
 						case relationship_peace:
 							s << " are in peace with us.";
@@ -975,7 +999,7 @@ int game_window::handle_civ_messages(std::list<msg>* messages)
 							s << " are forgotten.";
 							break;
 					}
-					add_gui_msg(s.str());
+					add_gui_msg(s.str(), popup);
 				}
 				break;
 			case msg_anarchy_over:
