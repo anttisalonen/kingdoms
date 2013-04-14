@@ -76,13 +76,6 @@ std::vector<std::vector<std::string> > parser(const std::string& filepath,
 	return results;
 }
 
-int stoi(const std::string& s)
-{
-	int res = 0;
-	std::stringstream(s) >> res;
-	return res;
-}
-
 bool get_flag(const std::string& s, unsigned int i)
 {
 	if(s.length() <= i)

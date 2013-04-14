@@ -101,7 +101,7 @@ SDL_Surface* make_label(const char* text, const TTF_Font* font,
 		draw_line(button_surf, w - i, i, w - i, h - i, fade_col);
 		draw_line(button_surf, i, h - i, w - i, h - i, fade_col);
 	}
-	SDL_Color text_sdl_col = {text_col.r, text_col.g, text_col.b};
+	SDL_Color text_sdl_col = {static_cast<Uint8>(text_col.r), static_cast<Uint8>(text_col.g), static_cast<Uint8>(text_col.b)};
 	SDL_Surface* button_text = TTF_RenderUTF8_Blended((TTF_Font*)font, text, text_sdl_col);
 	if(button_text) {
 		SDL_Rect pos;

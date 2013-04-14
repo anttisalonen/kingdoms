@@ -1,14 +1,14 @@
 CXX      ?= g++
 AR       ?= ar
 
-CXXFLAGS ?= -O2
-CXXFLAGS += -Wall
+CXXFLAGS ?= -O2 -Werror
+CXXFLAGS += -std=c++11 -Wall
 CXXFLAGS += -DPREFIX=$(PREFIX)
 CXXFLAGS += $(shell sdl-config --cflags)
 
 LDFLAGS  += $(shell sdl-config --libs) -lSDL_image -lSDL_ttf -lboost_system -lboost_serialization -lboost_filesystem -lboost_iostreams
 
-PREFIX        ?= /usr/local
+PREFIX        ?= $($HOME)/.kingdoms
 INSTALLBINDIR  = $(PREFIX)/bin
 SHAREDIR       = $(PREFIX)/share/kingdoms
 GFXDIR         = $(SHAREDIR)/gfx

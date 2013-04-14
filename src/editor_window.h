@@ -44,8 +44,6 @@ class editor_window : public main_window {
 		void save_old_mousepos();
 		tool_type current_tool;
 		int current_tool_index;
-		int chosen_terrain;
-		unsigned int chosen_resource;
 		int brush_size;
 		const int sidebar_terrain_xstart;
 		const int sidebar_terrain_ystart;
