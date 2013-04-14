@@ -25,7 +25,8 @@ game_window::game_window(SDL_Surface* screen_, gui_data& data_, gui_resources& r
 	internal_ai(ai_),
 	sidebar_info_display(coord(-1, -1)),
 	action_button_action(action_none),
-	ruleset_name(ruleset_name_)
+	ruleset_name(ruleset_name_),
+	am_quitting(false)
 {
 }
 
@@ -92,7 +93,7 @@ int game_window::process(int ms)
 		}
 	}
 	handle_civ_messages(&myciv->messages);
-	return 0;
+	return am_quitting;
 }
 
 int game_window::handle_window_input(const SDL_Event& ev)
@@ -110,13 +111,14 @@ int game_window::handle_window_input(const SDL_Event& ev)
 		add_subwindow(new city_window(screen, data, res, c,
 					internal_ai, myciv));
 	}
-	return a.type == action_give_up;
+	if(a.type == action_give_up) {
+		add_give_up_confirm_window();
+	}
+	return am_quitting;
 }
 
-void game_window::add_revolution_confirm_window(const char* msg)
+void game_window::add_confirm_window(const char* msg, std::function<int(const widget_window*)> cb)
 {
-	if(myciv->gov->gov_id == ANARCHY_INDEX)
-		return;
 	int win_height = 72;
 	int win_width = 600;
 	widget_window* w = new widget_window(screen, res.font,
@@ -128,10 +130,28 @@ void game_window::add_revolution_confirm_window(const char* msg)
 	w->set_button_color(popup_button_color);
 	w->add_key_handler(SDLK_ESCAPE, widget_close);
 	w->add_label(10, 8, win_width - 20, 24, msg);
-	w->add_button(20, 40, win_width / 2 - 40, 24, "Yes!", boost::bind(&game_window::start_revolution,
-				this, boost::lambda::_1));
-	w->add_button(win_width / 2 + 20, 40, win_width / 2 - 40, 24, "No", widget_close);
+	w->add_button(20, 40, win_width / 2 - 40, 24, "No", widget_close);
+	w->add_button(win_width / 2 + 20, 40, win_width / 2 - 40, 24, "Yes!", cb);
 	add_subwindow(w);
+}
+
+void game_window::add_give_up_confirm_window()
+{
+	add_confirm_window("Are you sure you want to give up?", std::bind(&game_window::give_up_confirmed,
+				this, std::placeholders::_1));
+}
+
+int game_window::give_up_confirmed(const widget_window* w)
+{
+	am_quitting = true;
+	return 1;
+}
+
+void game_window::add_revolution_confirm_window(const char* msg)
+{
+	if(myciv->gov->gov_id == ANARCHY_INDEX)
+		return;
+	add_confirm_window(msg, std::bind(&game_window::start_revolution, this, std::placeholders::_1));
 }
 
 int game_window::start_revolution(const widget_window* w)

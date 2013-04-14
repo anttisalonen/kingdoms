@@ -13,6 +13,7 @@ class game_window : public main_window {
 		int handle_window_input(const SDL_Event& ev);
 		void init_turn();
 		void handle_action(const visible_move_action& a);
+
 	protected:
 		char fog_on_tile(int x, int y) const;
 		bool city_info_available(const city& c) const;
@@ -20,6 +21,7 @@ class game_window : public main_window {
 		const std::set<unsigned int>* discovered_advances() const;
 		void post_draw();
 		void draw_sidebar();
+
 	private:
 		void get_next_free_unit();
 		int draw_civ_info() const;
@@ -52,9 +54,13 @@ class game_window : public main_window {
 		void update_action_buttons();
 		void add_revolution_confirm_window(const char* msg);
 		int start_revolution(const widget_window* w);
+		int give_up_confirmed(const widget_window* w);
 		void add_choose_revolution_window();
 		int choose_government(unsigned int gov_id, const widget_window* w);
 		void check_revolution_notifier(unsigned int adv_id);
+		void add_confirm_window(const char* msg, std::function<int(const widget_window*)> cb);
+
+
 		int unit_wait();
 		int unit_center();
 		int unit_skip();
@@ -66,6 +72,8 @@ class game_window : public main_window {
 		void draw_overlays();
 		void draw_action_buttons();
 		void clear_action_buttons();
+		void add_give_up_confirm_window();
+
 		rect action_button_dim(int num) const;
 		std::map<unsigned int, unit*>::const_iterator current_unit;
 		std::map<unsigned int, std::list<coord> > unit_movement_orders;
@@ -82,6 +90,7 @@ class game_window : public main_window {
 		static const color popup_text_color;
 		static const color popup_button_color;
 		static const color popup_background_color;
+		bool am_quitting;
 };
 
 #endif

@@ -267,7 +267,7 @@ class widget_window : public window {
 		void add_checkbox(int x, int y, int w, int h,
 				const std::string& text, bool checked);
 		void add_button(int x, int y, int w, int h, const std::string& text,
-				boost::function<int(const widget_window*)> cb);
+				std::function<int(const widget_window*)> cb);
 		void add_key_handler(SDLKey k, boost::function<int(const widget_window*)> cb);
 		void add_radio_button_set(const std::string& name,
 				const std::vector<std::pair<rect, std::string> >& buttons,

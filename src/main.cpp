@@ -350,7 +350,9 @@ void play_game(pompelmous& r, std::map<unsigned int, ai*>& ais,
 					}
 				}
 				SDL_Delay(50);
-				g.process(50);
+				if(g.process(50)) {
+					running = false;
+				}
 			}
 			else {
 				std::map<unsigned int, ai*>::iterator ait = ais.find(r.current_civ_id());

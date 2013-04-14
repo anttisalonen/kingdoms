@@ -1124,7 +1124,7 @@ void widget_window::add_checkbox(int x, int y, int w, int h, const std::string& 
 			       text_color, text, checked));
 }
 
-void widget_window::add_button(int x, int y, int w, int h, const std::string& text, boost::function<int(const widget_window*)> cb)
+void widget_window::add_button(int x, int y, int w, int h, const std::string& text, std::function<int(const widget_window*)> cb)
 {
 	widgets.push_back(new plain_button(rect(dim.x + x, dim.y + y, w, h), text.c_str(),
 				&font, button_color, text_color,
