@@ -135,6 +135,8 @@ void game_window::add_confirm_window(const char* msg, std::function<int(const wi
 	w->set_text_color(popup_text_color);
 	w->set_button_color(popup_button_color);
 	w->add_key_handler(SDLK_ESCAPE, widget_close);
+	w->add_key_handler(SDLK_n, widget_close);
+	w->add_key_handler(SDLK_y, cb);
 	w->add_label(10, 8, win_width - 20, 24, msg);
 	w->add_button(20, 40, win_width / 2 - 40, 24, "No", widget_close);
 	w->add_button(win_width / 2 + 20, 40, win_width / 2 - 40, 24, "Yes!", cb);
@@ -699,7 +701,7 @@ action game_window::input_to_action(const SDL_Event& ev)
 		case SDL_KEYDOWN:
 			{
 				SDLKey k = ev.key.keysym.sym;
-				if(k == SDLK_ESCAPE)
+				if(k == SDLK_ESCAPE || (k == SDLK_q && !(ev.key.keysym.mod & KMOD_CTRL)))
 					return action(action_give_up);
 				else if((k == SDLK_RETURN || k == SDLK_KP_ENTER) && 
 						(current_unit == myciv->units.end() || (ev.key.keysym.mod & (KMOD_LSHIFT | KMOD_RSHIFT)))) {
