@@ -74,7 +74,7 @@ action goto_orders::get_action()
 			return action_none;
 		}
 		else {
-			ai_debug_printf(civ->civ_id, "after replan: (%d, %d) - size: %lu.\n",
+			ai_debug_printf(civ->civ_id, "after replan: (%d, %d) - size: %zu.\n",
 					path.front().x, path.front().y, path.size());
 			chx = civ->m->vector_from_to_x(path.front().x, u->xpos);
 			chy = civ->m->vector_from_to_y(path.front().y, u->ypos);

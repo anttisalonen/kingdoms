@@ -316,7 +316,7 @@ void output_stats_to_stdout(const pompelmous& r)
 			continue;
 		const std::map<unsigned int, int>& m1 = r.civs[i]->get_built_units();
 		const std::map<unsigned int, int>& m2 = r.civs[i]->get_lost_units();
-		printf("%-20s%-6d points    %4lu cities\n%-20s%-6s%-6s\n", r.civs[i]->civname.c_str(),
+		printf("%-20s%-6d points    %4zu cities\n%-20s%-6s%-6s\n", r.civs[i]->civname.c_str(),
 				r.civs[i]->get_points(), r.civs[i]->cities.size(),
 			       	"Unit", "Built", "Lost");
 		for(std::map<unsigned int, int>::const_iterator mit = m1.begin();
@@ -803,7 +803,7 @@ int run_with_map(map& m, std::vector<civilization*>& civs, int own_civ_id)
 			std::vector<coord> starting_places_vect = m.random_starting_places(civs.size(),
 					true, min_distance);
 			if(starting_places_vect.size() != civs.size()) {
-				printf("Could find only %lu starting places (instead of %lu).\n",
+				printf("Could find only %zu starting places (instead of %zu).\n",
 						starting_places_vect.size(), civs.size());
 			}
 			if(starting_places_vect.size() >= 3) {
