@@ -61,6 +61,8 @@ class main_window : public kingdoms_window {
 		int tile_xcoord_to_pixel(int x) const;
 		int tile_ycoord_to_pixel(int y) const;
 		int tile_visible(int x, int y) const;
+		void get_camera_position_after_center_at(int x, int y, int& rx, int& ry);
+
 		const int tile_w;
 		const int tile_h;
 		const int cam_total_tiles_x;

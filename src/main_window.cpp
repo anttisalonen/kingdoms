@@ -417,12 +417,17 @@ int main_window::try_move_camera(bool left, bool right, bool up, bool down)
 	return redraw;
 }
 
+void main_window::get_camera_position_after_center_at(int x, int y, int& rx, int& ry)
+{
+	rx = clamp(0, data.m.wrap_x(x - (-sidebar_size + cam_total_tiles_x) / 2), 
+			data.m.size_x() - (data.m.x_wrapped() ? 0 : cam_total_tiles_x));
+	ry = clamp(0, data.m.wrap_y(y - cam_total_tiles_y / 2), 
+			data.m.size_y() - (data.m.y_wrapped() ? 0 : cam_total_tiles_y));
+}
+
 void main_window::center_camera_at(int x, int y)
 {
-	cam.cam_x = clamp(0, data.m.wrap_x(x - (-sidebar_size + cam_total_tiles_x) / 2), 
-			data.m.size_x() - (data.m.x_wrapped() ? 0 : cam_total_tiles_x));
-	cam.cam_y = clamp(0, data.m.wrap_y(y - cam_total_tiles_y / 2), 
-			data.m.size_y() - (data.m.y_wrapped() ? 0 : cam_total_tiles_y));
+	get_camera_position_after_center_at(x, y, cam.cam_x, cam.cam_y);
 }
 
 void main_window::center_camera_to_unit(const unit* u)
@@ -433,9 +438,11 @@ void main_window::center_camera_to_unit(const unit* u)
 int main_window::try_center_camera_at(int x, int y)
 {
 	const int border = 3;
-	if(!in_bounds(cam.cam_x + border, x, cam.cam_x - sidebar_size + cam_total_tiles_x - border) ||
-	   !in_bounds(cam.cam_y + border, y, cam.cam_y + cam_total_tiles_y - border)) {
-		center_camera_at(x, y);
+	int px, py;
+	get_camera_position_after_center_at(x, y, px, py);
+	if(abs(cam.cam_x - px) > border || abs(cam.cam_y - py) > border) {
+		cam.cam_x = px;
+		cam.cam_y = py;
 		return true;
 	}
 	return false;

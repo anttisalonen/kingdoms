@@ -883,6 +883,7 @@ bool map::connected_to_sea(int x, int y) const
 	}
 	return false;
 }
+
 int map::manhattan_distance(int x1, int y1, int x2, int y2) const
 {
 	return manhattan_distance_x(x1, x2) + manhattan_distance_y(y1, y2);
