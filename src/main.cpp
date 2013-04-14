@@ -147,7 +147,8 @@ int menu::run()
 		if(SDL_WaitEvent(&event)) {
 			switch(event.type) {
 				case SDL_KEYDOWN:
-					if(event.key.keysym.sym == SDLK_ESCAPE)
+					if(event.key.keysym.sym == SDLK_ESCAPE ||
+							event.key.keysym.sym == SDLK_q)
 						running = false;
 					break;
 				case SDL_MOUSEBUTTONUP:
