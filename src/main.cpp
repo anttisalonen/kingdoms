@@ -974,18 +974,23 @@ void setup_seed()
 	}
 }
 
-void run_mainmenu()
+void run_mainmenu(bool fullscreen)
 {
 	if(use_gui) {
-		const SDL_VideoInfo* vi = SDL_GetVideoInfo();
 		int w, h;
-		if(!vi) {
-			fprintf(stderr, "Unable to retrieve video information: %s\n", SDL_GetError());
-			return;
+		if(fullscreen) {
+			const SDL_VideoInfo* vi = SDL_GetVideoInfo();
+			if(!vi) {
+				fprintf(stderr, "Unable to retrieve video information: %s\n", SDL_GetError());
+				return;
+			}
+			w = vi->current_w;
+			h = vi->current_h;
+			screen = SDL_SetVideoMode(w, h, 32, SDL_HWSURFACE | SDL_DOUBLEBUF | SDL_FULLSCREEN);
+		} else {
+			screen = SDL_SetVideoMode(1024, 768, 32, SDL_HWSURFACE | SDL_DOUBLEBUF);
 		}
-		w = vi->current_w;
-		h = vi->current_h;
-		screen = SDL_SetVideoMode(w, h, 32, SDL_HWSURFACE | SDL_DOUBLEBUF | SDL_FULLSCREEN);
+
 		if (!screen) {
 			fprintf(stderr, "Unable to set %dx%d video: %s\n", w, h, SDL_GetError());
 			return;
@@ -1048,12 +1053,14 @@ void usage(const char* pn)
 	fprintf(stderr, "\t-x:         disable GUI\n");
 	fprintf(stderr, "\t-s seed:    set random seed\n");
 	fprintf(stderr, "\t-r ruleset: use custom ruleset\n");
+	fprintf(stderr, "\t-f:         run fullscreen\n");
 }
 
 int main(int argc, char **argv)
 {
 	int c;
 	bool succ = true;
+	bool fullscreen = false;
 	ruleset_name = "default";
 
 	// work around some locale issues with boost and g++ that result in
@@ -1065,7 +1072,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	while((c = getopt(argc, argv, "adoxS:s:r:h")) != -1) {
+	while((c = getopt(argc, argv, "adoxS:s:r:hf")) != -1) {
 		switch(c) {
 			case 'S':
 				skip_rounds = atoi(optarg);
@@ -1084,6 +1091,9 @@ int main(int argc, char **argv)
 				break;
 			case 'r':
 				ruleset_name = std::string(optarg);
+				break;
+			case 'f':
+				fullscreen = true;
 				break;
 			case 'h':
 				usage(argv[0]);
@@ -1118,7 +1128,7 @@ int main(int argc, char **argv)
 		observer = true;
 
 	try {
-		run_mainmenu();
+		run_mainmenu(fullscreen);
 	}
 	catch (std::exception& e) {
 		printf("std::exception: %s\n", e.what());
