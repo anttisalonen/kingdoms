@@ -33,6 +33,11 @@ int gui::process(int ms)
 	return gw.process(ms);
 }
 
+bool gui::have_retired() const
+{
+	return gw.have_retired();
+}
+
 void gui::init_turn()
 {
 	gw.init_turn();

@@ -13,6 +13,7 @@ class game_window : public main_window {
 		int handle_window_input(const SDL_Event& ev);
 		void init_turn();
 		void handle_action(const visible_move_action& a);
+		bool have_retired() const;
 
 	protected:
 		char fog_on_tile(int x, int y) const;
@@ -54,7 +55,7 @@ class game_window : public main_window {
 		void update_action_buttons();
 		void add_revolution_confirm_window(const char* msg);
 		int start_revolution(const widget_window* w);
-		int give_up_confirmed(const widget_window* w);
+		int give_up_confirmed(bool retire, const widget_window* w);
 		void add_choose_revolution_window();
 		int choose_government(unsigned int gov_id, const widget_window* w);
 		void check_revolution_notifier(unsigned int adv_id);
@@ -72,7 +73,7 @@ class game_window : public main_window {
 		void draw_overlays();
 		void draw_action_buttons();
 		void clear_action_buttons();
-		void add_give_up_confirm_window();
+		void add_give_up_confirm_window(bool retire = false);
 
 		rect action_button_dim(int num) const;
 		std::map<unsigned int, unit*>::const_iterator current_unit;
@@ -91,6 +92,7 @@ class game_window : public main_window {
 		static const color popup_button_color;
 		static const color popup_background_color;
 		bool am_quitting;
+		bool retired;
 };
 
 #endif

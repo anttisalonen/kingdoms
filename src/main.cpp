@@ -309,6 +309,32 @@ void display_end_screen(const pompelmous& r)
 	e.run();
 }
 
+void output_stats_to_stdout(const pompelmous& r)
+{
+	for(unsigned int i = 0; i < r.civs.size(); i++) {
+		if(r.civs[i]->is_minor_civ())
+			continue;
+		const std::map<unsigned int, int>& m1 = r.civs[i]->get_built_units();
+		const std::map<unsigned int, int>& m2 = r.civs[i]->get_lost_units();
+		printf("%-20s%-6d points    %4lu cities\n%-20s%-6s%-6s\n", r.civs[i]->civname.c_str(),
+				r.civs[i]->get_points(), r.civs[i]->cities.size(),
+			       	"Unit", "Built", "Lost");
+		for(std::map<unsigned int, int>::const_iterator mit = m1.begin();
+				mit != m1.end();
+				++mit) {
+			unsigned int key = mit->first;
+			unit_configuration_map::const_iterator uit = r.uconfmap.find(key);
+			std::map<unsigned int, int>::const_iterator mit2 = m2.find(mit->first);
+			if(uit != r.uconfmap.end()) {
+				printf("%-20s%-6d%-6d\n", uit->second.unit_name.c_str(),
+						mit->second,
+						mit2 == m2.end() ? 0 : mit2->second);
+			}
+		}
+		printf("\n");
+	}
+}
+
 void play_game(pompelmous& r, std::map<unsigned int, ai*>& ais,
 		unsigned int own_civ_id)
 {
@@ -384,37 +410,19 @@ void play_game(pompelmous& r, std::map<unsigned int, ai*>& ais,
 				}
 			}
 		}
-		if(r.finished())
+		if(r.finished()) {
+			output_stats_to_stdout(r);
 			display_end_screen(r);
-		else
 			display_score_screen(r);
+		} else if(g.have_retired()) {
+			output_stats_to_stdout(r);
+			display_score_screen(r);
+		}
 		r.remove_action_listener(&g);
 	}
 	else {
 		automatic_play_until(r, ais, r.get_num_turns());
-	}
-
-	for(unsigned int i = 0; i < r.civs.size(); i++) {
-		if(r.civs[i]->is_minor_civ())
-			continue;
-		const std::map<unsigned int, int>& m1 = r.civs[i]->get_built_units();
-		const std::map<unsigned int, int>& m2 = r.civs[i]->get_lost_units();
-		printf("%-20s%-6d points    %4lu cities\n%-20s%-6s%-6s\n", r.civs[i]->civname.c_str(),
-				r.civs[i]->get_points(), r.civs[i]->cities.size(),
-			       	"Unit", "Built", "Lost");
-		for(std::map<unsigned int, int>::const_iterator mit = m1.begin();
-				mit != m1.end();
-				++mit) {
-			unsigned int key = mit->first;
-			unit_configuration_map::const_iterator uit = r.uconfmap.find(key);
-			std::map<unsigned int, int>::const_iterator mit2 = m2.find(mit->first);
-			if(uit != r.uconfmap.end()) {
-				printf("%-20s%-6d%-6d\n", uit->second.unit_name.c_str(),
-						mit->second,
-						mit2 == m2.end() ? 0 : mit2->second);
-			}
-		}
-		printf("\n");
+		output_stats_to_stdout(r);
 	}
 }
 

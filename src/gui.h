@@ -29,6 +29,7 @@ class gui : public mapview, public action_listener
 		int display();
 		int handle_input(const SDL_Event& ev);
 		int process(int ms);
+		bool have_retired() const;
 		void init_turn();
 		void handle_action(const visible_move_action& a);
 	private:

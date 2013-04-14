@@ -26,7 +26,8 @@ game_window::game_window(SDL_Surface* screen_, gui_data& data_, gui_resources& r
 	sidebar_info_display(coord(-1, -1)),
 	action_button_action(action_none),
 	ruleset_name(ruleset_name_),
-	am_quitting(false)
+	am_quitting(false),
+	retired(false)
 {
 }
 
@@ -59,6 +60,11 @@ bool game_window::city_info_available(const city& c) const
 const std::set<unsigned int>* game_window::discovered_advances() const
 {
 	return internal_ai != NULL ? NULL : &myciv->researched_advances;
+}
+
+bool game_window::have_retired() const
+{
+	return retired;
 }
 
 int game_window::process(int ms)
@@ -135,15 +141,18 @@ void game_window::add_confirm_window(const char* msg, std::function<int(const wi
 	add_subwindow(w);
 }
 
-void game_window::add_give_up_confirm_window()
+void game_window::add_give_up_confirm_window(bool retire)
 {
-	add_confirm_window("Are you sure you want to give up?", std::bind(&game_window::give_up_confirmed,
-				this, std::placeholders::_1));
+	const char* s = retire ? "Are you sure you want to retire?"
+		: "Are you sure you want to quit?";
+	add_confirm_window(s, std::bind(&game_window::give_up_confirmed,
+				this, retire, std::placeholders::_1));
 }
 
-int game_window::give_up_confirmed(const widget_window* w)
+int game_window::give_up_confirmed(bool retire, const widget_window* w)
 {
 	am_quitting = true;
+	retired = retire;
 	return 1;
 }
 
@@ -171,6 +180,9 @@ void game_window::handle_input_gui_mod(const SDL_Event& ev, city** c)
 					save_game("manual", ruleset_name, data.r,
 							myciv->civ_id);
 					add_gui_msg("Game saved.");
+				}
+				if(k == SDLK_q && (ev.key.keysym.mod & KMOD_CTRL)) {
+					add_give_up_confirm_window(true);
 				}
 				if(k == SDLK_r && (ev.key.keysym.mod & KMOD_CTRL)) {
 					add_revolution_confirm_window("Are you sure you want a Revolution?");
@@ -687,7 +699,7 @@ action game_window::input_to_action(const SDL_Event& ev)
 		case SDL_KEYDOWN:
 			{
 				SDLKey k = ev.key.keysym.sym;
-				if(k == SDLK_ESCAPE || k == SDLK_q)
+				if(k == SDLK_ESCAPE)
 					return action(action_give_up);
 				else if((k == SDLK_RETURN || k == SDLK_KP_ENTER) && 
 						(current_unit == myciv->units.end() || (ev.key.keysym.mod & (KMOD_LSHIFT | KMOD_RSHIFT)))) {
