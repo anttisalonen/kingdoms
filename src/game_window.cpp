@@ -64,7 +64,7 @@ const std::set<unsigned int>* game_window::discovered_advances() const
 
 bool game_window::have_retired() const
 {
-	return retired;
+	return retired || myciv->eliminated();
 }
 
 int game_window::process(int ms)
@@ -1203,8 +1203,6 @@ void game_window::handle_action(const visible_move_action& a)
 	}
 
 	if(abs(a.change.x) > 1 || abs(a.change.y) > 1)
-		return;
-	if(a.combat == combat_result_won)
 		return;
 	int newx = data.m.wrap_x(a.u->xpos + a.change.x);
 	int newy = data.m.wrap_y(a.u->ypos + a.change.y);

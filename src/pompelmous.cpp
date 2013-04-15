@@ -607,6 +607,7 @@ bool pompelmous::try_move_unit(unit* u, int chx, int chy)
 	}
 
 	// attack square?
+	bool already_broadcast_move = false;
 	int def_id = m->get_spot_resident(tgtxpos, tgtypos);
 	if(def_id >= 0 && def_id != u->civ_id) {
 		if(!u->carried() && in_war(u->civ_id, def_id)) {
@@ -634,6 +635,7 @@ bool pompelmous::try_move_unit(unit* u, int chx, int chy)
 								combat_result_won,
 								defender));
 					(*civs[def_id]).remove_unit(defender);
+					already_broadcast_move = true;
 				}
 			}
 			if(m->units_on_spot(tgtxpos, tgtypos).size() == 0) {
@@ -649,7 +651,8 @@ bool pompelmous::try_move_unit(unit* u, int chx, int chy)
 
 	// move to square
 	if((*current_civ)->can_move_unit(u, chx, chy)) {
-		broadcast_action(visible_move_action(u, chx, chy, combat_result_none, NULL));
+		if(!already_broadcast_move)
+			broadcast_action(visible_move_action(u, chx, chy, combat_result_none, NULL));
 		(*current_civ)->move_unit(u, chx, chy, fought);
 		std::vector<unsigned int> discs = (*current_civ)->check_discoveries(u->xpos,
 				u->ypos, 1);

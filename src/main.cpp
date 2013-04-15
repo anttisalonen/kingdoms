@@ -284,6 +284,7 @@ void score_screen::draw_background()
 	std::vector<civilization*> civs(r.civs);
 	std::sort(civs.begin(), civs.end(), compare_score);
 	int yp = 100;
+	draw_text(screen, font, "Your civilization is beaten!", screen->w / 2, 70, 255, 255, 255, true);
 	for(std::vector<civilization*>::const_iterator it = civs.begin();
 			it != civs.end();
 			++it) {
