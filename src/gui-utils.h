@@ -29,7 +29,7 @@ typedef std::map<std::pair<int, color>, SDL_Surface*> UnitImageMap;
 struct gui_resources {
 	gui_resources(const TTF_Font& f, int tile_w, int tile_h,
 			SDL_Surface* food_, SDL_Surface* prod_,
-			SDL_Surface* comm_);
+			SDL_Surface* comm_, SDL_Surface* village_);
 	~gui_resources();
 	tileset terrains;
 	std::vector<SDL_Surface*> plain_unit_images;
@@ -40,6 +40,7 @@ struct gui_resources {
 	SDL_Surface* food_icon;
 	SDL_Surface* prod_icon;
 	SDL_Surface* comm_icon;
+	SDL_Surface* village_image;
 	SDL_Surface* get_unit_tile(const unit& u, const color& c);
 };
 

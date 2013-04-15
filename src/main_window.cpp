@@ -194,6 +194,17 @@ int main_window::draw_city(const city& c) const
 	return 0;
 }
 
+int main_window::draw_village(int x, int y) const
+{
+	if(!tile_visible(x, y))
+		return 0;
+
+	if(draw_tile(res.village_image, x, y))
+		return 1;
+
+	return 0;
+}
+
 int main_window::tile_ycoord_to_pixel(int y) const
 {
 	return data.m.wrap_y(y - cam.cam_y) * tile_h;
@@ -264,6 +275,12 @@ int main_window::draw_complete_tile(int x, int y, int shx, int shy, bool terrain
 		city* c = data.m.city_on_spot(x, y);
 		if(c) {
 			if(draw_city(*c))
+				return 1;
+		}
+
+		village_type v = data.m.village_on_spot(x, y);
+		if(v != village_type::none) {
+			if(draw_village(x, y))
 				return 1;
 		}
 	}

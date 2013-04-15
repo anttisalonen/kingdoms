@@ -16,6 +16,7 @@ map::map(int x, int y, const resource_configuration& resconf_,
 	improv_map(buf2d<int>(x, y, 0)),
 	res_map(buf2d<int>(x, y, 0)),
 	river_map(buf2d<bool>(x, y, false)),
+	village_map(buf2d<int>(x, y, 0)),
 	resconf(resconf_),
 	rmap(rmap_),
 	x_wrap(true),
@@ -501,6 +502,30 @@ void map::remove_unit(unit* u)
 	if(!old || old->size() == 0)
 		return;
 	old->remove(u);
+}
+
+void map::add_village(const coord& c)
+{
+	int x = wrap_x(c.x);
+	int y = wrap_y(c.y);
+	if(village_on_spot(x, y) != village_type::none)
+		return;
+
+	int type = rand() % (int)village_type::max_village_type;
+	village_map.set(x, y, type);
+}
+
+void map::remove_village(const coord& c)
+{
+	village_map.set(c.x, c.y, (int)village_type::none);
+}
+
+village_type map::village_on_spot(int x, int y) const
+{
+	const int* c = village_map.get(wrap_x(x), wrap_y(y));
+	if(!c)
+		return village_type::none;
+	return village_type(*c);
 }
 
 int map::get_spot_resident(int x, int y) const

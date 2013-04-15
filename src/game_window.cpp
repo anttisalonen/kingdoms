@@ -1198,6 +1198,10 @@ void game_window::init_turn()
 
 void game_window::handle_action(const visible_move_action& a)
 {
+	if(a.u->civ_id == (int)myciv->civ_id && a.village != village_type::none) {
+		display_village_info(a.village);
+	}
+
 	if(abs(a.change.x) > 1 || abs(a.change.y) > 1)
 		return;
 	if(a.combat == combat_result_won)
@@ -1256,6 +1260,38 @@ void game_window::handle_action(const visible_move_action& a)
 bool game_window::unit_not_at(int x, int y, const unit* u) const
 {
 	return u->xpos != x && u->ypos != y;
+}
+
+void game_window::display_village_info(village_type v)
+{
+	switch(v) {
+		case village_type::max_village_type:
+		case village_type::none:
+			assert(0);
+			break;
+
+		case village_type::deserted:
+			add_gui_msg("The village has been deserted a long time ago.");
+			break;
+
+		case village_type::some_barbarians:
+		case village_type::many_barbarians:
+			add_gui_msg("The village is filled with barbarians!");
+			break;
+
+		case village_type::some_gold:
+		case village_type::lots_gold:
+			add_gui_msg("You find gold in the village!");
+			break;
+
+		case village_type::friendly_mercenaries:
+			add_gui_msg("Peaceful mercenaries want to join your civilization.");
+			break;
+
+		case village_type::settler_join:
+			add_gui_msg("Peaceful settlers want to join your civilization.");
+			break;
+	}
 }
 
 

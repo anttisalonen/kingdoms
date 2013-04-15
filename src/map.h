@@ -15,6 +15,18 @@
 #include "resource_configuration.h"
 #include "city.h"
 
+enum class village_type {
+	none,
+	deserted,
+	some_barbarians,
+	many_barbarians,
+	some_gold,
+	lots_gold,
+	friendly_mercenaries,
+	settler_join,
+	max_village_type // must be last
+};
+
 class map {
 	public:
 		map(int x, int y, const resource_configuration& resconf_,
@@ -35,6 +47,9 @@ class map {
 		void set_resource(int x, int y, unsigned int res);
 		void add_unit(unit* u);
 		void remove_unit(unit* u);
+		void add_village(const coord& c);
+		void remove_village(const coord& c);
+		village_type village_on_spot(int x, int y) const;
 		bool has_river(int x, int y) const;
 		void set_river(int x, int y, bool riv);
 		int get_spot_owner(int x, int y) const; // land, unit or city
@@ -98,6 +113,7 @@ class map {
 		buf2d<int> res_map;
 		buf2d<bool> river_map;
 		std::map<int, coord> starting_places;
+		buf2d<int> village_map;
 	public:
 		const resource_configuration resconf;
 		const resource_map rmap;
@@ -118,6 +134,7 @@ class map {
 			ar & res_map;
 			ar & river_map;
 			ar & starting_places;
+			ar & village_map;
 			ar & const_cast<resource_configuration&>(resconf);
 			ar & const_cast<resource_map&>(rmap);
 			ar & x_wrap;

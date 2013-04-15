@@ -7,7 +7,8 @@ mapview::mapview(SDL_Surface* screen_, map& mm, pompelmous& rr,
 	data(gui_data(mm, rr)),
 	res(font_, 32, 32, sdl_load_image(resfiles.food_icon.c_str()), 
 			sdl_load_image(resfiles.prod_icon.c_str()), 
-			sdl_load_image(resfiles.comm_icon.c_str()))
+			sdl_load_image(resfiles.comm_icon.c_str()),
+			sdl_load_image(resfiles.village_image.c_str()))
 {
 	// terrain files
 	res.terrains.textures.resize(resfiles.terrains.size());
@@ -95,6 +96,7 @@ mapview::~mapview()
 	SDL_FreeSurface(res.food_icon);
 	SDL_FreeSurface(res.prod_icon);
 	SDL_FreeSurface(res.comm_icon);
+	SDL_FreeSurface(res.village_image);
 }
 
 int mapview::display()

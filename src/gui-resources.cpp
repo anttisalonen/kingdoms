@@ -54,6 +54,7 @@ void fetch_gui_resource_files(const std::string& ruleset_name, gui_resource_file
 	r->comm_icon = KINGDOMS_GFXDIR "comm_icon.png";
 	r->irrigation = KINGDOMS_GFXDIR "irrigation.png";
 	r->mine = KINGDOMS_GFXDIR "mine.png";
+	r->village_image = KINGDOMS_GFXDIR "village.png";
 }
 
 std::string get_beige_bg_file()

@@ -280,6 +280,11 @@ void civilization::calculate_total_city_commerce(const city& c,
 	}
 }
 
+void civilization::add_gold(int i)
+{
+	gold += i;
+}
+
 void civilization::increment_resources(const unit_configuration_map& uconfmap,
 		const advance_map& amap,
 		unsigned int road_moves, unsigned int food_eaten_per_citizen)

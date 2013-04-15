@@ -40,6 +40,7 @@ class main_window : public kingdoms_window {
 		int clear_main_map() const;
 		int draw_tile(const SDL_Surface* surf, int x, int y) const;
 		int draw_city(const city& c) const;
+		int draw_village(int x, int y) const;
 		int test_draw_border(int x, int y, int xpos, int ypos);
 		int show_terrain_image(int x, int y, int xpos, int ypos,
 				bool draw_improvements, bool draw_resources,

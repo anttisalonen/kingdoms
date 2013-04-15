@@ -17,6 +17,7 @@ struct gui_resource_files {
 	std::string irrigation;
 	std::string mine;
 	std::vector<std::string> roads;
+	std::string village_image;
 };
 
 void fetch_gui_resource_files(const std::string& ruleset_name, gui_resource_files* r);

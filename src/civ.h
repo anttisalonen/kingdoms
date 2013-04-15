@@ -152,6 +152,7 @@ class civilization {
 		void set_anarchy_period(unsigned int num);
 		bool is_minor_civ() const;
 		bool set_commerce_allocation(unsigned int a_gold, unsigned int a_science);
+		void add_gold(int i);
 		std::string civname;
 		unsigned int civ_id;
 		color col;

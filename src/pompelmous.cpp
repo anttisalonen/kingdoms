@@ -97,7 +97,17 @@ action improve_unit_action(unit* u, improvement_type i)
 visible_move_action::visible_move_action(const unit* un, int chx, int chy,
 		combat_result res, const unit* opp)
 	: u(un), change(coord(chx, chy)),
-	combat(res), opponent(opp)
+	combat(res), opponent(opp),
+	village(village_type::none)
+{
+}
+
+visible_move_action::visible_move_action(const unit* un, village_type v)
+	: u(un),
+	change(coord(0, 0)),
+	combat(combat_result_none),
+	opponent(nullptr),
+	village(v)
 {
 }
 
@@ -142,6 +152,11 @@ void pompelmous::add_civilization(civilization* civ)
 	civs.push_back(civ);
 	current_civ = civs.begin();
 	refill_moves();
+}
+
+void pompelmous::add_village(const coord& c)
+{
+	m->add_village(c);
 }
 
 void pompelmous::refill_moves()
@@ -647,6 +662,46 @@ bool pompelmous::try_move_unit(unit* u, int chx, int chy)
 			check_city_conquer(tgtxpos, tgtypos, u->civ_id);
 			check_civ_elimination(def_id);
 		}
+		
+		if(!(*current_civ)->is_minor_civ()) {
+			coord newpos = coord(u->xpos, u->ypos);
+			village_type v = m->village_on_spot(newpos.x, newpos.y);
+			if(v != village_type::none) {
+				m->remove_village(newpos);
+				broadcast_action(visible_move_action(u, v));
+			}
+			switch(v) {
+				case village_type::max_village_type:
+					assert(0);
+				case village_type::none:
+				case village_type::deserted:
+					break;
+
+				case village_type::some_barbarians:
+					try_add_random_barbarians(newpos, 4);
+					break;
+
+				case village_type::many_barbarians:
+					try_add_random_barbarians(newpos, 8);
+					break;
+
+				case village_type::some_gold:
+					add_gold(rand() % 25 + 5);
+					break;
+
+				case village_type::lots_gold:
+					add_gold(rand() % 70 + 30);
+					break;
+
+				case village_type::friendly_mercenaries:
+					add_friendly_mercenary(newpos);
+					break;
+
+				case village_type::settler_join:
+					add_settler(newpos);
+					break;
+			}
+		}
 		return true;
 	}
 	else {
@@ -958,4 +1013,57 @@ bool pompelmous::suggest_peace(int civ_id1, int civ_id2)
 		peace_between(civ_id1, civ_id2);
 	return do_peace;
 }
+
+void pompelmous::try_add_random_barbarians(const coord& c, int num)
+{
+	int civ_id = -1;
+	for(int i = civs.size() - 1; i >= 0; i--) {
+		if(civs[i]->is_minor_civ()) {
+			civ_id = i;
+			break;
+		}
+	}
+	if(civ_id == -1)
+		return;
+
+	for(int n = 0; n < num; n++) {
+		int xv = rand() % 3 - 1;
+		int yv = rand() % 3 - 1;
+		if(xv || yv) {
+			int nx = c.x + xv;
+			int ny = c.y + yv;
+			const auto& units = m->units_on_spot(nx, ny);
+			// can_found_city_on tests the most usual logical things
+			// (not water, not already a city, etc.)
+			if(units.size() == 0 && m->can_found_city_on(nx, ny)) {
+				civs[civ_id]->add_unit(WARRIOR_UNIT_CONFIGURATION_ID,
+						nx, ny, (*(uconfmap.find(WARRIOR_UNIT_CONFIGURATION_ID))).second,
+						road_moves);
+			}
+		}
+	}
+}
+
+void pompelmous::add_gold(int i)
+{
+	(*current_civ)->add_gold(i);
+}
+
+void pompelmous::add_unit(const coord& c, int uconf_id)
+{
+	(*current_civ)->add_unit(uconf_id,
+			c.x, c.y, (*(uconfmap.find(uconf_id))).second,
+			road_moves);
+}
+
+void pompelmous::add_friendly_mercenary(const coord& c)
+{
+	add_unit(c, WARRIOR_UNIT_CONFIGURATION_ID);
+}
+
+void pompelmous::add_settler(const coord& c)
+{
+	add_unit(c, SETTLER_UNIT_CONFIGURATION_ID);
+}
+
 

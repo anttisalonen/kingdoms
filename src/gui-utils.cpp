@@ -388,12 +388,14 @@ int draw_terrain_tile(int x, int y, int xpos, int ypos, bool shade,
 }
 
 gui_resources::gui_resources(const TTF_Font& f, int tile_w, int tile_h, 
-		SDL_Surface* food_, SDL_Surface* prod_, SDL_Surface* comm_)
+		SDL_Surface* food_, SDL_Surface* prod_, SDL_Surface* comm_,
+		SDL_Surface* village_)
 	: terrains(tile_w, tile_h),
        	font(f),
 	food_icon(food_),
 	prod_icon(prod_),
-	comm_icon(comm_)
+	comm_icon(comm_),
+	village_image(village_)
 {
 }
 

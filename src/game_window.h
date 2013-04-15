@@ -62,6 +62,7 @@ class game_window : public main_window {
 		void add_confirm_window(const char* msg, std::function<int(const widget_window*)> cb);
 		void add_popup_window(const char* msg);
 		widget_window* create_popup_window(const char* msg, int& win_width, int& win_height);
+		void display_village_info(village_type v);
 
 
 		int unit_wait();

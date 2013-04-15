@@ -776,6 +776,7 @@ int run_with_map(map& m, std::vector<civilization*>& civs, int own_civ_id)
 	const int num_turns = 400;
 	const unsigned int anarchy_period = 1;
 	const unsigned int num_barbarians = 100;
+	const unsigned int num_villages = 100;
 	bool self_included = false;
 	if(own_civ_id == -1)
 		own_civ_id = 0;
@@ -843,11 +844,11 @@ int run_with_map(map& m, std::vector<civilization*>& civs, int own_civ_id)
 		// rename the civ id because of civ indexing in pompelmous
 		civs[i]->civ_id = assigned_civ_id;
 		// settler
-		civs[i]->add_unit(0, c.x, c.y, 
-				(*(r.uconfmap.find(0))).second, road_moves);
+		civs[i]->add_unit(SETTLER_UNIT_CONFIGURATION_ID, c.x, c.y, 
+				(*(r.uconfmap.find(SETTLER_UNIT_CONFIGURATION_ID))).second, road_moves);
 		// warrior
-		civs[i]->add_unit(2, c.x, c.y, 
-				(*(r.uconfmap.find(2))).second, road_moves);
+		civs[i]->add_unit(WARRIOR_UNIT_CONFIGURATION_ID, c.x, c.y, 
+				(*(r.uconfmap.find(WARRIOR_UNIT_CONFIGURATION_ID))).second, road_moves);
 		r.add_civilization(civs[i]);
 		assigned_civ_id++;
 	}
@@ -861,7 +862,7 @@ int run_with_map(map& m, std::vector<civilization*>& civs, int own_civ_id)
 	std::vector<civilization*> barbarians;
 	{
 		std::vector<coord> barbarian_spots = m.random_starting_places(num_barbarians,
-				false, 2);
+				false, 4);
 		int added_barbarians = 0;
 		for(std::vector<coord>::iterator it = barbarian_spots.begin();
 				it != barbarian_spots.end();
@@ -887,13 +888,35 @@ int run_with_map(map& m, std::vector<civilization*>& civs, int own_civ_id)
 						&govmap.begin()->second, true);
 				barbarians.push_back(barb);
 				// warrior
-				barb->add_unit(2, it->x, it->y, 
-						(*(r.uconfmap.find(2))).second, road_moves);
+				barb->add_unit(WARRIOR_UNIT_CONFIGURATION_ID, it->x, it->y, 
+						(*(r.uconfmap.find(WARRIOR_UNIT_CONFIGURATION_ID))).second, road_moves);
 				r.add_civilization(barb);
 			}
 		}
 		printf("Added %d barbarian tribes.\n",
 				added_barbarians);
+	}
+
+	{
+		// create villages
+		std::vector<coord> village_spots = m.random_starting_places(num_villages,
+				false, 4);
+		int added_villages = 0;
+		for(const auto& c : village_spots) {
+			bool add_this = true;
+			for(const auto& c2 : starting_places) {
+				if(m.manhattan_distance(c.x, c.y,
+							c2.second.x, c2.second.y) < 4) {
+					add_this = false;
+					break;
+				}
+			}
+			if(add_this) {
+				added_villages++;
+				r.add_village(c);
+			}
+		}
+		printf("Added %d villages.\n", added_villages);
 	}
 
 	int ret = run_game(r, own_civ_id);

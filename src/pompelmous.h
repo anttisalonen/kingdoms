@@ -14,6 +14,9 @@
 #include "map.h"
 #include "diplomat.h"
 
+#define SETTLER_UNIT_CONFIGURATION_ID	0
+#define WARRIOR_UNIT_CONFIGURATION_ID	2
+
 enum action_type {
 	action_give_up,
 	action_eot,
@@ -96,10 +99,12 @@ enum combat_result {
 struct visible_move_action {
 	visible_move_action(const unit* un, int chx, int chy,
 			combat_result res, const unit* opp);
+	visible_move_action(const unit* un, village_type v);
 	const unit* u;
 	coord change;
 	combat_result combat;
 	const unit* opponent;
+	village_type village;
 };
 
 class action_listener {
@@ -128,6 +133,7 @@ class pompelmous
 				int num_turns_);
 		pompelmous(); // for serialization
 		void add_civilization(civilization* civ);
+		void add_village(const coord& c);
 		void add_diplomat(int civid, diplomat* d);
 		bool perform_action(int civid, const action& a);
 		const unit_configuration* get_unit_configuration(int uid) const;
@@ -168,6 +174,7 @@ class pompelmous
 		void start_revolution(civilization* civ);
 		void set_government(civilization* civ, int gov_id);
 		bool suggest_peace(int civ_id1, int civ_id2);
+
 	private:
 		void broadcast_action(const visible_move_action& a) const;
 		bool next_civ();
@@ -187,6 +194,12 @@ class pompelmous
 		int get_offense_bonus(const unit* off, const unit* def) const;
 		int get_defense_bonus(const unit* def, const unit* off) const;
 		void check_for_victory_conditions();
+		void try_add_random_barbarians(const coord& c, int num);
+		void add_gold(int i);
+		void add_unit(const coord& c, int uconf_id);
+		void add_friendly_mercenary(const coord& c);
+		void add_settler(const coord& c);
+
 		std::vector<civilization*>::iterator current_civ;
 		map* m;
 		int round_number;
