@@ -134,13 +134,16 @@ class map {
 			ar & res_map;
 			ar & river_map;
 			ar & starting_places;
-			ar & village_map;
+			if(version > 0)
+				ar & village_map;
 			ar & const_cast<resource_configuration&>(resconf);
 			ar & const_cast<resource_map&>(rmap);
 			ar & x_wrap;
 			ar & y_wrap;
 		}
 };
+
+BOOST_CLASS_VERSION(map, 1)
 
 #endif
 
