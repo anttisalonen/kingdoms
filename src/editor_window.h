@@ -42,6 +42,7 @@ class editor_window : public main_window {
 		bool mouse_tile_moved() const;
 		int on_coastal_protection_button();
 		void save_old_mousepos();
+
 		tool_type current_tool;
 		int current_tool_index;
 		int brush_size;
