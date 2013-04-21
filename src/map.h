@@ -33,6 +33,7 @@ class map {
 				const resource_map& rmap_);
 		map(); // for serialization
 		void create();
+		void add_random_resources();
 		int get_data(int x, int y) const;
 		void set_data(int x, int y, int terr);
 		int size_x() const;

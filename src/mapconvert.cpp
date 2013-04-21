@@ -1,22 +1,90 @@
 #include <stdio.h>
+#include <string.h>
+#include <fstream>
+
 #include "sdl-utils.h"
 #include "pompelmous.h"
 #include "parse_rules.h"
 #include "serialize.h"
 
+#include <jsoncpp/json/json.h>
+
+
 void usage(char* pn)
 {
-	fprintf(stderr, "Usage: %s [-r <ruleset name>] <input filename> <output filename>\n\n", pn);
-	fprintf(stderr, "\t-r ruleset:  use custom ruleset\n");
-	fprintf(stderr, "\t-x:          disable wrapping the X coordinate\n");
-	fprintf(stderr, "\tInput file:  an image file (e.g. png)\n");
-	fprintf(stderr, "\tOutput file: map filename (without a file extension)\n");
+	fprintf(stderr, "Usage: %s [-r <ruleset name>] <color mapping file> <input image file> <output file>\n\n", pn);
+	fprintf(stderr, "\t-r ruleset:         use custom ruleset\n");
+	fprintf(stderr, "\t-x:                 disable wrapping the X coordinate\n");
+	fprintf(stderr, "\tColor mapping file: mapping from color to terrain (see doc/mapping_example.json)\n");
+	fprintf(stderr, "\tInput image file:   an image file (e.g. png)\n");
+	fprintf(stderr, "\tOutput file:        map filename (without a file extension)\n");
 }
 
 static std::string ruleset_name = "default";
+static const char* color_mapping_file = NULL;
 static const char* infile = NULL;
 static const char* outfile = NULL;
 static bool wrap_x = true;
+
+
+struct colormap {
+	colormap(const color& c, int t) : col(c), type(t) { }
+	color col;
+	int type;
+};
+
+std::vector<colormap> loadColorMapping(const resource_configuration& resconf)
+{
+	Json::Reader reader;
+	Json::Value root;
+
+	std::ifstream input(color_mapping_file, std::ifstream::binary);
+	bool parsingSuccessful = reader.parse(input, root, false);
+	if (!parsingSuccessful) {
+		throw std::runtime_error(reader.getFormatedErrorMessages());
+	}
+
+	std::vector<colormap> ret;
+
+	auto members = root.getMemberNames();
+
+	for(const auto& membername : members) {
+		const auto& member = root[membername];
+		std::vector<color> colors;
+		if(!member[0u].isArray()) {
+			int r = member[0u].asInt();
+			int g = member[1u].asInt();
+			int b = member[2u].asInt();
+			colors.push_back(color(r, g, b));
+		} else {
+			for(size_t i = 0; i < member.size(); i++) {
+				const auto& col = member[i];
+				int r = col[0u].asInt();
+				int g = col[1u].asInt();
+				int b = col[2u].asInt();
+				colors.push_back(color(r, g, b));
+			}
+		}
+
+		bool found = false;
+		for(size_t i = 0; i < num_terrain_types; i++) {
+			if(resconf.resource_name[i] == membername) {
+				for(const auto& col : colors) {
+					ret.push_back(colormap(col, i));
+				}
+				found = true;
+				break;
+			}
+		}
+
+		if(!found) {
+			printf("Warning: invalid terrain name \"%s\"\n", membername.c_str());
+		}
+	}
+
+	return ret;
+}
+
 
 void convert_image()
 {
@@ -38,26 +106,32 @@ void convert_image()
 	int h = surf->h;
 	printf("Map size: %dx%d\n", w, h);
 	printf("Bytes per pixel: %d\n", surf->format->BytesPerPixel);
-	int grass = resconf.get_grass_tile();
-	int mountain = resconf.get_mountain_tile();
 	int sea = resconf.get_sea_tile();
+
+	std::vector<colormap> colormapping;
+	colormapping = loadColorMapping(resconf);
+
+	int count[num_terrain_types];
+	memset(count, 0x00, sizeof(count));
+
 	map m(w, h, resconf, rmap);
 	m.set_x_wrap(wrap_x);
 	for(int j = 0; j < h; j++) {
 		for(int i = 0; i < w; i++) {
 			color c = sdl_get_pixel(surf, i, j);
-			printf("Color %3d %3d %3d => ", c.r, c.g, c.b);
-			if(c.r > c.g && c.r > c.b) {
-				m.set_data(i, j, mountain);
-				printf("Mountain\n");
+			int mindiff = INT_MAX;
+			int type = -1;
+			for(const auto& cm : colormapping) {
+				int diff = abs(c.r - cm.col.r) +
+					abs(c.g - cm.col.g) +
+					abs(c.b - cm.col.b);
+				if(diff < mindiff) {
+					type = cm.type;
+					mindiff = diff;
+				}
 			}
-			else if(c.g > c.r && c.g > c.b) {
-				m.set_data(i, j, grass);
-				printf("Grass\n");
-			}
-			else {
-				printf("Ocean\n");
-			}
+			m.set_data(i, j, type);
+			count[type]++;
 		}
 	}
 
@@ -76,8 +150,27 @@ void convert_image()
 			}
 		}
 	}
-	
+
+	// add random resources
+	m.add_random_resources();
+
 	save_map(outfile, ruleset_name, m);
+
+	int total_land = 0;
+	int total_tiles = w * h;
+	for(unsigned int i = 0; i < num_terrain_types; i++) {
+		if(!resconf.is_water_tile(i)) {
+			total_land += count[i];
+		}
+	}
+
+	printf("%-20s: %3d %%\n", "Land", 100 * total_land / total_tiles);
+	for(unsigned int i = 0; i < num_terrain_types; i++) {
+		if(count[i] && !resconf.is_water_tile(i)) {
+			printf("%-20s: %3d %%\n", resconf.resource_name[i].c_str(),
+					100 * count[i] / total_land);
+		}
+	}
 }
 
 int main(int argc, char** argv)
@@ -103,6 +196,8 @@ int main(int argc, char** argv)
 		else {
 			if(!infile)
 				infile = argv[i];
+			else if(!color_mapping_file)
+				color_mapping_file = argv[i];
 			else if(!outfile)
 				outfile = argv[i];
 			else {
@@ -112,14 +207,18 @@ int main(int argc, char** argv)
 			}
 		}
 	}
-	if(!infile || !outfile) {
+	if(!infile || !outfile || !color_mapping_file) {
 		usage(argv[0]);
 		exit(1);
 	}
+
+	bool succ = false;
+
 	if(sdl_init_all())
 		exit(1);
 	try {
 		convert_image();
+		succ = true;
 	}
 	catch (boost::archive::archive_exception& e) {
 		printf("boost::archive::archive_exception: %s (code %d).\n",
@@ -134,6 +233,6 @@ int main(int argc, char** argv)
 	TTF_Quit();
 	SDL_Quit();
 
-	return 0;
+	return succ ? 0 : 1;
 }
 

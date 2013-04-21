@@ -191,8 +191,13 @@ void map::create()
 	}
 
 	// create resources
-	for(int j = 0; j < y; j++) {
-		for(int i = 0; i < x; i++) {
+	add_random_resources();
+}
+
+void map::add_random_resources()
+{
+	for(int j = 0; j < data.size_y; j++) {
+		for(int i = 0; i < data.size_x; i++) {
 			std::vector<unsigned int> selected_resources;
 			int this_data = get_data(i, j);
 			for(resource_map::const_iterator it = rmap.begin();
