@@ -63,6 +63,7 @@ class main_window : public kingdoms_window {
 		int tile_ycoord_to_pixel(int y) const;
 		int tile_visible(int x, int y) const;
 		void get_camera_position_after_center_at(int x, int y, int& rx, int& ry);
+		int check_minimap_click(const SDL_Event& ev);
 
 		const int tile_w;
 		const int tile_h;

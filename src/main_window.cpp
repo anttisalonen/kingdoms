@@ -498,6 +498,9 @@ void main_window::handle_input_gui_mod(const SDL_Event& ev)
 		case SDL_MOUSEMOTION:
 			if(mouse_down_sqx >= 0)
 				mouse_coord_to_tiles(ev.motion.x, ev.motion.y, &mouse_down_sqx, &mouse_down_sqy);
+			else if(SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(1)) {
+				check_minimap_click(ev);
+			}
 			break;
 		case SDL_MOUSEBUTTONUP:
 			handle_mouse_up(ev);
@@ -531,6 +534,21 @@ int main_window::handle_mouse_up(const SDL_Event& ev)
 int main_window::handle_mouse_down(const SDL_Event& ev)
 {
 	mouse_coord_to_tiles(ev.button.x, ev.button.y, &mouse_down_sqx, &mouse_down_sqy);
+	check_minimap_click(ev);
+	return 0;
+}
+
+int main_window::check_minimap_click(const SDL_Event& ev)
+{
+	const int minimap_w = sidebar_size * tile_w;
+	const int minimap_h = sidebar_size * tile_h / 2;
+
+	if(ev.button.x < minimap_w && ev.button.y < minimap_h) {
+		int sqx = data.m.size_x() * ev.button.x / minimap_w;
+		int sqy = data.m.size_y() * ev.button.y / minimap_h;
+		center_camera_at(sqx, sqy);
+	}
+
 	return 0;
 }
 
