@@ -9,3 +9,12 @@ Aztecs		128 128 128	Tenochtitlan Tlacopan Texcoco Tlaxcala Teotitlan Tzintzuntza
 Japanese	60  60  0	Kyoto Edo Kobe Yokohama Osaka Nagoya Sapporo Fukuoka Kawasaki Saitama Hiroshima Sendai Kitakyushu Chiba Niigata Shizuoka Okayama Kumamoto Kagoshima
 Spanish		128 128 0	Madrid Barcelona Valencia Seville Bilbao Malaga Oviedo Alicante "Las Palmas" Zaragoza Murcia Mallorca Granada Vigo Cadiz "San Sebastian" Valladolid
 English		128 0   0	London York Birmingham Hereford Leicester Manchester Liverpool Wolverhampton Leeds Newcastle Sheffield Exeter Derby Bradford Bath Portsmouth Coventry
+Vikings		128 128 255	Nidaros Birka Skiringssal Aarhus Avaldnes Uppsala Hedeby Dublin Man Jorvik Holmgrad Jomsborg Sogn Osterdalen Hamarkaupang
+Mayas		255 128 128	Tikal Palenque Caracol Copan Xunantunich Calakmul Lamanai "Cahal Pech" Uaxactun "Altun Ha" Bonampak Oxkintok Chunchucmil Uxmal Cancuen Quirigua Tulum Yaxha Kaminaljuyu "Chichen Itza" Comalcalco
+Incas		255 128 255	Cusco Ollantaytambo Vilcabamba Puna Vilcaconga Cajamarca Maraycalla Abancay Chupas Anaquito Huarina Chuquinga Jaquijahuana 
+Zulu		160 60 160	Ulundi Isandlwana Hlobane Eshowe Gingindlovu Kambula Dukuza Umlazi Umzimkulu Ndwedwe Umgababa Ubombo Matubatuba Oshabeni Mbazwana Manguzi Hlabisa Bhekindoda Jozini Shikishela Mkuze
+Ethiopia	60 160 60	Aksum Avalites Yeha Ishafan Matara Qohaito Gondar Korata Donkaro Zebit Adet Chegni Gultosh Weldiya Wuchale Yejube Injibara Dabat Bichena Ankober Metemma Dessie Dejen Soqota
+Arabians	0 255 0		Mecca Medina Kufa Aleppo Siraf Mosul Nahavand Dahshur Nisibis Edessa Homs Tabriz Qom Mashhad Ishafan Shiraz Basra Hadramout Khonj Lar
+Mongols		192 128 128	Karakorum Samarkand Suurin Khanbaliq Shangdu Sarai Soltaniyeh "Shar Ord" Tosokh "Ongiin Ord" "Tsagaan Balgas" Tenduk "Tataryn Kherem" "Arlyn Balgas" "Khokh nuuriin Ord" "Khogshin Teeliin Balgas"
+Russians	240 240 240	Novgorod Smolensk Minsk Yaroslavl Rostov Vladimir Madurai Venusia Moscow Odessa Sevastopol Kerch Nikolayev "St. Petersburg" Ryazan Polotsk Toropets Pskov Pereyaslavl
+Mali		128 255 128	Niani Ka-Ba Gao Tombuctou Sosso Wagadou Dia Sikasso Bamako Djenne "Kumbi Saleh" Koutiala Mande Bougouni Mopti Kati Kayes Segou San Kolokani Kaladougou Koumantou Massigui
