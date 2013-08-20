@@ -57,8 +57,7 @@ std::vector<colormap> loadColorMapping(const resource_configuration& resconf)
 			int b = member[2u].asInt();
 			colors.push_back(color(r, g, b));
 		} else {
-			for(size_t i = 0; i < member.size(); i++) {
-				const auto& col = member[i];
+			for(const auto& col : member) {
 				int r = col[0u].asInt();
 				int g = col[1u].asInt();
 				int b = col[2u].asInt();
