@@ -66,7 +66,7 @@ std::vector<colormap> loadColorMapping(const resource_configuration& resconf)
 		}
 
 		bool found = false;
-		for(size_t i = 0; i < num_terrain_types; i++) {
+		for(int i = 0; i < num_terrain_types; i++) {
 			if(resconf.resource_name[i] == membername) {
 				for(const auto& col : colors) {
 					ret.push_back(colormap(col, i));
@@ -157,14 +157,14 @@ void convert_image()
 
 	int total_land = 0;
 	int total_tiles = w * h;
-	for(unsigned int i = 0; i < num_terrain_types; i++) {
+	for(int i = 0; i < num_terrain_types; i++) {
 		if(!resconf.is_water_tile(i)) {
 			total_land += count[i];
 		}
 	}
 
 	printf("%-20s: %3d %%\n", "Land", 100 * total_land / total_tiles);
-	for(unsigned int i = 0; i < num_terrain_types; i++) {
+	for(int i = 0; i < num_terrain_types; i++) {
 		if(count[i] && !resconf.is_water_tile(i)) {
 			printf("%-20s: %3d %%\n", resconf.resource_name[i].c_str(),
 					100 * count[i] / total_land);
