@@ -5,6 +5,8 @@
 #include "civ.h"
 #include "map-astar.h"
 
+#define SCIENCE_DISCOVERY_DURATION_COEFFICIENT 4
+
 civilization::civilization(std::string name, unsigned int civid, 
 		const color& c_, map* m_,
 		const std::vector<std::string>::iterator& names_start,
@@ -379,7 +381,7 @@ void civilization::increment_resources(const unit_configuration_map& uconfmap,
 		}
 		setup_default_research_goal(amap);
 	}
-	else if(adv->second.cost <= science) {
+	else if(adv->second.cost * SCIENCE_DISCOVERY_DURATION_COEFFICIENT <= science) {
 		science -= adv->second.cost;
 		add_message(new_advance_discovered(research_goal_id));
 		researched_advances.insert(research_goal_id);
