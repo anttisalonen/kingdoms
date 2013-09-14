@@ -5,7 +5,6 @@ PREFIX   ?= $(HOME)/.kingdoms
 
 CXXFLAGS ?= -O2 -Werror
 CXXFLAGS += -std=c++11 -Wall
-CXXFLAGS += -DPREFIX=$(PREFIX)
 CXXFLAGS += $(shell sdl-config --cflags)
 
 LDFLAGS  += $(shell sdl-config --libs) -lSDL_image -lSDL_ttf -lboost_system -lboost_serialization -lboost_filesystem -lboost_iostreams

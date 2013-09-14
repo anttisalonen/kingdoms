@@ -53,7 +53,6 @@
 #include "SDL/SDL_ttf.h"
 
 #include "gui-resources.h"
-#include "config.h"
 #include "paths.h"
 
 static bool signal_received = false;
@@ -497,9 +496,9 @@ main_menu::main_menu_selection main_menu::get_selection() const
 void main_menu::draw_background()
 {
 	if(bg_img == NULL) {
-		bg_img = sdl_load_image(KINGDOMS_GFXDIR "pergamon.png");
+		bg_img = sdl_load_image(get_graphics_path("pergamon.png").c_str());
 		if(!bg_img) {
-			fprintf(stderr, "Unable to load image %s: %s\n", KINGDOMS_GFXDIR "pergamon.png",
+			fprintf(stderr, "Unable to load image %s: %s\n", get_graphics_path("pergamon.png").c_str(),
 					SDL_GetError());
 			return;
 		}
@@ -1044,7 +1043,7 @@ void run_mainmenu(bool fullscreen, int resolution_width, int resolution_height)
 			return;
 		}
 		SDL_WM_SetCaption("Kingdoms", NULL);
-		font = TTF_OpenFont(KINGDOMS_GFXDIR "DejaVuSans.ttf", 12);
+		font = TTF_OpenFont(get_graphics_path("DejaVuSans.ttf").c_str(), 12);
 		if(!font) {
 			fprintf(stderr, "Could not open font: %s\n", TTF_GetError());
 		}

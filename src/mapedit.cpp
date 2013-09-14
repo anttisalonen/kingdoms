@@ -8,7 +8,7 @@
 #include "gui-resources.h"
 #include "editorgui.h"
 
-#include "config.h"
+#include "paths.h"
 
 static std::string ruleset_name;
 
@@ -20,7 +20,7 @@ void run_editor()
 		return;
 	}
 	SDL_WM_SetCaption("Kingdoms Map Editor", NULL);
-	TTF_Font* font = TTF_OpenFont(KINGDOMS_GFXDIR "DejaVuSans.ttf", 12);
+	TTF_Font* font = TTF_OpenFont(get_graphics_path("DejaVuSans.ttf").c_str(), 12);
 	if(!font) {
 		fprintf(stderr, "Could not open font: %s\n", TTF_GetError());
 		return;

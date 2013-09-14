@@ -3,7 +3,6 @@
 #include <exception>
 
 #include "parse_rules.h"
-#include "config.h"
 #include "paths.h"
 
 std::vector<std::vector<std::string> > parser(const std::string& filepath, 
