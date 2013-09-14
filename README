@@ -27,21 +27,15 @@ to the libraries.
 git://github.com/anttisalonen/kingdoms.git) or download the tarball
 from https://github.com/anttisalonen/kingdoms/archives/master.
 - change to the cloned/unpacked directory.
-- to install Kingdoms in /usr/local, first run (as a normal user):
+- to run Kingdoms without installing, run:
 
 $ make
+$ bin/kingdoms
 
-then, as root, run:
+To install Kingdoms (e.g. to /usr/local), after running make,
+run (as root):
 
-# make install
-
-- to install in another directory, first run
-
-make PREFIX=/path/to/install/directory
-
-then run
-
-make PREFIX=/path/to/install/directory install
+# make PREFIX=/usr/local install
 
 After installation, make sure $PREFIX/bin is in your path, then run
 "kingdoms" to start the game.
