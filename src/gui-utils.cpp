@@ -26,7 +26,7 @@ button::button(const std::string& name_, const rect& dim_, boost::function<int()
 
 int button::handle_input(const SDL_Event& ev)
 {
-	if(ev.type == SDL_MOUSEBUTTONUP && 
+	if(ev.type == SDL_MOUSEBUTTONUP && ev.button.button == SDL_BUTTON_LEFT &&
 			in_rectangle(dim, ev.button.x, ev.button.y)) {
 		if(onclick) {
 			return onclick();
@@ -454,6 +454,9 @@ int check_button_click(const std::list<button*>& buttons,
 {
 	if(ev.type != SDL_MOUSEBUTTONDOWN && ev.type != SDL_MOUSEBUTTONUP)
 		return 0;
+	if(ev.button.button != SDL_BUTTON_LEFT)
+		return 0;
+
 	for(std::list<button*>::const_iterator it = buttons.begin();
 			it != buttons.end();
 			++it) {
@@ -580,7 +583,7 @@ int input_text_window::on_cancel()
 
 int input_text_window::handle_window_input(const SDL_Event& ev)
 {
-	if(ev.type == SDL_MOUSEBUTTONDOWN) {
+	if(ev.type == SDL_MOUSEBUTTONDOWN && ev.button.button == SDL_BUTTON_LEFT) {
 		return check_button_click(buttons, ev);
 	}
 	else if(ev.type == SDL_KEYDOWN) {
@@ -927,7 +930,7 @@ int combo_box::draw(SDL_Surface* screen)
 
 int combo_box::handle_input(const SDL_Event& ev)
 {
-	if(ev.type == SDL_MOUSEBUTTONUP && 
+	if(ev.type == SDL_MOUSEBUTTONUP && ev.button.button == SDL_BUTTON_LEFT &&
 			in_rectangle(rect(dim.x, dim.y, dim.w, dim.h),
 				ev.button.x, ev.button.y)) {
 		if(expanded_index == -1) {
@@ -1037,7 +1040,7 @@ void widget_window::set_focus_widget(int x, int y)
 
 int widget_window::handle_window_input(const SDL_Event& ev)
 {
-	if(ev.type == SDL_MOUSEBUTTONDOWN) {
+	if(ev.type == SDL_MOUSEBUTTONDOWN && ev.button.button == SDL_BUTTON_LEFT) {
 		set_focus_widget(ev.button.x, ev.button.y);
 	}
 	if(ev.type == SDL_KEYDOWN) {

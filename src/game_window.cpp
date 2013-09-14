@@ -225,7 +225,8 @@ void game_window::handle_input_gui_mod(const SDL_Event& ev, city** c)
 			}
 			break;
 		case SDL_MOUSEBUTTONDOWN:
-			handle_mouse_down(ev, c);
+			if(ev.button.button == SDL_BUTTON_LEFT)
+				handle_mouse_down(ev, c);
 			break;
 		default:
 			break;
@@ -761,10 +762,12 @@ action game_window::input_to_action(const SDL_Event& ev)
 			}
 			break;
 		case SDL_MOUSEBUTTONDOWN:
-			handle_action_mouse_down(ev);
+			if(ev.button.button == SDL_BUTTON_LEFT)
+				handle_action_mouse_down(ev);
 			break;
 		case SDL_MOUSEBUTTONUP:
-			return handle_action_mouse_up(ev);
+			if(ev.button.button == SDL_BUTTON_LEFT)
+				return handle_action_mouse_up(ev);
 		default:
 			break;
 	}
