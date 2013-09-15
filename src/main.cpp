@@ -1100,7 +1100,8 @@ void usage(const char* pn)
 	fprintf(stderr, "\t-x:               disable GUI\n");
 	fprintf(stderr, "\t-s seed:          set random seed\n");
 	fprintf(stderr, "\t-r ruleset:       use custom ruleset\n");
-	fprintf(stderr, "\t-f:               run fullscreen\n");
+	fprintf(stderr, "\t-f:               run fullscreen [default]\n");
+	fprintf(stderr, "\t-w:               run windowed\n");
 	fprintf(stderr, "\t-R WIDTHxHEIGHT:  set resolution\n");
 }
 
@@ -1108,7 +1109,7 @@ int main(int argc, char **argv)
 {
 	int c;
 	bool succ = true;
-	bool fullscreen = false;
+	bool fullscreen = true;
 	int resolution_width = 0;
 	int resolution_height = 0;
 	ruleset_name = "default";
@@ -1122,7 +1123,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	while((c = getopt(argc, argv, "adoxS:s:r:hfR:")) != -1) {
+	while((c = getopt(argc, argv, "adoxS:s:r:hwfR:")) != -1) {
 		switch(c) {
 			case 'S':
 				skip_rounds = atoi(optarg);
@@ -1141,6 +1142,9 @@ int main(int argc, char **argv)
 				break;
 			case 'r':
 				ruleset_name = std::string(optarg);
+				break;
+			case 'w':
+				fullscreen = false;
 				break;
 			case 'f':
 				fullscreen = true;
