@@ -1,6 +1,7 @@
 #ifndef GAME_WINDOW_H
 #define GAME_WINDOW_H
 
+#include "ai-orders.h"
 #include "main_window.h"
 
 class game_window : public main_window {
@@ -63,7 +64,8 @@ class game_window : public main_window {
 		void add_popup_window(const char* msg);
 		widget_window* create_popup_window(const char* msg, int& win_width, int& win_height);
 		void display_village_info(village_type v);
-
+		void check_automated_worker_orders(std::map<unsigned int, orders*>::iterator automated_it);
+		orders* try_automate_worker();
 
 		int unit_wait();
 		int unit_center();
@@ -73,6 +75,7 @@ class game_window : public main_window {
 		int unit_improve(improvement_type i);
 		int unit_load();
 		int unit_unload();
+		int unit_automate_worker();
 		void draw_overlays();
 		void draw_action_buttons();
 		void clear_action_buttons();
@@ -81,6 +84,7 @@ class game_window : public main_window {
 		rect action_button_dim(int num) const;
 		std::map<unsigned int, unit*>::const_iterator current_unit;
 		std::map<unsigned int, std::list<coord> > unit_movement_orders;
+		std::map<unsigned int, orders*> automated_workers;
 		bool blink_unit;
 		int timer;
 		civilization* myciv;

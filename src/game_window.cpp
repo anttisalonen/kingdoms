@@ -9,6 +9,8 @@
 #include "relationships_window.h"
 #include "serialize.h"
 
+#include "ai-commerce.h"
+
 #include "game_window.h"
 
 const color game_window::popup_text_color = color(255, 255, 255);
@@ -565,6 +567,14 @@ void game_window::update_action_buttons()
 								"Mine", &res.font, action_button_color, color(0, 0, 0),
 								boost::bind(&game_window::unit_improve, this, improv_mine)));
 				}
+				// automate worker - reuse load button slot
+				if(!data.r.can_load_unit(current_unit->second,
+							current_unit->second->xpos,
+							current_unit->second->ypos)) {
+					action_buttons.push_back(new plain_button(action_button_dim(5),
+								"Auto", &res.font, action_button_color, color(0, 0, 0),
+								boost::bind(&game_window::unit_automate_worker, this)));
+				}
 			}
 			// unload
 			if(current_unit->second->carrying()) {
@@ -608,6 +618,12 @@ int game_window::unit_fortify()
 int game_window::unit_found_city()
 {
 	action_button_action = unit_action(action_found_city, current_unit->second);
+	return 1;
+}
+
+int game_window::unit_automate_worker()
+{
+	try_automate_worker();
 	return 1;
 }
 
@@ -712,6 +728,15 @@ void game_window::numpad_to_move(SDLKey k, int* chx, int* chy) const
 	}
 }
 
+orders* game_window::try_automate_worker()
+{
+	orders* o = commerce_objective::create_worker_orders(myciv, current_unit->second);
+	if(o) {
+		automated_workers[current_unit->second->unit_id] = o;
+	}
+	return o;
+}
+
 action game_window::input_to_action(const SDL_Event& ev)
 {
 	switch(ev.type) {
@@ -727,6 +752,12 @@ action game_window::input_to_action(const SDL_Event& ev)
 					return action(action_eot);
 				}
 				else if(current_unit != myciv->units.end() && (ev.key.keysym.mod == 0)) {
+					if(k == SDLK_a) {
+						if(current_unit->second->uconf->worker) {
+							try_automate_worker();
+						}
+						return action_none;
+					}
 					if(k == SDLK_b) {
 						return unit_action(action_found_city, current_unit->second);
 					}
@@ -1061,6 +1092,40 @@ int game_window::choose_government(unsigned int gov_id, const widget_window* w)
 	return 1;
 }
 
+void game_window::check_automated_worker_orders(std::map<unsigned int, orders*>::iterator automated_it)
+{
+	while(automated_it->first == current_unit->second->unit_id &&
+			current_unit->second->idle()) {
+		orders* o = automated_it->second;
+		assert(o);
+		action a = o->get_action();
+
+		if(try_perform_action(a, NULL) != 2) {
+			// could not perform action - try recreating orders
+			// Replanning won't work here because create_worker_orders()
+			// creates multiple different orders.
+			delete o;
+			o = try_automate_worker();
+			if(!o) {
+				// Perhaps a better fallback would be to sleep in the
+				// nearest city. For now just wake up.
+				automated_workers.erase(automated_it);
+				return;
+			}
+			a = o->get_action();
+			if(try_perform_action(a, NULL) != 2) {
+				// failed after retry
+				delete o;
+				automated_workers.erase(automated_it);
+				return;
+			}
+		}
+
+		// success
+		o->drop_action();
+	}
+}
+
 void game_window::check_unit_movement_orders()
 {
 	while(1) {
@@ -1070,6 +1135,13 @@ void game_window::check_unit_movement_orders()
 		std::map<unsigned int, std::list<coord> >::iterator path =
 			unit_movement_orders.find(current_unit->second->unit_id);
 		if(path == unit_movement_orders.end()) {
+			auto automated_it = automated_workers.find(current_unit->second->unit_id);
+			if(automated_it == automated_workers.end()) {
+				return;
+			} else {
+				check_automated_worker_orders(automated_it);
+				return;
+			}
 			return;
 		}
 		if(!current_unit->second->idle()) {

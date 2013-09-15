@@ -140,26 +140,35 @@ int commerce_objective::get_unit_points(const unit& u) const
 	return prio;
 }
 
+orders* commerce_objective::create_worker_orders(civilization* civ, unit* u)
+{
+	orders* o = new connect_resources_orders(civ, u);
+	if(o->finished()) {
+		ai_debug_printf(civ->civ_id, "No resources to connect.\n");
+		delete o;
+		o = new connect_cities_orders(civ, u);
+		if(o->finished()) {
+			ai_debug_printf(civ->civ_id, "No cities to connect.\n");
+			delete o;
+			o = new improve_city_orders(civ, u);
+			if(o->finished()) {
+				ai_debug_printf(civ->civ_id, "No improvements to build.\n");
+				delete o;
+				return nullptr;
+			}
+		}
+	}
+	return o;
+}
+
 bool commerce_objective::add_unit(unit* u)
 {
 	if(!usable_unit(*u->uconf)) {
 		return false;
 	}
-	orders* o = new connect_resources_orders(myciv, u);
-	if(o->finished()) {
-		ai_debug_printf(myciv->civ_id, "No resources to connect.\n");
-		delete o;
-		o = new connect_cities_orders(myciv, u);
-		if(o->finished()) {
-			ai_debug_printf(myciv->civ_id, "No cities to connect.\n");
-			delete o;
-			o = new improve_city_orders(myciv, u);
-			if(o->finished()) {
-				ai_debug_printf(myciv->civ_id, "No improvements to build.\n");
-				delete o;
-				return false;
-			}
-		}
+	orders* o = create_worker_orders(myciv, u);
+	if(!o) {
+		return false;
 	}
 	ordersmap.insert(std::make_pair(u->unit_id, o));
 	return true;
