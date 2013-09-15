@@ -1,0 +1,14 @@
+Gameplay and GUI changes:
+-add zoom
+-treat mouse scroll button as scroll in GUI scrollboxes
+-worker command: road to
+-worker command: automate
+
+Internal changes:
+-add subdirectories at src
+
+Map editor:
+-reduce CPU usage
+-add undo
+-add displaying grid coordinates
+-add generating a new map from an old one with a new scaling
