@@ -3,6 +3,7 @@ Gameplay and GUI changes:
 -treat mouse scroll button as scroll in GUI scrollboxes
 -worker command: road to
 -worker command: automate
+-set main menu button coordinates depending on resolution
 
 Internal changes:
 -add subdirectories at src
