@@ -29,6 +29,7 @@ class government {
 			ar & gov_id;
 			ar & gov_name;
 			ar & needed_advance;
+			ar & production_cap;
 			ar & city_units;
 			ar & free_units;
 			ar & unit_cost;
