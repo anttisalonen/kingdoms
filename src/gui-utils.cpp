@@ -61,7 +61,9 @@ texture_button::~texture_button()
 
 int texture_button::draw(SDL_Surface* screen)
 {
-	return draw_surface(screen, surf);
+	if(surf)
+		return draw_surface(screen, surf);
+	return 0;
 }
 
 plain_button::plain_button(const rect& dim_, const char* text, const TTF_Font* font,

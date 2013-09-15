@@ -29,6 +29,7 @@ class city_window : public kingdoms_window {
 		int change_production();
 		int on_exit();
 		int on_unit(unit* u);
+		int on_resource_tile(int x, int y);
 		int draw_city_resources_screen(int xpos, int ypos);
 		city* c;
 		std::list<button*> buttons;

@@ -129,7 +129,7 @@ void city::drop_resource_worker(const coord& c)
 			resource_coords.end(), c);
 	if(it != resource_coords.end()) {
 		resource_coords.erase(it);
-		entertainers--;
+		entertainers++;
 	}
 }
 

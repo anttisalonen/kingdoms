@@ -79,6 +79,37 @@ int city_window::on_unit(unit* u)
 	return 0;
 }
 
+int city_window::on_resource_tile(int x, int y)
+{
+	// The button is only created for tiles for which the terrain is visible.
+	// This ensures it's not possible to harvest unknown tiles.
+	coord crd(x - c->xpos, y - c->ypos);
+	const auto& resource_coords = c->get_resource_coords();
+	const auto it = std::find(resource_coords.begin(),
+			resource_coords.end(), crd);
+	if(it != resource_coords.end()) {
+		// already in use => remove
+		c->drop_resource_worker(crd);
+		myciv->update_resource_worker_map();
+	} else {
+		// not in use => if have elvis, simply add
+		// if no elvis, pop one, then add
+		if(data.m.get_land_owner(x, y) == (int)myciv->civ_id &&
+				myciv->can_add_resource_worker(coord(x, y))) {
+			if(c->get_num_entertainers() == 0) {
+				c->pop_resource_worker();
+			}
+			bool succ = c->add_resource_worker(crd);
+			myciv->update_resource_worker_map();
+			if(!succ) {
+				fprintf(stderr, "Error: tried to add resource worker but couldn't.\n");
+				return 0;
+			}
+		}
+	}
+	return 0;
+}
+
 int city_window::draw_city_resources_screen(int xpos, int ypos)
 {
 	// draw terrain
@@ -101,6 +132,11 @@ int city_window::draw_city_resources_screen(int xpos, int ypos)
 								data.m, res.terrains,
 								res.resource_images, true,
 								true, &myciv->researched_advances, screen);
+						buttons.push_back(new texture_button(std::string(""),
+									rect(x, y, res.terrains.tile_w,
+										res.terrains.tile_h),
+									nullptr,
+									boost::bind(&city_window::on_resource_tile, this, xp, yp)));
 					}
 					// draw red rectangles on used resource spots
 					// red rectangles may be overwritten by white ones in the next step
