@@ -1094,8 +1094,13 @@ int game_window::choose_government(unsigned int gov_id, const widget_window* w)
 
 void game_window::check_automated_worker_orders(std::map<unsigned int, orders*>::iterator automated_it)
 {
-	while(automated_it->first == current_unit->second->unit_id &&
-			current_unit->second->idle()) {
+	while(1) {
+		if(current_unit == myciv->units.end()) {
+			return;
+		}
+		if(automated_it->first != current_unit->second->unit_id) {
+			return;
+		}
 		orders* o = automated_it->second;
 		assert(o);
 		action a = o->get_action();
@@ -1123,6 +1128,7 @@ void game_window::check_automated_worker_orders(std::map<unsigned int, orders*>:
 
 		// success
 		o->drop_action();
+
 	}
 }
 
