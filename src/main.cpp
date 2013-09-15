@@ -259,14 +259,18 @@ class score_screen : public simple_info_screen {
 	public:
 		score_screen(SDL_Surface* screen_,
 				TTF_Font* font_,
-				const pompelmous& r_);
+				const pompelmous& r_,
+				unsigned int own_civ_id_);
 	protected:
 		void draw_background();
+		unsigned int own_civ_id;
 };
 
 score_screen::score_screen(SDL_Surface* screen_,
-		TTF_Font* font_, const pompelmous& r_)
-	: simple_info_screen(screen_, font_, r_)
+		TTF_Font* font_, const pompelmous& r_,
+		unsigned int own_civ_id_)
+	: simple_info_screen(screen_, font_, r_),
+	own_civ_id(own_civ_id_)
 {
 }
 
@@ -283,7 +287,14 @@ void score_screen::draw_background()
 	std::vector<civilization*> civs(r.civs);
 	std::sort(civs.begin(), civs.end(), compare_score);
 	int yp = 100;
-	draw_text(screen, font, "Your civilization is beaten!", screen->w / 2, 70, 255, 255, 255, true);
+
+	const char* msg;
+	if(own_civ_id == (unsigned int)r.get_winning_civ())
+		msg = "Your civilization is victorious!";
+	else
+		msg = "Your civilization is beaten!";
+	draw_text(screen, font, msg, screen->w / 2, 70, 255, 255, 255, true);
+
 	for(std::vector<civilization*>::const_iterator it = civs.begin();
 			it != civs.end();
 			++it) {
@@ -298,9 +309,9 @@ void score_screen::draw_background()
 	}
 }
 
-void display_score_screen(const pompelmous& r)
+void display_score_screen(const pompelmous& r, unsigned int own_civ_id)
 {
-	score_screen e(screen, font, r);
+	score_screen e(screen, font, r, own_civ_id);
 	e.run();
 }
 
@@ -414,10 +425,10 @@ void play_game(pompelmous& r, std::map<unsigned int, ai*>& ais,
 		if(r.finished()) {
 			output_stats_to_stdout(r);
 			display_end_screen(r);
-			display_score_screen(r);
+			display_score_screen(r, own_civ_id);
 		} else if(g.have_retired()) {
 			output_stats_to_stdout(r);
-			display_score_screen(r);
+			display_score_screen(r, own_civ_id);
 		}
 		r.remove_action_listener(&g);
 	}
