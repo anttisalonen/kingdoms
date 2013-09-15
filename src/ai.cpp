@@ -58,6 +58,64 @@ ai::~ai()
 	objectives.clear();
 }
 
+bool ai::try_declare_war()
+{
+	// declare war to a civilization that matches the following criteria:
+	// - has at least one visible city
+	// - has less population visible than self
+	//
+	// if more than one found, pick the one with the nearest reachable city
+	// from our capital
+	// capital == first founded city in this case
+	//
+	// Note: the problem with this scheme is that in practise war is only
+	// declared when an opposing civ founds a city that is in previously
+	// explored area as it is otherwise not possible to see any enemy cities
+	// without declaring war.
+	if(myciv->cities.size() < 2)
+		return false;
+
+	const auto& capital = myciv->cities.begin()->second;
+	const civilization* best_target_civ = nullptr;
+
+	for(unsigned int i = 0; i < r.civs.size(); i++) {
+		if(i == myciv->civ_id || r.civs[i]->is_minor_civ() || r.civs[i]->eliminated())
+			continue;
+		if(myciv->get_relationship_to_civ(i) == relationship_peace) {
+			int num_visible_population = 0;
+			int dist_to_nearest_visible_city_from_capital = INT_MAX;
+			for(const auto& p : r.civs[i]->cities) {
+				const auto& c = p.second;
+				if(myciv->fog_at(c->xpos, c->ypos)) {
+					// TODO: This doesn't check whether we can actually
+					// reach the civ now, or whether an ocean is in
+					// the way. Assume that if we can see the city then
+					// it's also reachable.
+					num_visible_population += c->get_city_size();
+					// use simple BFS as not to assume which kind of unit
+					// will be used in offensive
+					int this_dist = map_birds_path_to_nearest(
+							coord(capital->xpos, capital->ypos),
+							coord(c->xpos, c->ypos)).size();
+					if(this_dist > 0 && this_dist < dist_to_nearest_visible_city_from_capital) {
+						dist_to_nearest_visible_city_from_capital = this_dist;
+						best_target_civ = r.civs[i];
+					}
+				}
+			}
+		}
+	}
+
+	if(best_target_civ) {
+		r.declare_war_between(myciv->civ_id, best_target_civ->civ_id);
+		ai_debug_printf(myciv->civ_id, "Declared war against %s\n",
+				best_target_civ->civname.c_str());
+		return true;
+	} else {
+		return false;
+	}
+}
+
 bool ai::play()
 {
 	if(myciv->eliminated() || r.get_victory_type() != victory_none) {
@@ -145,18 +203,9 @@ bool ai::play()
 				}
 			}
 			if(!already_in_war) {
-				// just declare war to everyone
-				for(unsigned int i = 0; i < r.civs.size(); i++) {
-					if(i == myciv->civ_id || r.civs[i]->is_minor_civ() || r.civs[i]->eliminated())
-						continue;
-					if(myciv->get_relationship_to_civ(i) == relationship_peace) {
-						r.declare_war_between(myciv->civ_id, i);
-						relations_changed = true;
-						ai_debug_printf(myciv->civ_id,
-								"Declared war against %s\n",
-								r.civs[i]->civname.c_str());
-					}
-				}
+				bool found = try_declare_war();
+				if(found)
+					relations_changed = true;
 			}
 		}
 		if(relations_changed) {

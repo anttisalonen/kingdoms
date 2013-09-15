@@ -58,6 +58,7 @@ class ai : public diplomat {
 		int get_research_goal_points(const advance& a, int levels) const;
 		int get_research_goal_points_worker(const advance& a, int levels, int total_levels) const;
 		int get_government_value(const government& gov) const;
+		bool try_declare_war();
 		std::set<unsigned int> free_units;
 		std::list<std::pair<objective*, int> > objectives;
 		std::set<unsigned int> handled_units;

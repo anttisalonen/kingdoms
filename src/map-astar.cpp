@@ -193,6 +193,12 @@ std::list<coord> map_birds_path_to_nearest(const coord& start,
 			goaltestfunc, start);
 }
 
+std::list<coord> map_birds_path_to_nearest(const coord& start, const coord& goal)
+{
+	return map_birds_path_to_nearest(start,
+			[&](const coord& a) -> bool { return a == goal; });
+}
+
 std::list<coord> map_along_roads(const coord& start,
 		const civilization& civ,
 		bool no_enemy_territory, bool known_territory,
@@ -210,4 +216,14 @@ std::list<coord> map_along_roads(const coord& start,
 			boost::lambda::constant(0),
 			goaltestfunc, start);
 }
+
+std::list<coord> map_along_roads(const coord& start,
+		const civilization& civ,
+		bool no_enemy_territory, bool known_territory,
+		const coord& goal)
+{
+	return map_along_roads(start, civ, no_enemy_territory, known_territory,
+			[&](const coord& a) -> bool { return a == goal; });
+}
+
 
