@@ -1,4 +1,4 @@
-#ifndef MAP_ATAR_H
+#ifndef MAP_ASTAR_H
 #define MAP_ASTAR_H
 
 #include <list>
