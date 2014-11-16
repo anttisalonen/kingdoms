@@ -1098,7 +1098,7 @@ void game_window::check_automated_worker_orders(std::map<unsigned int, orders*>:
 		if(current_unit == myciv->units.end()) {
 			return;
 		}
-		if(automated_it->first != current_unit->second->unit_id) {
+		if(static_cast<int>(automated_it->first) != current_unit->second->unit_id) {
 			return;
 		}
 		orders* o = automated_it->second;
